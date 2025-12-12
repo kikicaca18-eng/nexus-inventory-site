@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>센터별 재고 조회</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="login-box" id="loginBox">
+    <h2>센터 로그인</h2>
+
+    <select id="centerSelect">
+      <option value="">센터 선택</option>
+      <option value="광주">광주</option>
+      <option value="목포">목포</option>
+      <option value="순천">순천</option>
+      <option value="전북">전북</option>
+      <option value="제주">제주</option>
+    </select>
+
+    <input type="password" id="password" placeholder="비밀번호 입력">
+
+    <button onclick="login()">로그인</button>
+  </div>
+
+
+  <div class="search-box" id="searchBox" style="display:none;">
+    <h2 id="centerTitle"></h2>
+
+    <input type="text" id="keyword" placeholder="모델명 또는 키워드 입력">
+
+    <button onclick="search()">검색</button>
+
+    <div id="result"></div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

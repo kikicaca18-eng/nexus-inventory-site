@@ -1,0 +1,30 @@
+body {
+  font-family: Arial;
+  background: #f3f3f3;
+  text-align: center;
+}
+
+.login-box, .search-box {
+  background: white;
+  width: 350px;
+  margin: 80px auto;
+  padding: 25px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px #ccc;
+}
+
+input, select {
+  width: 90%;
+  padding: 10px;
+  margin: 10px 0;
+}
+
+button {
+  width: 95%;
+  padding: 12px;
+  background: #007bff;
+  border: none;
+  color: white;
+  border-radius: 5px;
+  font-size: 16px;
+}
