@@ -23,6 +23,8 @@ function login() {
   document.getElementById("loginBox").style.display = "none";
   document.getElementById("logoutBtn").style.display = "inline-block";
   document.getElementById("brandSub").innerText = (center === "관리자") ? "관리자 모드" : `${center}센터 로그인됨`;
+  document.querySelector(".hero").style.display = "none";
+
 
   if (center === "관리자") {
     document.getElementById("uploadBox").style.display = "block";
@@ -43,6 +45,8 @@ function logout() {
   document.getElementById("password").value = "";
   document.getElementById("result").innerHTML = "";
   document.getElementById("status").innerText = "";
+document.querySelector(".hero").style.display = "block";
+
 }
 
 async function uploadExcel() {
@@ -104,6 +108,18 @@ async function runSearch() {
     }
 
     status.innerText = `총 ${j.total}대 있습니다.`;
+    
+    // 🔽 정렬 처리 (기본: 보유처 오름차순)
+const sortKey = document.getElementById("sortKey").value;
+const sortOrder = document.getElementById("sortOrder").value;
+
+j.table.sort((a, b) => {
+  const av = (a[sortKey] || "").toString();
+  const bv = (b[sortKey] || "").toString();
+  if (av < bv) return sortOrder === "asc" ? -1 : 1;
+  if (av > bv) return sortOrder === "asc" ? 1 : -1;
+  return 0;
+});
 
     // 기본 표 컬럼(불필요한 정보 최소화)
     const baseCols = ["보유처", "모델명", "색상", "일련번호"];
@@ -124,8 +140,10 @@ function renderTable(rows, cols) {
   const thead = document.createElement("thead");
   const trh = document.createElement("tr");
   cols.forEach(c => {
-    const th = document.createElement("th");
-    th.textContent = c;
+const th = document.createElement("th");
+th.textContent = c;
+th.className = `col-${c}`;
+
     trh.appendChild(th);
   });
   thead.appendChild(trh);
@@ -134,8 +152,10 @@ function renderTable(rows, cols) {
   rows.forEach(r => {
     const tr = document.createElement("tr");
     cols.forEach(c => {
-      const td = document.createElement("td");
-      td.textContent = (r[c] ?? "").toString();
+const td = document.createElement("td");
+td.textContent = (r[c] ?? "").toString();
+td.className = `col-${c}`;
+
       tr.appendChild(td);
     });
     tbody.appendChild(tr);

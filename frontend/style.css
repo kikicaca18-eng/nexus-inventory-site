@@ -107,3 +107,36 @@ th{background:#f3f4f6; font-weight:700}
 tr:hover td{background:#fafafa}
 
 .muted{color:var(--muted); font-size:14px; margin:0 0 10px 0}
+@media (max-width: 640px) {
+  table {
+    min-width: 0;
+    font-size: 12px;
+  }
+
+  th, td {
+    padding: 6px 6px;
+    white-space: nowrap;
+  }
+
+  .col-상권주소,
+  .col-펫네임,
+  .col-애칭 {
+    display: none;
+  }
+}
+.hero {
+  text-align: center;
+  padding: 48px 16px 32px;
+}
+
+.hero h1 {
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.hero p {
+  font-size: 15px;
+  color: var(--muted);
+  line-height: 1.6;
+}

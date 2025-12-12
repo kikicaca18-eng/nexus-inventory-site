@@ -16,6 +16,14 @@
   </header>
 
   <main class="container">
+  <section class="hero">
+  <h1>kt m&s 호남 재고 조회 서비스</h1>
+  <p>
+    호남권 전 센터 재고를<br/>
+    빠르고 정확하게 조회하세요.
+  </p>
+</section>
+
     <!-- 로그인 -->
     <section class="card" id="loginBox">
       <h2 class="h2">센터 로그인</h2>
@@ -60,13 +68,26 @@
         </div>
       </div>
 
-      <div class="actions">
-        <button class="btn primary" onclick="runSearch()">조회</button>
-        <label class="check">
-          <input type="checkbox" id="detailToggle" />
-          상세 보기(상권/펫네임/애칭 표시)
-        </label>
-      </div>
+<div class="actions">
+  <button class="btn primary" onclick="runSearch()">조회</button>
+
+  <select id="sortKey" class="input small">
+    <option value="보유처">보유처</option>
+    <option value="모델명">모델명</option>
+    <option value="색상">색상</option>
+  </select>
+
+  <select id="sortOrder" class="input small">
+    <option value="asc">오름차순</option>
+    <option value="desc">내림차순</option>
+  </select>
+
+  <label class="check">
+    <input type="checkbox" id="detailToggle" />
+    상세 보기
+  </label>
+</div>
+
 
       <div class="status" id="status"></div>
       <div id="result"></div>
