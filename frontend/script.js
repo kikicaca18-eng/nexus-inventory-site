@@ -27,7 +27,7 @@ function login() {
 async function search() {
   const keyword = document.getElementById("keyword").value;
 
-  const response = await fetch("http://localhost:3000/search", {
+  const response = await fetch("https://nexus-inventory-site.onrender.com", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ center: currentCenter, keyword })
