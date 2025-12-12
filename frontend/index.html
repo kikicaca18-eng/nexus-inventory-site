@@ -1,59 +1,87 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>센터별 재고 조회</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>kt m&s 호남 재고 조회 서비스</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-
-  <div class="login-box" id="loginBox">
-    <h2>센터 로그인</h2>
-
-    <select id="centerSelect">
-      <option value="">센터 선택</option>
-      <option value="광주">광주</option>
-      <option value="목포">목포</option>
-      <option value="순천">순천</option>
-      <option value="전북">전북</option>
-      <option value="제주">제주</option>
-      <option value="관리자">📌 관리자</option>
-    </select>
-
-    <input type="password" id="password" placeholder="비밀번호 입력">
-
-    <button onclick="login()">로그인</button>
-  </div>
-
-  <div class="search-box" id="searchBox" style="display:none;">
-    <h2 id="centerTitle"></h2>
-
-    <div style="margin-bottom:10px;">
-      <!-- 기존 키워드 검색 유지(간단 빠른 필터) -->
-      <input type="text" id="keyword" placeholder="모델명 또는 키워드 입력">
-      <button onclick="search()">검색</button>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-title">kt m&s 호남 재고 조회 서비스</div>
+      <div class="brand-sub" id="brandSub"></div>
     </div>
+    <button class="btn ghost" id="logoutBtn" onclick="logout()" style="display:none;">로그아웃</button>
+  </header>
 
-    <!-- 자연어 질문 입력 -->
-    <div style="margin-bottom:10px;">
-      <input type="text" id="nlQuery" placeholder="예: 'M366 재고 몇대 있어?', '광주에 재고 몇대' " style="width:70%">
-      <button onclick="ask()">질문</button>
-    </div>
+  <main class="container">
+    <!-- 로그인 -->
+    <section class="card" id="loginBox">
+      <h2 class="h2">센터 로그인</h2>
 
-    <div id="result"></div>
-    <button onclick="logout()" class="logout">로그아웃</button>
-  </div>
+      <label class="label">센터</label>
+      <select id="centerSelect" class="input">
+        <option value="">센터 선택</option>
+        <option value="광주">광주</option>
+        <option value="목포">목포</option>
+        <option value="순천">순천</option>
+        <option value="전북">전북</option>
+        <option value="제주">제주</option>
+        <option value="관리자">관리자(업로드)</option>
+      </select>
 
-  <div class="upload-box" id="uploadBox" style="display:none;">
-    <h2>📁 엑셀 업로드 (관리자 전용)</h2>
+      <label class="label">비밀번호</label>
+      <input type="password" id="password" class="input" placeholder="비밀번호 입력" />
 
-    <input type="file" id="excelFile" accept=".xlsx">
-    <button onclick="uploadExcel()">업로드</button>
+      <button class="btn primary" onclick="login()">로그인</button>
+    </section>
 
-    <p id="uploadStatus"></p>
+    <!-- 검색 -->
+    <section class="card" id="searchBox" style="display:none;">
+      <h2 class="h2">재고 검색</h2>
 
-    <button onclick="logout()" class="logout">로그아웃</button>
-  </div>
+      <div class="grid">
+        <div>
+          <label class="label">모델(필수)</label>
+          <input id="model" class="input" placeholder="예: M366 / 갤25 / S931" />
+        </div>
+        <div>
+          <label class="label">상권주소(선택)</label>
+          <input id="address" class="input" placeholder="예: 군산 / 광주 / 순천 ..." />
+        </div>
+        <div>
+          <label class="label">보유처(선택)</label>
+          <input id="owner" class="input" placeholder="예: OO대리점 / 판매점명" />
+        </div>
+        <div>
+          <label class="label">애칭(선택)</label>
+          <input id="nickname" class="input" placeholder="예: 홍길동" />
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" onclick="runSearch()">조회</button>
+        <label class="check">
+          <input type="checkbox" id="detailToggle" />
+          상세 보기(상권/펫네임/애칭 표시)
+        </label>
+      </div>
+
+      <div class="status" id="status"></div>
+      <div id="result"></div>
+    </section>
+
+    <!-- 업로드(관리자) -->
+    <section class="card" id="uploadBox" style="display:none;">
+      <h2 class="h2">엑셀 업로드 (관리자)</h2>
+      <p class="muted">매일 아침 최신 엑셀 업로드하면 서버 데이터가 즉시 갱신됩니다.</p>
+
+      <input type="file" id="excelFile" class="input" accept=".xlsx,.xls" />
+      <button class="btn primary" onclick="uploadExcel()">업로드</button>
+      <div class="status" id="uploadStatus"></div>
+    </section>
+  </main>
 
   <script src="script.js"></script>
 </body>
