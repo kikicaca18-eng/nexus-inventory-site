@@ -1,39 +1,9 @@
-body {
-  font-family: Arial, sans-serif;
-  background: #f3f5f7;
-  padding: 30px;
-  text-align: center;
-}
-
-.login-box, .search-box, .upload-box {
-  width: 360px;
-  margin: 0 auto;
-  padding: 20px;
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 0 10px #ccc;
-}
-
-input, select, button {
-  width: 90%;
-  padding: 10px;
-  margin: 8px 0;
-  font-size: 16px;
-}
-
-button {
-  cursor: pointer;
-}
-
-.item {
-  background: #eef;
-  margin-top: 10px;
-  padding: 8px;
-  border-radius: 5px;
-}
-
-.logout {
-  background: #ff4444;
-  color: white;
-  margin-top: 20px;
-}
+/* frontend/style.css */
+body{font-family:Arial,Helvetica,sans-serif;padding:20px;background:#f7f9fb}
+.login-box,.search-box,.upload-box{background:#fff;padding:18px;border-radius:8px;width:760px;margin:18px auto;box-shadow:0 6px 18px rgba(0,0,0,0.06)}
+input,select,button{padding:8px;margin:6px 4px;font-size:15px}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{border:1px solid #ddd;padding:8px;text-align:left}
+th{background:#f0f2f5}
+.item{padding:8px;background:#eef9ff;margin-top:8px;border-radius:4px}
+.logout{background:#ff4d4f;color:#fff;padding:8px;border:none;border-radius:6px}

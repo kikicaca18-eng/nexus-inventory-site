@@ -17,7 +17,7 @@
       <option value="순천">순천</option>
       <option value="전북">전북</option>
       <option value="제주">제주</option>
-      <option value="관리자">📌 관리자 (엑셀 업로드)</option>
+      <option value="관리자">📌 관리자</option>
     </select>
 
     <input type="password" id="password" placeholder="비밀번호 입력">
@@ -28,16 +28,22 @@
   <div class="search-box" id="searchBox" style="display:none;">
     <h2 id="centerTitle"></h2>
 
-    <input type="text" id="keyword" placeholder="모델명 또는 키워드 입력">
+    <div style="margin-bottom:10px;">
+      <!-- 기존 키워드 검색 유지(간단 빠른 필터) -->
+      <input type="text" id="keyword" placeholder="모델명 또는 키워드 입력">
+      <button onclick="search()">검색</button>
+    </div>
 
-    <button onclick="search()">검색</button>
+    <!-- 자연어 질문 입력 -->
+    <div style="margin-bottom:10px;">
+      <input type="text" id="nlQuery" placeholder="예: 'M366 재고 몇대 있어?', '광주에 재고 몇대' " style="width:70%">
+      <button onclick="ask()">질문</button>
+    </div>
 
     <div id="result"></div>
-
     <button onclick="logout()" class="logout">로그아웃</button>
   </div>
 
-  <!-- 관리자 전용 업로드 박스 -->
   <div class="upload-box" id="uploadBox" style="display:none;">
     <h2>📁 엑셀 업로드 (관리자 전용)</h2>
 
