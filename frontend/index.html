@@ -17,13 +17,13 @@
       <option value="순천">순천</option>
       <option value="전북">전북</option>
       <option value="제주">제주</option>
+      <option value="관리자">📌 관리자 (엑셀 업로드)</option>
     </select>
 
     <input type="password" id="password" placeholder="비밀번호 입력">
 
     <button onclick="login()">로그인</button>
   </div>
-
 
   <div class="search-box" id="searchBox" style="display:none;">
     <h2 id="centerTitle"></h2>
@@ -33,6 +33,20 @@
     <button onclick="search()">검색</button>
 
     <div id="result"></div>
+
+    <button onclick="logout()" class="logout">로그아웃</button>
+  </div>
+
+  <!-- 관리자 전용 업로드 박스 -->
+  <div class="upload-box" id="uploadBox" style="display:none;">
+    <h2>📁 엑셀 업로드 (관리자 전용)</h2>
+
+    <input type="file" id="excelFile" accept=".xlsx">
+    <button onclick="uploadExcel()">업로드</button>
+
+    <p id="uploadStatus"></p>
+
+    <button onclick="logout()" class="logout">로그아웃</button>
   </div>
 
   <script src="script.js"></script>
