@@ -8,13 +8,16 @@ app.use(cors());
 app.use(express.json({ limit: "20mb" }));
 
 /**
- * 🔹 메모리 기반 재고 데이터
- * 서버 재시작 시 초기화됨
+ * =========================
+ *  메모리 기반 재고 데이터
+ * =========================
  */
 let inventoryData = [];
 
 /**
- * 🔹 문자열 정규화 유틸
+ * =========================
+ *  문자열 유틸
+ * =========================
  */
 function norm(v) {
   return (v ?? "")
@@ -30,7 +33,9 @@ function contains(hay, needle) {
 }
 
 /**
- * 🔹 multer (메모리 저장)
+ * =========================
+ *  multer (메모리 저장)
+ * =========================
  */
 const upload = multer({
   storage: multer.memoryStorage()
@@ -47,15 +52,10 @@ app.post("/upload", upload.single("file"), (req, res) => {
       return res.status(400).json({ ok: false, message: "파일이 없습니다." });
     }
 
-    // 1. 메모리에서 엑셀 읽기
     const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-
-    // 2. 파싱 (엑셀 → JSON)
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
-    // 3. 메모리 DB 교체
     inventoryData = rows;
 
     return res.json({
@@ -63,9 +63,8 @@ app.post("/upload", upload.single("file"), (req, res) => {
       count: inventoryData.length,
       message: "엑셀 업로드 및 파싱 완료"
     });
-
   } catch (e) {
-    console.error("❌ 엑셀 업로드 오류:", e);
+    console.error("❌ 업로드 오류:", e);
     return res.status(500).json({ ok: false, message: "업로드 실패" });
   }
 });
@@ -78,20 +77,35 @@ app.post("/upload", upload.single("file"), (req, res) => {
 app.post("/search", (req, res) => {
   const { center, model, address, owner, nickname } = req.body;
 
+  // ✅ 센터는 필수
   if (!center) {
-    return res.status(400).json({ ok: false, message: "센터 정보가 없습니다." });
+    return res.status(400).json({
+      ok: false,
+      message: "센터 정보가 없습니다."
+    });
   }
 
-  if (!model) {
-    return res.status(400).json({ ok: false, message: "모델은 필수입니다." });
+  // 🔥 핵심: 검색 조건 최소 1개 필수
+  if (!model && !address && !owner && !nickname) {
+    return res.status(400).json({
+      ok: false,
+      message: "검색 조건을 하나 이상 입력하세요."
+    });
   }
 
-  let filtered = inventoryData.filter(r => contains(r.센터, center));
-
-  filtered = filtered.filter(r =>
-    contains(r.모델명, model) || contains(r.펫네임, model)
+  // 1️⃣ 센터 필터
+  let filtered = inventoryData.filter(r =>
+    contains(r.센터, center)
   );
 
+  // 2️⃣ 모델 (있을 때만)
+  if (model) {
+    filtered = filtered.filter(r =>
+      contains(r.모델명, model) || contains(r.펫네임, model)
+    );
+  }
+
+  // 3️⃣ 기타 조건
   if (address) filtered = filtered.filter(r => contains(r.상권주소, address));
   if (owner) filtered = filtered.filter(r => contains(r.보유처, owner));
   if (nickname) filtered = filtered.filter(r => contains(r.애칭, nickname));
