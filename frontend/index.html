@@ -16,13 +16,13 @@
   </header>
 
   <main class="container">
-  <section class="hero">
-  <h1>kt m&s 호남 재고 조회 서비스</h1>
-  <p>
-    호남권 전 센터 재고를<br/>
-    빠르고 정확하게 조회하세요.
-  </p>
-</section>
+    <section class="hero">
+      <h1>kt m&s 호남 재고 조회 서비스</h1>
+      <p>
+        호남권 전 센터 재고를<br/>
+        빠르고 정확하게 조회하세요.
+      </p>
+    </section>
 
     <!-- 로그인 -->
     <section class="card" id="loginBox">
@@ -68,42 +68,76 @@
         </div>
       </div>
 
-<div class="actions">
-  <button class="btn primary" onclick="runSearch()">조회</button>
+      <div class="actions">
+        <button class="btn primary" onclick="runSearch()">조회</button>
 
-  <select id="sortKey" class="input small">
-    <option value="보유처">보유처</option>
-    <option value="모델명">모델명</option>
-    <option value="색상">색상</option>
-  </select>
+        <select id="sortKey" class="input small">
+          <option value="보유처">보유처</option>
+          <option value="모델명">모델명</option>
+          <option value="색상">색상</option>
+        </select>
 
-  <select id="sortOrder" class="input small">
-    <option value="asc">오름차순</option>
-    <option value="desc">내림차순</option>
-  </select>
+        <select id="sortOrder" class="input small">
+          <option value="asc">오름차순</option>
+          <option value="desc">내림차순</option>
+        </select>
 
-  <label class="check">
-    <input type="checkbox" id="detailToggle" />
-    상세 보기
-  </label>
-</div>
-
+        <label class="check">
+          <input type="checkbox" id="detailToggle" />
+          상세 보기
+        </label>
+      </div>
 
       <div class="status" id="status"></div>
       <div id="result"></div>
     </section>
 
-    <!-- 업로드(관리자) -->
+    <!-- 업로드 (관리자) -->
     <section class="card" id="uploadBox" style="display:none;">
       <h2 class="h2">엑셀 업로드 (관리자)</h2>
-      <p class="muted">매일 아침 최신 엑셀 업로드하면 서버 데이터가 즉시 갱신됩니다.</p>
+      <p class="muted">
+        매일 아침 최신 엑셀을 업로드하면<br/>
+        서버 재고 데이터가 즉시 갱신됩니다.
+      </p>
 
-      <input type="file" id="excelFile" class="input" accept=".xlsx,.xls" />
-      <button class="btn primary" onclick="uploadExcel()">업로드</button>
+      <input
+        type="file"
+        id="excelFile"
+        class="input"
+        accept=".xlsx,.xls"
+        onchange="onExcelSelect()"
+      />
+
+      <button
+        class="btn primary"
+        id="uploadBtn"
+        onclick="uploadExcel()"
+        disabled
+      >
+        업로드
+      </button>
+
       <div class="status" id="uploadStatus"></div>
     </section>
   </main>
 
   <script src="script.js"></script>
+
+  <!-- 업로드 UX 보강 스크립트 -->
+  <script>
+    function onExcelSelect() {
+      const fileInput = document.getElementById("excelFile");
+      const uploadBtn = document.getElementById("uploadBtn");
+      const status = document.getElementById("uploadStatus");
+
+      if (fileInput.files.length > 0) {
+        uploadBtn.disabled = false;
+        status.textContent = `선택된 파일: ${fileInput.files[0].name}`;
+      } else {
+        uploadBtn.disabled = true;
+        status.textContent = "";
+      }
+    }
+  </script>
 </body>
 </html>

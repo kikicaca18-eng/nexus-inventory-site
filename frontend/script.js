@@ -1,16 +1,64 @@
 let currentCenter = "";
 
 const passwords = {
-  "광주": "yc20405",
-  "목포": "yd20001",
-  "순천": "yc20404",
-  "전북": "yc20407",
-  "제주": "yc20403",
+  "광주": "20405",
+  "목포": "20001",
+  "순천": "20404",
+  "전북": "20407",
+  "제주": "20403",
   "관리자": "41218673"
 };
 
+// =========================
+// 설정
+// =========================
+const LOGIN_EXPIRE_MS = 24 * 60 * 60 * 1000; // 24시간
+
+// 로컬 테스트 시 주석 전환
+// const API_URL = "http://localhost:3000";
 const API_URL = "https://nexus-inventory-site.onrender.com";
 
+// =========================
+// 자동 로그인 (하루 유지)
+// =========================
+window.addEventListener("load", () => {
+  const saved = localStorage.getItem("loginInfo");
+  if (!saved) return;
+
+  try {
+    const { center, time } = JSON.parse(saved);
+    if (!center || !time) return;
+
+    if (Date.now() - time > LOGIN_EXPIRE_MS) {
+      localStorage.removeItem("loginInfo");
+      return;
+    }
+
+    // 자동 로그인 처리
+    currentCenter = center;
+
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("logoutBtn").style.display = "inline-block";
+    document.getElementById("brandSub").innerText =
+      center === "관리자" ? "관리자 모드" : `${center}센터 로그인됨`;
+
+    document.querySelector(".hero").style.display = "none";
+
+    if (center === "관리자") {
+      document.getElementById("uploadBox").style.display = "block";
+      document.getElementById("searchBox").style.display = "none";
+    } else {
+      document.getElementById("searchBox").style.display = "block";
+      document.getElementById("uploadBox").style.display = "none";
+    }
+  } catch (e) {
+    localStorage.removeItem("loginInfo");
+  }
+});
+
+// =========================
+// 로그인 / 로그아웃
+// =========================
 function login() {
   const center = document.getElementById("centerSelect").value;
   const pw = document.getElementById("password").value;
@@ -20,11 +68,21 @@ function login() {
 
   currentCenter = center;
 
+  // 로그인 정보 저장 (24시간 유지)
+  localStorage.setItem(
+    "loginInfo",
+    JSON.stringify({
+      center,
+      time: Date.now()
+    })
+  );
+
   document.getElementById("loginBox").style.display = "none";
   document.getElementById("logoutBtn").style.display = "inline-block";
-  document.getElementById("brandSub").innerText = (center === "관리자") ? "관리자 모드" : `${center}센터 로그인됨`;
-  document.querySelector(".hero").style.display = "none";
+  document.getElementById("brandSub").innerText =
+    center === "관리자" ? "관리자 모드" : `${center}센터 로그인됨`;
 
+  document.querySelector(".hero").style.display = "none";
 
   if (center === "관리자") {
     document.getElementById("uploadBox").style.display = "block";
@@ -37,6 +95,8 @@ function login() {
 
 function logout() {
   currentCenter = "";
+  localStorage.removeItem("loginInfo");
+
   document.getElementById("loginBox").style.display = "block";
   document.getElementById("searchBox").style.display = "none";
   document.getElementById("uploadBox").style.display = "none";
@@ -45,12 +105,20 @@ function logout() {
   document.getElementById("password").value = "";
   document.getElementById("result").innerHTML = "";
   document.getElementById("status").innerText = "";
-document.querySelector(".hero").style.display = "block";
-
+  document.querySelector(".hero").style.display = "block";
 }
 
+// =========================
+// 엑셀 업로드 (관리자)
+// =========================
 async function uploadExcel() {
+  if (currentCenter !== "관리자") {
+    alert("관리자만 업로드할 수 있습니다.");
+    return;
+  }
+
   const fileInput = document.getElementById("excelFile");
+  const uploadBtn = document.getElementById("uploadBtn");
   const status = document.getElementById("uploadStatus");
 
   if (!fileInput.files.length) {
@@ -58,20 +126,37 @@ async function uploadExcel() {
     return;
   }
 
+  uploadBtn.disabled = true;
+
   const formData = new FormData();
   formData.append("file", fileInput.files[0]);
 
-  status.innerText = "업로드 중... (Render 첫 요청이면 조금 느릴 수 있어요)";
+  status.innerText = "업로드 중... (첫 요청은 조금 느릴 수 있습니다)";
+
   try {
-    const resp = await fetch(`${API_URL}/upload`, { method: "POST", body: formData });
+    const resp = await fetch(`${API_URL}/upload`, {
+      method: "POST",
+      body: formData
+    });
+
     const j = await resp.json();
-    if (resp.ok && j.ok) status.innerText = `업로드 완료! 총 ${j.count}건 반영됨`;
-    else status.innerText = `업로드 실패: ${j.message || "오류"}`;
+
+    if (resp.ok && j.ok) {
+      status.innerText = `✅ 업로드 완료! 총 ${j.count}건 반영됨`;
+      fileInput.value = "";
+    } else {
+      status.innerText = `❌ 업로드 실패: ${j.message || "오류"}`;
+    }
   } catch (e) {
-    status.innerText = "업로드 실패: 네트워크 오류";
+    status.innerText = "❌ 업로드 실패: 네트워크 오류";
+  } finally {
+    uploadBtn.disabled = true;
   }
 }
 
+// =========================
+// 재고 검색
+// =========================
 async function runSearch() {
   const status = document.getElementById("status");
   const model = document.getElementById("model").value.trim();
@@ -80,8 +165,9 @@ async function runSearch() {
   const nickname = document.getElementById("nickname").value.trim();
   const detail = document.getElementById("detailToggle").checked;
 
-  if (!model) {
-    alert("모델(필수)을 입력하세요.");
+  // 🔥 핵심 변경: 하나 이상만 입력되면 OK
+  if (!model && !address && !owner && !nickname) {
+    alert("검색 조건을 하나 이상 입력하세요.");
     return;
   }
 
@@ -93,8 +179,8 @@ async function runSearch() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        center: currentCenter,   // ✅ 센터는 로그인 센터로 강제
-        model,
+        center: currentCenter,
+        model: model || "",
         address: address || "",
         owner: owner || "",
         nickname: nickname || ""
@@ -102,26 +188,26 @@ async function runSearch() {
     });
 
     const j = await resp.json();
+
     if (!resp.ok || !j.ok) {
       status.innerText = `조회 실패: ${j.message || "오류"}`;
       return;
     }
 
     status.innerText = `총 ${j.total}대 있습니다.`;
-    
-    // 🔽 정렬 처리 (기본: 보유처 오름차순)
-const sortKey = document.getElementById("sortKey").value;
-const sortOrder = document.getElementById("sortOrder").value;
 
-j.table.sort((a, b) => {
-  const av = (a[sortKey] || "").toString();
-  const bv = (b[sortKey] || "").toString();
-  if (av < bv) return sortOrder === "asc" ? -1 : 1;
-  if (av > bv) return sortOrder === "asc" ? 1 : -1;
-  return 0;
-});
+    // 정렬
+    const sortKey = document.getElementById("sortKey").value;
+    const sortOrder = document.getElementById("sortOrder").value;
 
-    // 기본 표 컬럼(불필요한 정보 최소화)
+    j.table.sort((a, b) => {
+      const av = (a[sortKey] || "").toString();
+      const bv = (b[sortKey] || "").toString();
+      if (av < bv) return sortOrder === "asc" ? -1 : 1;
+      if (av > bv) return sortOrder === "asc" ? 1 : -1;
+      return 0;
+    });
+
     const baseCols = ["보유처", "모델명", "색상", "일련번호"];
     const detailCols = ["상권주소", "펫네임", "애칭"];
     const cols = detail ? [...baseCols, ...detailCols] : baseCols;
@@ -132,6 +218,9 @@ j.table.sort((a, b) => {
   }
 }
 
+// =========================
+// 테이블 렌더링
+// =========================
 function renderTable(rows, cols) {
   const wrap = document.createElement("div");
   wrap.className = "tableWrap";
@@ -139,23 +228,24 @@ function renderTable(rows, cols) {
   const table = document.createElement("table");
   const thead = document.createElement("thead");
   const trh = document.createElement("tr");
-  cols.forEach(c => {
-const th = document.createElement("th");
-th.textContent = c;
-th.className = `col-${c}`;
 
+  cols.forEach(c => {
+    const th = document.createElement("th");
+    th.textContent = c;
+    th.className = `col-${c}`;
     trh.appendChild(th);
   });
+
   thead.appendChild(trh);
 
   const tbody = document.createElement("tbody");
+
   rows.forEach(r => {
     const tr = document.createElement("tr");
     cols.forEach(c => {
-const td = document.createElement("td");
-td.textContent = (r[c] ?? "").toString();
-td.className = `col-${c}`;
-
+      const td = document.createElement("td");
+      td.textContent = (r[c] ?? "").toString();
+      td.className = `col-${c}`;
       tr.appendChild(td);
     });
     tbody.appendChild(tr);

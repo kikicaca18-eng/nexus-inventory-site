@@ -1,21 +1,21 @@
 const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
-const xlsx = require("xlsx");
-const fs = require("fs");
-const path = require("path");
+const XLSX = require("xlsx");
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: "20mb" }));
 
-// 📌 데이터 저장 경로 (서버 디스크)
-const DATA_DIR = path.join(__dirname, "data");
-const EXCEL_PATH = path.join(DATA_DIR, "latest.xlsx");
-
+/**
+ * 🔹 메모리 기반 재고 데이터
+ * 서버 재시작 시 초기화됨
+ */
 let inventoryData = [];
 
-// ===== 유틸 =====
+/**
+ * 🔹 문자열 정규화 유틸
+ */
 function norm(v) {
   return (v ?? "")
     .toString()
@@ -29,76 +29,59 @@ function contains(hay, needle) {
   return norm(hay).includes(norm(needle));
 }
 
-// ===== 서버 시작 시: 기존 엑셀 자동 로딩 =====
-function loadExcelFromDisk() {
-  try {
-    if (!fs.existsSync(EXCEL_PATH)) {
-      console.log("ℹ️ 저장된 엑셀 없음");
-      return;
-    }
+/**
+ * 🔹 multer (메모리 저장)
+ */
+const upload = multer({
+  storage: multer.memoryStorage()
+});
 
-    const wb = xlsx.readFile(EXCEL_PATH);
-    const sheet = wb.Sheets[wb.SheetNames[0]];
-    const rows = xlsx.utils.sheet_to_json(sheet, { defval: "" });
-
-    inventoryData = rows.map(r => ({
-      센터: r["센터"],
-      상권주소: r["상권주소"],
-      보유처: r["보유처"],
-      펫네임: r["펫네임"],
-      모델명: r["모델명"],
-      색상: r["색상"],
-      일련번호: r["일련번호"],
-      애칭: r["애칭"],
-    }));
-
-    console.log(`✅ 엑셀 자동 로딩 완료 (${inventoryData.length}건)`);
-  } catch (e) {
-    console.error("❌ 엑셀 로딩 실패:", e);
-  }
-}
-
-// 서버 시작 시 실행
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
-loadExcelFromDisk();
-
-// ===== 파일 업로드 설정 =====
-const upload = multer({ dest: "uploads/" });
-
-// ===== 엑셀 업로드 (덮어쓰기 저장) =====
+/**
+ * =========================
+ *  엑셀 업로드 & 파싱
+ * =========================
+ */
 app.post("/upload", upload.single("file"), (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ ok: false, message: "파일이 없습니다." });
     }
 
-    // uploads 임시파일 → data/latest.xlsx 로 이동
-    fs.copyFileSync(req.file.path, EXCEL_PATH);
-    fs.unlinkSync(req.file.path);
+    // 1. 메모리에서 엑셀 읽기
+    const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
 
-    // 새 엑셀 로딩
-    loadExcelFromDisk();
+    // 2. 파싱 (엑셀 → JSON)
+    const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+    // 3. 메모리 DB 교체
+    inventoryData = rows;
 
     return res.json({
       ok: true,
       count: inventoryData.length,
-      message: "엑셀 업로드 및 저장 완료"
+      message: "엑셀 업로드 및 파싱 완료"
     });
+
   } catch (e) {
-    console.error(e);
+    console.error("❌ 엑셀 업로드 오류:", e);
     return res.status(500).json({ ok: false, message: "업로드 실패" });
   }
 });
 
-// ===== 재고 검색 API =====
+/**
+ * =========================
+ *  재고 검색 API
+ * =========================
+ */
 app.post("/search", (req, res) => {
   const { center, model, address, owner, nickname } = req.body;
 
   if (!center) {
     return res.status(400).json({ ok: false, message: "센터 정보가 없습니다." });
   }
+
   if (!model) {
     return res.status(400).json({ ok: false, message: "모델은 필수입니다." });
   }
@@ -120,21 +103,33 @@ app.post("/search", (req, res) => {
     일련번호: r.일련번호,
     상권주소: r.상권주소,
     펫네임: r.펫네임,
-    애칭: r.애칭,
+    애칭: r.애칭
   }));
 
-  res.json({ ok: true, total: table.length, table });
-});
-
-// ===== 상태 확인 =====
-app.get("/meta", (req, res) => {
-  res.json({
+  return res.json({
     ok: true,
-    count: inventoryData.length,
-    saved: fs.existsSync(EXCEL_PATH)
+    total: table.length,
+    table
   });
 });
 
+/**
+ * =========================
+ *  서버 상태 확인
+ * =========================
+ */
+app.get("/meta", (req, res) => {
+  res.json({
+    ok: true,
+    count: inventoryData.length
+  });
+});
+
+/**
+ * =========================
+ *  서버 시작
+ * =========================
+ */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("🚀 Backend running on port", PORT);
