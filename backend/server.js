@@ -1,19 +1,21 @@
-// backend/server.js (CommonJS)
 const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
 const xlsx = require("xlsx");
 const fs = require("fs");
+const path = require("path");
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: "20mb" }));
 
-let inventoryData = []; // 업로드된 엑셀 데이터(최신 1개)
+// 📌 데이터 저장 경로 (서버 디스크)
+const DATA_DIR = path.join(__dirname, "data");
+const EXCEL_PATH = path.join(DATA_DIR, "latest.xlsx");
 
-const upload = multer({ dest: "uploads/" });
+let inventoryData = [];
 
-// 문자열 정규화: 앞뒤 공백 제거 + 연속 공백 축소 + 소문자
+// ===== 유틸 =====
 function norm(v) {
   return (v ?? "")
     .toString()
@@ -22,34 +24,23 @@ function norm(v) {
     .toLowerCase();
 }
 
-// 부분일치
 function contains(hay, needle) {
   if (!needle) return true;
   return norm(hay).includes(norm(needle));
 }
 
-// ✅ 관리자 업로드: 엑셀 업로드하면 "덮어쓰기"로 최신화
-app.post("/upload", upload.single("file"), (req, res) => {
+// ===== 서버 시작 시: 기존 엑셀 자동 로딩 =====
+function loadExcelFromDisk() {
   try {
-    if (!req.file) return res.status(400).json({ ok: false, message: "파일이 없습니다." });
+    if (!fs.existsSync(EXCEL_PATH)) {
+      console.log("ℹ️ 저장된 엑셀 없음");
+      return;
+    }
 
-    const wb = xlsx.readFile(req.file.path);
+    const wb = xlsx.readFile(EXCEL_PATH);
     const sheet = wb.Sheets[wb.SheetNames[0]];
     const rows = xlsx.utils.sheet_to_json(sheet, { defval: "" });
 
-    // 파일 검증: 헤더가 최소한 존재하는지
-    const requiredCols = ["센터", "상권주소", "보유처", "펫네임", "모델명", "색상", "일련번호", "애칭"];
-    const sample = rows[0] || {};
-    const missing = requiredCols.filter(c => !(c in sample));
-    if (missing.length) {
-      fs.unlinkSync(req.file.path);
-      return res.status(400).json({
-        ok: false,
-        message: `엑셀 헤더가 다릅니다. 누락: ${missing.join(", ")}`
-      });
-    }
-
-    // ✅ 최신 파일로 덮어쓰기
     inventoryData = rows.map(r => ({
       센터: r["센터"],
       상권주소: r["상권주소"],
@@ -61,66 +52,90 @@ app.post("/upload", upload.single("file"), (req, res) => {
       애칭: r["애칭"],
     }));
 
-    fs.unlinkSync(req.file.path);
-    return res.json({ ok: true, count: inventoryData.length });
+    console.log(`✅ 엑셀 자동 로딩 완료 (${inventoryData.length}건)`);
   } catch (e) {
-    console.error(e);
-    return res.status(500).json({ ok: false, message: "업로드 처리 중 오류" });
+    console.error("❌ 엑셀 로딩 실패:", e);
   }
-});
+}
 
-// ✅ 센터/모델/상권주소/보유처/애칭 검색 (모델 필수)
-app.post("/search", (req, res) => {
+// 서버 시작 시 실행
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+loadExcelFromDisk();
+
+// ===== 파일 업로드 설정 =====
+const upload = multer({ dest: "uploads/" });
+
+// ===== 엑셀 업로드 (덮어쓰기 저장) =====
+app.post("/upload", upload.single("file"), (req, res) => {
   try {
-    const { center, model, address, owner, nickname } = req.body || {};
-
-    if (!center) return res.status(400).json({ ok: false, message: "center가 필요합니다." });
-    if (!model || !model.toString().trim()) {
-      return res.status(400).json({ ok: false, message: "모델(model)은 필수입니다." });
+    if (!req.file) {
+      return res.status(400).json({ ok: false, message: "파일이 없습니다." });
     }
 
-    // 1) 센터는 무조건 A열(센터)에서만 필터
-    let filtered = inventoryData.filter(r => contains(r["센터"], center));
+    // uploads 임시파일 → data/latest.xlsx 로 이동
+    fs.copyFileSync(req.file.path, EXCEL_PATH);
+    fs.unlinkSync(req.file.path);
 
-    // 2) 모델은 모델명/펫네임 컬럼에서만 매칭 (정확도 핵심)
-    filtered = filtered.filter(r =>
-      contains(r["모델명"], model) || contains(r["펫네임"], model)
-    );
+    // 새 엑셀 로딩
+    loadExcelFromDisk();
 
-    // 3) 선택 조건들
-    if (address && address.toString().trim()) {
-      filtered = filtered.filter(r => contains(r["상권주소"], address));
-    }
-    if (owner && owner.toString().trim()) {
-      filtered = filtered.filter(r => contains(r["보유처"], owner));
-    }
-    if (nickname && nickname.toString().trim()) {
-      filtered = filtered.filter(r => contains(r["애칭"], nickname));
-    }
-
-    // 기본 표에 필요한 정보만 내려줌 (불필요한 컬럼 제거)
-    const table = filtered.map(r => ({
-      보유처: r["보유처"],
-      모델명: r["모델명"],
-      색상: r["색상"],
-      일련번호: r["일련번호"],
-      // 필요 시 프론트에서 “상세 보기”로 보여줄 용도
-      상권주소: r["상권주소"],
-      펫네임: r["펫네임"],
-      애칭: r["애칭"],
-      센터: r["센터"],
-    }));
-
-    return res.json({ ok: true, total: table.length, table });
+    return res.json({
+      ok: true,
+      count: inventoryData.length,
+      message: "엑셀 업로드 및 저장 완료"
+    });
   } catch (e) {
     console.error(e);
-    return res.status(500).json({ ok: false, message: "검색 중 오류" });
+    return res.status(500).json({ ok: false, message: "업로드 실패" });
   }
 });
 
+// ===== 재고 검색 API =====
+app.post("/search", (req, res) => {
+  const { center, model, address, owner, nickname } = req.body;
+
+  if (!center) {
+    return res.status(400).json({ ok: false, message: "센터 정보가 없습니다." });
+  }
+  if (!model) {
+    return res.status(400).json({ ok: false, message: "모델은 필수입니다." });
+  }
+
+  let filtered = inventoryData.filter(r => contains(r.센터, center));
+
+  filtered = filtered.filter(r =>
+    contains(r.모델명, model) || contains(r.펫네임, model)
+  );
+
+  if (address) filtered = filtered.filter(r => contains(r.상권주소, address));
+  if (owner) filtered = filtered.filter(r => contains(r.보유처, owner));
+  if (nickname) filtered = filtered.filter(r => contains(r.애칭, nickname));
+
+  const table = filtered.map(r => ({
+    보유처: r.보유처,
+    모델명: r.모델명,
+    색상: r.색상,
+    일련번호: r.일련번호,
+    상권주소: r.상권주소,
+    펫네임: r.펫네임,
+    애칭: r.애칭,
+  }));
+
+  res.json({ ok: true, total: table.length, table });
+});
+
+// ===== 상태 확인 =====
 app.get("/meta", (req, res) => {
-  return res.json({ ok: true, count: inventoryData.length });
+  res.json({
+    ok: true,
+    count: inventoryData.length,
+    saved: fs.existsSync(EXCEL_PATH)
+  });
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Backend running on", PORT));
+app.listen(PORT, () => {
+  console.log("🚀 Backend running on port", PORT);
+});
