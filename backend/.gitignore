@@ -1,0 +1,4 @@
+node_modules/
+inventory.db
+.DS_Store
+
