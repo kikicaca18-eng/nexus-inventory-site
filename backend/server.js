@@ -6,9 +6,25 @@ const XLSX = require("xlsx");
 const Database = require("better-sqlite3");
 const cron = require("node-cron");
 
+/**
+ * =========================
+ *  🔥 서버 버전 식별 로그 (중요)
+ * =========================
+ */
+console.log("🔥🔥🔥 server.js VERSION 2025-01-18 / upload-status 포함 🔥🔥🔥");
+
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: "20mb" }));
+
+/**
+ * =========================
+ *  🔥 루트 테스트용 API (중요)
+ * =========================
+ */
+app.get("/", (req, res) => {
+  res.send("✅ BACKEND OK - upload-status route should exist");
+});
 
 /**
  * =========================
@@ -182,6 +198,8 @@ app.post("/search", (req, res) => {
  * =========================
  */
 app.get("/upload-status", (req, res) => {
+  console.log("✅ /upload-status API HIT");
+
   const last = db.prepare(`
     SELECT uploaded_at_kst, row_count, filename
     FROM upload_log
@@ -199,23 +217,17 @@ app.get("/upload-status", (req, res) => {
  * =========================
  *  1시간마다 SQLite 데이터 리프레시
  * =========================
- * - Render 재시작과 무관
- * - 엑셀 재업로드 ❌
- * - 현재 DB 상태 점검용
  */
-
 cron.schedule("0 * * * *", () => {
   try {
     console.log("🕐 [CRON] 1시간 주기 SQLite 상태 점검 시작");
 
-    // 현재 재고 row 수 확인
     const row = db
       .prepare("SELECT COUNT(*) as cnt FROM inventory")
       .get();
 
     console.log(`📦 [CRON] 현재 inventory row 수: ${row.cnt}`);
 
-    // 마지막 업로드 기록 확인
     const lastUpload = db
       .prepare(`
         SELECT uploaded_at_kst, row_count
