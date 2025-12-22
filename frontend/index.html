@@ -10,8 +10,6 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-title">kt m&s H.O.S</div>
-
-      <!-- ✅ 중요: script.js가 쓰는 brandSub id 복구 -->
       <div class="brand-sub" id="brandSub">HoNam Operation System</div>
     </div>
 
@@ -54,7 +52,6 @@
     <section class="card" id="searchBox" style="display:none;">
       <h2 class="h2">재고 검색</h2>
 
-      <!-- 🔥 마지막 업로드 시각 표시 -->
       <div class="status" id="lastUploadBox">
         마지막 업로드: 불러오는 중...
       </div>
@@ -105,10 +102,6 @@
     <!-- 업로드 (관리자) -->
     <section class="card" id="uploadBox" style="display:none;">
       <h2 class="h2">엑셀 업로드 (관리자)</h2>
-      <p class="muted">
-        매일 아침 최신 엑셀을 업로드하면<br/>
-        서버 재고 데이터가 즉시 갱신됩니다.
-      </p>
 
       <input
         type="file"
@@ -133,9 +126,9 @@
 
   <script src="script.js"></script>
 
-  <!-- 🔥 업로드 + 마지막 업로드 조회 로직 -->
   <script>
-    const API_BASE = ""; // Render 배포 시 변경
+    /* 🔥 중요: 반드시 빈 문자열 */
+    const API_BASE = "";
 
     function onExcelSelect() {
       const fileInput = document.getElementById("excelFile");
@@ -155,18 +148,13 @@
       const fileInput = document.getElementById("excelFile");
       const status = document.getElementById("uploadStatus");
 
-      if (!fileInput.files.length) {
-        alert("엑셀 파일을 선택하세요.");
-        return;
-      }
-
       const formData = new FormData();
       formData.append("file", fileInput.files[0]);
 
       status.textContent = "업로드 중...";
 
       try {
-        const res = await fetch(API_BASE + "/upload", {
+        const res = await fetch("/upload", {
           method: "POST",
           body: formData
         });
@@ -179,34 +167,28 @@
         }
 
         status.textContent = `✅ 업로드 완료 (${data.count.toLocaleString()}건)`;
-
         loadUploadStatus();
-      } catch (e) {
+      } catch {
         status.textContent = "❌ 서버 연결 오류";
       }
     }
 
     async function loadUploadStatus() {
-      try {
-        const res = await fetch(API_BASE + "/upload-status");
-        const data = await res.json();
+      const res = await fetch("/upload-status");
+      const data = await res.json();
 
-        const box = document.getElementById("lastUploadBox");
-        if (!box) return;
+      const box = document.getElementById("lastUploadBox");
+      if (!box) return;
 
-        if (!data.lastUpload) {
-          box.textContent = "마지막 업로드: 없음";
-          return;
-        }
-
-        const { uploaded_at_kst, row_count, filename } = data.lastUpload;
-        box.textContent =
-          `마지막 업로드: ${uploaded_at_kst} / ${row_count.toLocaleString()}건` +
-          (filename ? ` / ${filename}` : "");
-      } catch {
-        const box = document.getElementById("lastUploadBox");
-        if (box) box.textContent = "마지막 업로드: 조회 실패";
+      if (!data.lastUpload) {
+        box.textContent = "마지막 업로드: 없음";
+        return;
       }
+
+      const { uploaded_at_kst, row_count, filename } = data.lastUpload;
+      box.textContent =
+        `마지막 업로드: ${uploaded_at_kst} / ${row_count.toLocaleString()}건` +
+        (filename ? ` / ${filename}` : "");
     }
 
     loadUploadStatus();
