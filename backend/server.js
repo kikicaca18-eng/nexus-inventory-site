@@ -13,7 +13,21 @@ const pool = require("./db"); // PostgreSQL 연결
 console.log("🔥🔥🔥 server.js VERSION 2025-01-19 / PostgreSQL MULTI UPLOAD 🔥🔥🔥");
 
 const app = express();
-app.use(cors());
+
+/**
+ * =========================
+ *  ✅ CORS (중요: multipart 업로드 대응)
+ * =========================
+ */
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type"]
+  })
+);
+app.options("*", cors());
+
 app.use(express.json({ limit: "20mb" }));
 
 /**
@@ -37,8 +51,6 @@ const upload = multer({
 /**
  * =========================
  *  엑셀 업로드 (다중 업로드)
- *  - 엑셀 1개 = upload_files 1건
- *  - 재시작해도 데이터 유지
  * =========================
  */
 app.post("/upload", upload.single("file"), async (req, res) => {
@@ -108,8 +120,6 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 /**
  * =========================
  *  재고 검색
- *  - 기본 UX 유지
- *  - 최신 업로드 엑셀 기준 조회
  * =========================
  */
 app.post("/search", async (req, res) => {
@@ -187,7 +197,7 @@ app.get("/upload-status", async (req, res) => {
 
 /**
  * =========================
- *  (선택) 상태 로그용 CRON
+ *  상태 로그용 CRON
  * =========================
  */
 cron.schedule("0 * * * *", async () => {
