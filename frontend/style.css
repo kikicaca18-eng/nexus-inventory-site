@@ -140,3 +140,41 @@ tr:hover td{background:#fafafa}
   color: var(--muted);
   line-height: 1.6;
 }
+
+/* 모바일 최적화 */
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .input {
+    height: 44px;
+    font-size: 15px;
+  }
+
+  .mobile-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .mobile-actions select,
+  .mobile-actions button {
+    width: 100%;
+  }
+
+  .check {
+    margin-top: 4px;
+    font-size: 14px;
+  }
+
+  .tableWrap {
+    overflow-x: auto;
+  }
+
+  table {
+    min-width: 700px;
+  }
+}
