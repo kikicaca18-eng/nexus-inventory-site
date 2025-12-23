@@ -6,7 +6,7 @@ const passwords = {
   "순천": "20404",
   "전북": "20407",
   "제주": "20403",
-  "관리자": "41218673"
+  "관리자": "8673"
 };
 
 // =========================
@@ -14,9 +14,7 @@ const passwords = {
 // =========================
 const LOGIN_EXPIRE_MS = 24 * 60 * 60 * 1000; // 24시간
 
-// 로컬 테스트 시 주석 전환
-// const API_URL = "http://localhost:3000";
-const API_URL = "https://nexus-inventory-site.onrender.com";
+// ⚠️ 중요: API_URL 완전 제거 (상대경로 사용)
 
 // =========================
 // 자동 로그인 (하루 유지)
@@ -34,7 +32,6 @@ window.addEventListener("load", () => {
       return;
     }
 
-    // 자동 로그인 처리
     currentCenter = center;
 
     document.getElementById("loginBox").style.display = "none";
@@ -68,7 +65,6 @@ function login() {
 
   currentCenter = center;
 
-  // 로그인 정보 저장 (24시간 유지)
   localStorage.setItem(
     "loginInfo",
     JSON.stringify({
@@ -134,7 +130,8 @@ async function uploadExcel() {
   status.innerText = "업로드 중... (첫 요청은 조금 느릴 수 있습니다)";
 
   try {
-    const resp = await fetch(`${API_URL}/upload`, {
+    // ✅ 상대경로 사용
+    const resp = await fetch("/upload", {
       method: "POST",
       body: formData
     });
@@ -150,7 +147,7 @@ async function uploadExcel() {
   } catch (e) {
     status.innerText = "❌ 업로드 실패: 네트워크 오류";
   } finally {
-    uploadBtn.disabled = true;
+    uploadBtn.disabled = false;
   }
 }
 
@@ -165,7 +162,6 @@ async function runSearch() {
   const nickname = document.getElementById("nickname").value.trim();
   const detail = document.getElementById("detailToggle").checked;
 
-  // 🔥 핵심 변경: 하나 이상만 입력되면 OK
   if (!model && !address && !owner && !nickname) {
     alert("검색 조건을 하나 이상 입력하세요.");
     return;
@@ -175,7 +171,8 @@ async function runSearch() {
   document.getElementById("result").innerHTML = "";
 
   try {
-    const resp = await fetch(`${API_URL}/search`, {
+    // ✅ 상대경로 사용
+    const resp = await fetch("/search", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -196,7 +193,6 @@ async function runSearch() {
 
     status.innerText = `총 ${j.total}대 있습니다.`;
 
-    // 정렬
     const sortKey = document.getElementById("sortKey").value;
     const sortOrder = document.getElementById("sortOrder").value;
 
