@@ -53,145 +53,36 @@
       <h2 class="h2">재고 검색</h2>
 
       <div class="status" id="lastUploadBox">
-        마지막 업로드: 불러오는 중...
+        마지막 업로드: -
       </div>
 
       <div class="grid">
-        <div>
-          <label class="label">모델(선택)</label>
-          <input id="model" class="input" placeholder="예: M366 / 갤25 / S931" />
-        </div>
-        <div>
-          <label class="label">상권주소(선택)</label>
-          <input id="address" class="input" placeholder="예: 군산 / 광주 / 순천 ..." />
-        </div>
-        <div>
-          <label class="label">보유처(선택)</label>
-          <input id="owner" class="input" placeholder="예: OO대리점 / 판매점명" />
-        </div>
-        <div>
-          <label class="label">애칭(선택)</label>
-          <input id="nickname" class="input" placeholder="예: 홍길동" />
-        </div>
+        <input id="model" class="input" placeholder="모델" />
+        <input id="address" class="input" placeholder="상권주소" />
+        <input id="owner" class="input" placeholder="보유처" />
+        <input id="nickname" class="input" placeholder="애칭" />
       </div>
 
       <div class="actions">
         <button class="btn primary" onclick="runSearch()">조회</button>
-
-        <select id="sortKey" class="input small">
-          <option value="보유처">보유처</option>
-          <option value="모델명">모델명</option>
-          <option value="색상">색상</option>
-        </select>
-
-        <select id="sortOrder" class="input small">
-          <option value="asc">오름차순</option>
-          <option value="desc">내림차순</option>
-        </select>
-
-        <label class="check">
-          <input type="checkbox" id="detailToggle" />
-          상세 보기
-        </label>
       </div>
 
       <div class="status" id="status"></div>
       <div id="result"></div>
     </section>
 
-    <!-- 업로드 (관리자) -->
+    <!-- 업로드 -->
     <section class="card" id="uploadBox" style="display:none;">
       <h2 class="h2">엑셀 업로드 (관리자)</h2>
 
-      <input
-        type="file"
-        id="excelFile"
-        class="input"
-        accept=".xlsx,.xls"
-        onchange="onExcelSelect()"
-      />
-
-      <button
-        class="btn primary"
-        id="uploadBtn"
-        onclick="uploadExcel()"
-        disabled
-      >
-        업로드
-      </button>
+      <input type="file" id="excelFile" class="input" accept=".xlsx,.xls" />
+      <button class="btn primary" id="uploadBtn" onclick="uploadExcel()">업로드</button>
 
       <div class="status" id="uploadStatus"></div>
     </section>
   </main>
 
+  <!-- ✅ JS는 script.js 하나만 -->
   <script src="script.js"></script>
-
-  <script>
-    /* 🔥 중요: 반드시 빈 문자열 */
-    const API_BASE = "https://nexus-inventory-site.onrender.com";
-
-    function onExcelSelect() {
-      const fileInput = document.getElementById("excelFile");
-      const uploadBtn = document.getElementById("uploadBtn");
-      const status = document.getElementById("uploadStatus");
-
-      if (fileInput.files.length > 0) {
-        uploadBtn.disabled = false;
-        status.textContent = `선택된 파일: ${fileInput.files[0].name}`;
-      } else {
-        uploadBtn.disabled = true;
-        status.textContent = "";
-      }
-    }
-
-    async function uploadExcel() {
-      const fileInput = document.getElementById("excelFile");
-      const status = document.getElementById("uploadStatus");
-
-      const formData = new FormData();
-      formData.append("file", fileInput.files[0]);
-
-      status.textContent = "업로드 중...";
-
-      try {
-        const res = await fetch("/upload", {
-          method: "POST",
-          body: formData
-        });
-
-        const data = await res.json();
-
-        if (!data.ok) {
-          status.textContent = "❌ 업로드 실패";
-          return;
-        }
-
-        status.textContent = `✅ 업로드 완료 (${data.count.toLocaleString()}건)`;
-        loadUploadStatus();
-      } catch {
-        status.textContent = "❌ 서버 연결 오류";
-      }
-    }
-
-    async function loadUploadStatus() {
-      const res = await fetch("/upload-status");
-      const data = await res.json();
-
-      const box = document.getElementById("lastUploadBox");
-      if (!box) return;
-
-      if (!data.lastUpload) {
-        box.textContent = "마지막 업로드: 없음";
-        return;
-      }
-
-      const { uploaded_at_kst, row_count, filename } = data.lastUpload;
-      box.textContent =
-        `마지막 업로드: ${uploaded_at_kst} / ${row_count.toLocaleString()}건` +
-        (filename ? ` / ${filename}` : "");
-    }
-
-    loadUploadStatus();
-  </script>
 </body>
 </html>
