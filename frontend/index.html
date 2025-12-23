@@ -13,7 +13,12 @@
       <div class="brand-sub" id="brandSub">HoNam Operation System</div>
     </div>
 
-    <button class="btn ghost" id="logoutBtn" onclick="logout()" style="display:none;">
+    <button
+      class="btn ghost"
+      id="logoutBtn"
+      onclick="logout()"
+      style="display:none;"
+    >
       로그아웃
     </button>
   </header>
@@ -27,7 +32,7 @@
       </p>
     </section>
 
-    <!-- 로그인 -->
+    <!-- ================= 로그인 ================= -->
     <section class="card" id="loginBox">
       <h2 class="h2">센터 로그인</h2>
 
@@ -43,24 +48,51 @@
       </select>
 
       <label class="label">비밀번호</label>
-      <input type="password" id="password" class="input" placeholder="비밀번호 입력" />
+      <input
+        type="password"
+        id="password"
+        class="input"
+        placeholder="비밀번호 입력"
+      />
 
       <button class="btn primary" onclick="login()">로그인</button>
     </section>
 
-    <!-- 검색 -->
+    <!-- ================= 재고 검색 ================= -->
     <section class="card" id="searchBox" style="display:none;">
       <h2 class="h2">재고 검색</h2>
+
+      <!-- 안내 문구 (UX 핵심) -->
+      <p class="muted" style="margin-bottom:8px;">
+        모델 · 상권주소 · 보유처 · 애칭 중<br/>
+        <strong>하나 이상 입력</strong>하면 조회됩니다.
+      </p>
 
       <div class="status" id="lastUploadBox">
         마지막 업로드: -
       </div>
 
       <div class="grid">
-        <input id="model" class="input" placeholder="모델" />
-        <input id="address" class="input" placeholder="상권주소" />
-        <input id="owner" class="input" placeholder="보유처" />
-        <input id="nickname" class="input" placeholder="애칭" />
+        <input
+          id="model"
+          class="input"
+          placeholder="모델 (예: M366 / 갤25)"
+        />
+        <input
+          id="address"
+          class="input"
+          placeholder="상권주소 (예: 군산 / 광주)"
+        />
+        <input
+          id="owner"
+          class="input"
+          placeholder="보유처 (대리점명)"
+        />
+        <input
+          id="nickname"
+          class="input"
+          placeholder="애칭"
+        />
       </div>
 
       <div class="actions">
@@ -71,12 +103,28 @@
       <div id="result"></div>
     </section>
 
-    <!-- 업로드 -->
+    <!-- ================= 엑셀 업로드 ================= -->
     <section class="card" id="uploadBox" style="display:none;">
       <h2 class="h2">엑셀 업로드 (관리자)</h2>
 
-      <input type="file" id="excelFile" class="input" accept=".xlsx,.xls" />
-      <button class="btn primary" id="uploadBtn" onclick="uploadExcel()">업로드</button>
+      <p class="muted">
+        최신 엑셀을 업로드하면<br/>
+        서버 재고 데이터가 즉시 갱신됩니다.
+      </p>
+
+      <input
+        type="file"
+        id="excelFile"
+        class="input"
+        accept=".xlsx,.xls"
+      />
+      <button
+        class="btn primary"
+        id="uploadBtn"
+        onclick="uploadExcel()"
+      >
+        업로드
+      </button>
 
       <div class="status" id="uploadStatus"></div>
     </section>
