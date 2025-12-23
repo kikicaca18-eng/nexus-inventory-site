@@ -9,7 +9,7 @@ const passwords = {
   "순천": "20404",
   "전북": "20407",
   "제주": "20403",
-  "관리자": "8673"
+  "관리자": "양정열"
 };
 
 // =========================
@@ -17,7 +17,7 @@ const passwords = {
 // =========================
 const LOGIN_EXPIRE_MS = 24 * 60 * 60 * 1000; // 24시간
 
-// 🔥 중요: 백엔드 Render 주소 (절대 localhost / 상대경로 쓰면 안 됨)
+// 🔥 중요: 백엔드 Render 주소
 const API_URL = "https://nexus-inventory-site.onrender.com";
 
 // =========================
@@ -93,16 +93,7 @@ function login() {
 function logout() {
   currentCenter = "";
   localStorage.removeItem("loginInfo");
-
-  document.getElementById("loginBox").style.display = "block";
-  document.getElementById("searchBox").style.display = "none";
-  document.getElementById("uploadBox").style.display = "none";
-  document.getElementById("logoutBtn").style.display = "none";
-  document.getElementById("brandSub").innerText = "";
-  document.getElementById("password").value = "";
-  document.getElementById("result").innerHTML = "";
-  document.getElementById("status").innerText = "";
-  document.querySelector(".hero").style.display = "block";
+  location.reload();
 }
 
 // =========================
@@ -128,7 +119,7 @@ async function uploadExcel() {
   const formData = new FormData();
   formData.append("file", fileInput.files[0]);
 
-  status.innerText = "업로드 중... (첫 요청은 조금 느릴 수 있습니다)";
+  status.innerText = "업로드 중...";
 
   try {
     const resp = await fetch(`${API_URL}/upload`, {
@@ -144,7 +135,7 @@ async function uploadExcel() {
     } else {
       status.innerText = `❌ 업로드 실패: ${j.message || "오류"}`;
     }
-  } catch (e) {
+  } catch {
     status.innerText = "❌ 업로드 실패: 네트워크 오류";
   } finally {
     uploadBtn.disabled = false;
@@ -152,7 +143,7 @@ async function uploadExcel() {
 }
 
 // =========================
-// 재고 검색
+// 재고 검색 (🔥 수정 핵심)
 // =========================
 async function runSearch() {
   const status = document.getElementById("status");
@@ -160,7 +151,6 @@ async function runSearch() {
   const address = document.getElementById("address").value.trim();
   const owner = document.getElementById("owner").value.trim();
   const nickname = document.getElementById("nickname").value.trim();
-  const detail = document.getElementById("detailToggle").checked;
 
   if (!model && !address && !owner && !nickname) {
     alert("검색 조건을 하나 이상 입력하세요.");
@@ -192,21 +182,8 @@ async function runSearch() {
 
     status.innerText = `총 ${j.total}대 있습니다.`;
 
-    const sortKey = document.getElementById("sortKey").value;
-    const sortOrder = document.getElementById("sortOrder").value;
-
-    j.table.sort((a, b) => {
-      const av = (a[sortKey] || "").toString();
-      const bv = (b[sortKey] || "").toString();
-      if (av < bv) return sortOrder === "asc" ? -1 : 1;
-      if (av > bv) return sortOrder === "asc" ? 1 : -1;
-      return 0;
-    });
-
-    const baseCols = ["보유처", "모델명", "색상", "일련번호"];
-    const detailCols = ["상권주소", "펫네임", "애칭"];
-    const cols = detail ? [...baseCols, ...detailCols] : baseCols;
-
+    // ✅ 항상 전체 컬럼 표시 (detailToggle 제거)
+    const cols = ["보유처", "모델명", "색상", "일련번호", "상권주소", "펫네임", "애칭"];
     renderTable(j.table, cols);
   } catch {
     status.innerText = "조회 실패: 네트워크 오류";
