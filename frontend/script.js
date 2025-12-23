@@ -143,7 +143,7 @@ async function uploadExcel() {
 }
 
 // =========================
-// 재고 검색 (🔥 수정 핵심)
+// 재고 검색 (🔥 여기만 수정됨)
 // =========================
 async function runSearch() {
   const status = document.getElementById("status");
@@ -182,8 +182,15 @@ async function runSearch() {
 
     status.innerText = `총 ${j.total}대 있습니다.`;
 
-    // ✅ 항상 전체 컬럼 표시 (detailToggle 제거)
-    const cols = ["보유처", "모델명", "색상", "일련번호", "상권주소", "펫네임", "애칭"];
+    // 🔥🔥🔥 핵심 수정 시작 🔥🔥🔥
+    const detail = document.getElementById("detailToggle")?.checked || false;
+
+    const baseCols = ["보유처", "모델명", "색상", "일련번호"];
+    const detailCols = ["상권주소", "펫네임", "애칭"];
+
+    const cols = detail ? [...baseCols, ...detailCols] : baseCols;
+    // 🔥🔥🔥 핵심 수정 끝 🔥🔥🔥
+
     renderTable(j.table, cols);
   } catch {
     status.innerText = "조회 실패: 네트워크 오류";
