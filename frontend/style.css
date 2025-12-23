@@ -176,3 +176,40 @@ tr:hover td{background:#fafafa}
     font-size: 14px;
   }
 }
+/* ===============================
+   📱 모바일 테이블 가독성 최종 보정
+   =============================== */
+@media (max-width: 768px) {
+
+  /* 가로 스크롤 제거 */
+  .tableWrap {
+    overflow-x: hidden;
+  }
+
+  /* 테이블 강제 축소 */
+  table {
+    min-width: 0;        /* 🔥 핵심 */
+    width: 100%;
+    table-layout: fixed;
+  }
+
+  th, td {
+    font-size: 12px;
+    padding: 6px 6px;
+    white-space: normal; /* nowrap 해제 */
+    word-break: break-all;
+  }
+
+  /* 4컬럼 비율 조정 */
+  th:nth-child(1),
+  td:nth-child(1) { width: 34%; } /* 보유처 */
+
+  th:nth-child(2),
+  td:nth-child(2) { width: 28%; } /* 모델명 */
+
+  th:nth-child(3),
+  td:nth-child(3) { width: 14%; } /* 색상 */
+
+  th:nth-child(4),
+  td:nth-child(4) { width: 24%; } /* 일련번호 */
+}
