@@ -1,5 +1,8 @@
 let currentCenter = "";
 
+// =========================
+// 비밀번호
+// =========================
 const passwords = {
   "광주": "20405",
   "목포": "20001",
@@ -14,7 +17,8 @@ const passwords = {
 // =========================
 const LOGIN_EXPIRE_MS = 24 * 60 * 60 * 1000; // 24시간
 
-// ⚠️ 중요: API_URL 완전 제거 (상대경로 사용)
+// 🔥 중요: 백엔드 Render 주소 (절대 localhost / 상대경로 쓰면 안 됨)
+const API_URL = "https://nexus-inventory-site.onrender.com";
 
 // =========================
 // 자동 로그인 (하루 유지)
@@ -48,7 +52,7 @@ window.addEventListener("load", () => {
       document.getElementById("searchBox").style.display = "block";
       document.getElementById("uploadBox").style.display = "none";
     }
-  } catch (e) {
+  } catch {
     localStorage.removeItem("loginInfo");
   }
 });
@@ -67,10 +71,7 @@ function login() {
 
   localStorage.setItem(
     "loginInfo",
-    JSON.stringify({
-      center,
-      time: Date.now()
-    })
+    JSON.stringify({ center, time: Date.now() })
   );
 
   document.getElementById("loginBox").style.display = "none";
@@ -130,8 +131,7 @@ async function uploadExcel() {
   status.innerText = "업로드 중... (첫 요청은 조금 느릴 수 있습니다)";
 
   try {
-    // ✅ 상대경로 사용
-    const resp = await fetch("/upload", {
+    const resp = await fetch(`${API_URL}/upload`, {
       method: "POST",
       body: formData
     });
@@ -171,16 +171,15 @@ async function runSearch() {
   document.getElementById("result").innerHTML = "";
 
   try {
-    // ✅ 상대경로 사용
-    const resp = await fetch("/search", {
+    const resp = await fetch(`${API_URL}/search`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         center: currentCenter,
-        model: model || "",
-        address: address || "",
-        owner: owner || "",
-        nickname: nickname || ""
+        model,
+        address,
+        owner,
+        nickname
       })
     });
 
@@ -209,7 +208,7 @@ async function runSearch() {
     const cols = detail ? [...baseCols, ...detailCols] : baseCols;
 
     renderTable(j.table, cols);
-  } catch (e) {
+  } catch {
     status.innerText = "조회 실패: 네트워크 오류";
   }
 }
@@ -228,7 +227,6 @@ function renderTable(rows, cols) {
   cols.forEach(c => {
     const th = document.createElement("th");
     th.textContent = c;
-    th.className = `col-${c}`;
     trh.appendChild(th);
   });
 
@@ -241,7 +239,6 @@ function renderTable(rows, cols) {
     cols.forEach(c => {
       const td = document.createElement("td");
       td.textContent = (r[c] ?? "").toString();
-      td.className = `col-${c}`;
       tr.appendChild(td);
     });
     tbody.appendChild(tr);
