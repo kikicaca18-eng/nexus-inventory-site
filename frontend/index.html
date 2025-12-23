@@ -58,91 +58,55 @@
       <button class="btn primary" onclick="login()">로그인</button>
     </section>
 
-    <!-- ================= 재고 검색 ================= -->
-<section class="card" id="searchBox" style="display:none;">
-  <h2 class="h2">재고 검색</h2>
+    <!-- ================= 재고 검색 (유일) ================= -->
+    <section class="card" id="searchBox" style="display:none;">
+      <h2 class="h2">재고 검색</h2>
 
-  <div class="grid">
-    <div>
-      <label class="label">모델 (선택)</label>
-      <input id="model" class="input" placeholder="예: M366 / 갤25 / S931" />
-    </div>
-
-    <div>
-      <label class="label">상권주소 (선택)</label>
-      <input id="address" class="input" placeholder="예: 군산 / 광주" />
-    </div>
-
-    <div>
-      <label class="label">보유처 (선택)</label>
-      <input id="owner" class="input" placeholder="예: OO대리점" />
-    </div>
-
-    <div>
-      <label class="label">애칭 (선택)</label>
-      <input id="nickname" class="input" placeholder="예: 홍길동" />
-    </div>
-  </div>
-
-  <div class="actions mobile-actions">
-    <button type="button" class="btn primary" onclick="runSearch()">조회</button>
-
-    <select id="sortKey" class="input small">
-      <option value="보유처">보유처</option>
-      <option value="모델명">모델명</option>
-      <option value="색상">색상</option>
-    </select>
-
-    <select id="sortOrder" class="input small">
-      <option value="asc">오름차순</option>
-      <option value="desc">내림차순</option>
-    </select>
-
-    <label class="check">
-      <input type="checkbox" id="detailToggle" />
-      상세 보기
-    </label>
-  </div>
-
-  <div class="status" id="status"></div>
-  <div id="result"></div>
-</section>
-
-      <!-- 안내 문구 (UX 핵심) -->
       <p class="muted" style="margin-bottom:8px;">
         모델 · 상권주소 · 보유처 · 애칭 중<br/>
         <strong>하나 이상 입력</strong>하면 조회됩니다.
       </p>
 
-      <div class="status" id="lastUploadBox">
-        마지막 업로드: -
-      </div>
-
       <div class="grid">
-        <input
-          id="model"
-          class="input"
-          placeholder="모델 (예: M366 / 갤25)"
-        />
-        <input
-          id="address"
-          class="input"
-          placeholder="상권주소 (예: 군산 / 광주)"
-        />
-        <input
-          id="owner"
-          class="input"
-          placeholder="보유처 (대리점명)"
-        />
-        <input
-          id="nickname"
-          class="input"
-          placeholder="애칭"
-        />
+        <div>
+          <label class="label">모델 (선택)</label>
+          <input id="model" class="input" placeholder="예: M366 / 갤25 / S931" />
+        </div>
+
+        <div>
+          <label class="label">상권주소 (선택)</label>
+          <input id="address" class="input" placeholder="예: 군산 / 광주" />
+        </div>
+
+        <div>
+          <label class="label">보유처 (선택)</label>
+          <input id="owner" class="input" placeholder="예: OO대리점" />
+        </div>
+
+        <div>
+          <label class="label">애칭 (선택)</label>
+          <input id="nickname" class="input" placeholder="예: 홍길동" />
+        </div>
       </div>
 
-      <div class="actions">
-        <button class="btn primary" onclick="runSearch()">조회</button>
+      <div class="actions mobile-actions">
+        <button type="button" class="btn primary" onclick="runSearch()">조회</button>
+
+        <select id="sortKey" class="input small">
+          <option value="보유처">보유처</option>
+          <option value="모델명">모델명</option>
+          <option value="색상">색상</option>
+        </select>
+
+        <select id="sortOrder" class="input small">
+          <option value="asc">오름차순</option>
+          <option value="desc">내림차순</option>
+        </select>
+
+        <label class="check">
+          <input type="checkbox" id="detailToggle" />
+          상세 보기
+        </label>
       </div>
 
       <div class="status" id="status"></div>
@@ -176,7 +140,6 @@
     </section>
   </main>
 
-  <!-- ✅ JS는 script.js 하나만 -->
   <script src="script.js"></script>
 </body>
 </html>

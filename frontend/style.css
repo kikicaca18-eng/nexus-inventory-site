@@ -47,6 +47,7 @@ body{
 
 .h2{margin:0 0 12px 0; font-size:18px}
 .label{display:block; font-size:13px; color:var(--muted); margin:10px 0 6px}
+
 .input{
   width:100%;
   padding:12px 12px;
@@ -55,7 +56,10 @@ body{
   border-radius:12px;
   outline:none;
 }
-.input:focus{border-color:#93c5fd; box-shadow: 0 0 0 4px rgba(37,99,235,.12)}
+.input:focus{
+  border-color:#93c5fd;
+  box-shadow: 0 0 0 4px rgba(37,99,235,.12)
+}
 
 .btn{
   border:0;
@@ -83,7 +87,13 @@ body{
   gap:12px;
   margin-top:12px;
 }
-.check{font-size:14px; color:var(--muted); display:flex; align-items:center; gap:8px}
+.check{
+  font-size:14px;
+  color:var(--muted);
+  display:flex;
+  align-items:center;
+  gap:8px
+}
 
 .status{
   margin-top:12px;
@@ -91,39 +101,40 @@ body{
   font-size:14px;
 }
 
-.tableWrap{overflow:auto; margin-top:12px; border:1px solid var(--line); border-radius:12px}
+.tableWrap{
+  overflow-x:auto;
+  margin-top:12px;
+  border:1px solid var(--line);
+  border-radius:12px;
+}
+
 table{
   width:100%;
   border-collapse:collapse;
   min-width: 720px;
 }
+
 th,td{
   padding:10px 10px;
   border-bottom:1px solid var(--line);
   text-align:left;
   font-size:14px;
+  white-space:nowrap;
 }
-th{background:#f3f4f6; font-weight:700}
+
+th{
+  background:#f3f4f6;
+  font-weight:700
+}
+
 tr:hover td{background:#fafafa}
 
-.muted{color:var(--muted); font-size:14px; margin:0 0 10px 0}
-@media (max-width: 640px) {
-  table {
-    min-width: 0;
-    font-size: 12px;
-  }
-
-  th, td {
-    padding: 6px 6px;
-    white-space: nowrap;
-  }
-
-  .col-상권주소,
-  .col-펫네임,
-  .col-애칭 {
-    display: none;
-  }
+.muted{
+  color:var(--muted);
+  font-size:14px;
+  margin:0 0 10px 0
 }
+
 .hero {
   text-align: center;
   padding: 48px 16px 32px;
@@ -143,11 +154,6 @@ tr:hover td{background:#fafafa}
 
 /* 모바일 최적화 */
 @media (max-width: 768px) {
-  .grid {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
   .input {
     height: 44px;
     font-size: 15px;
@@ -168,13 +174,5 @@ tr:hover td{background:#fafafa}
   .check {
     margin-top: 4px;
     font-size: 14px;
-  }
-
-  .tableWrap {
-    overflow-x: auto;
-  }
-
-  table {
-    min-width: 700px;
   }
 }
