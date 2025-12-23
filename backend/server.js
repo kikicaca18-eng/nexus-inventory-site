@@ -10,13 +10,13 @@ const pool = require("./db"); // PostgreSQL 연결
  *  🔥 서버 버전 식별 로그
  * =========================
  */
-console.log("🔥🔥🔥 server.js VERSION 2025-01-19 / PostgreSQL MULTI UPLOAD 🔥🔥🔥");
+console.log("🔥🔥🔥 server.js VERSION 2025-01-19 / PostgreSQL MULTI UPLOAD + SEARCH FIX 🔥🔥🔥");
 
 const app = express();
 
 /**
  * =========================
- *  ✅ CORS (중요: multipart 업로드 대응)
+ *  ✅ CORS (multipart 업로드 대응)
  * =========================
  */
 app.use(
@@ -75,7 +75,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 
     const uploadFileId = fileResult.rows[0].id;
 
-    // 2️⃣ 재고 데이터 저장
+    // 2️⃣ 재고 데이터 저장 (누적)
     for (const r of rows) {
       await pool.query(
         `
@@ -119,14 +119,23 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 
 /**
  * =========================
- *  재고 검색
+ *  재고 검색 (🔥 핵심 수정 부분)
  * =========================
  */
 app.post("/search", async (req, res) => {
   const { center, model, address, owner, nickname } = req.body;
 
+  // 센터는 필수
   if (!center) {
     return res.status(400).json({ ok: false, message: "센터 정보가 없습니다." });
+  }
+
+  // 🔥 검색 조건 1개 이상 필수 (중요)
+  if (!model && !address && !owner && !nickname) {
+    return res.status(400).json({
+      ok: false,
+      message: "검색 조건을 하나 이상 입력하세요."
+    });
   }
 
   let sql = `
@@ -144,6 +153,7 @@ app.post("/search", async (req, res) => {
   const params = [`%${center}%`];
   let idx = 2;
 
+  // 모델은 선택
   if (model) {
     sql += ` AND (모델명 ILIKE $${idx} OR 펫네임 ILIKE $${idx})`;
     params.push(`%${model}%`);
