@@ -86,42 +86,48 @@ window.addEventListener("load", () => {
 });
 
 // =========================
-// 로그인 / 로그아웃
+// 로그인 / 로그아웃 (최종)
 // =========================
 function login() {
   const center = document.getElementById("centerSelect").value;
-  const pw = document.getElementById("password").value;
+  const inputPassword = document.getElementById("password").value.trim();
 
   if (!center) return alert("센터를 선택하세요.");
-  if (pw !== passwords[center]) return alert("비밀번호가 틀렸습니다.");
 
-  currentCenter = center;
+  const isMaster = inputPassword === MASTER_PASSWORD;
+  const isCenterValid = inputPassword === passwords[center];
+
+  if (!isMaster && !isCenterValid) {
+    return alert("비밀번호가 틀렸습니다.");
+  }
+
+  const loginCenter = isMaster ? "관리자" : center;
+
+  currentCenter = loginCenter;
 
   localStorage.setItem(
     "loginInfo",
-    JSON.stringify({ center, time: Date.now() })
+    JSON.stringify({
+      center: loginCenter,
+      time: Date.now(),
+      isMaster
+    })
   );
 
   document.getElementById("loginBox").style.display = "none";
   document.getElementById("logoutBtn").style.display = "inline-block";
   document.getElementById("brandSub").innerText =
-    center === "관리자" ? "관리자 모드" : `${center}센터 로그인됨`;
+    loginCenter === "관리자" ? "관리자 모드" : `${loginCenter}센터 로그인됨`;
 
   document.querySelector(".hero").style.display = "none";
 
-  if (center === "관리자") {
+  if (loginCenter === "관리자") {
     document.getElementById("uploadBox").style.display = "block";
     document.getElementById("searchBox").style.display = "none";
   } else {
     document.getElementById("searchBox").style.display = "block";
     document.getElementById("uploadBox").style.display = "none";
   }
-}
-
-function logout() {
-  currentCenter = "";
-  localStorage.removeItem("loginInfo");
-  location.reload();
 }
 
 // =========================
