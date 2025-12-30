@@ -14,32 +14,6 @@ const passwords = {
 
 const MASTER_PASSWORD = "1252002"; // ⭐ 반드시 문자열
 
-function login() {
-  const center = document.getElementById("centerSelect").value;
-  const inputPassword = document.getElementById("password").value.trim();
-
-  console.log("입력 비번:", inputPassword); // 디버그용
-  console.log("센터 비번:", passwords[center]);
-
-  if (
-    inputPassword === MASTER_PASSWORD ||
-    inputPassword === passwords[center]
-  ) {
-    localStorage.setItem(
-      "loginInfo",
-      JSON.stringify({
-        center: inputPassword === MASTER_PASSWORD ? "관리자" : center,
-        time: Date.now(),
-        isMaster: inputPassword === MASTER_PASSWORD
-      })
-    );
-
-    location.href = "main.html";
-  } else {
-    alert("비밀번호가 틀렸습니다.");
-  }
-}
-
 // =========================
 // 설정
 // =========================
@@ -86,7 +60,7 @@ window.addEventListener("load", () => {
 });
 
 // =========================
-// 로그인 / 로그아웃 (최종)
+// 로그인 / 로그아웃
 // =========================
 function login() {
   const center = document.getElementById("centerSelect").value;
@@ -101,7 +75,7 @@ function login() {
     return alert("비밀번호가 틀렸습니다.");
   }
 
-  // ⭐ 핵심: 센터는 선택값 그대로 유지
+  // ⭐ 센터는 선택값 그대로 유지
   currentCenter = center;
 
   localStorage.setItem(
@@ -126,6 +100,12 @@ function login() {
     document.getElementById("searchBox").style.display = "block";
     document.getElementById("uploadBox").style.display = "none";
   }
+}
+
+function logout() {
+  currentCenter = "";
+  localStorage.removeItem("loginInfo");
+  location.reload();
 }
 
 // =========================
