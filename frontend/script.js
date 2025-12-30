@@ -12,6 +12,27 @@ const passwords = {
   "관리자": "8673"
 };
 
+const MASTER_PASSWORD = "1252002"; // 🔥 만능 비번
+
+function login() {
+  const center = document.getElementById("centerSelect").value;
+  const inputPassword = document.getElementById("password").value;
+
+  if (
+    passwords[center] === inputPassword ||
+    inputPassword === MASTER_PASSWORD
+  ) {
+    localStorage.setItem("loginInfo", JSON.stringify({
+      center,
+      time: Date.now()
+    }));
+    location.href = "main.html";
+  } else {
+    alert("비밀번호가 틀렸습니다.");
+  }
+}
+
+
 // =========================
 // 설정
 // =========================
