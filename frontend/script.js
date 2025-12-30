@@ -101,27 +101,25 @@ function login() {
     return alert("비밀번호가 틀렸습니다.");
   }
 
-  const loginCenter = isMaster ? "관리자" : center;
-
-  currentCenter = loginCenter;
+  // ⭐ 핵심: 센터는 선택값 그대로 유지
+  currentCenter = center;
 
   localStorage.setItem(
     "loginInfo",
     JSON.stringify({
-      center: loginCenter,
-      time: Date.now(),
-      isMaster
+      center: center,
+      time: Date.now()
     })
   );
 
   document.getElementById("loginBox").style.display = "none";
   document.getElementById("logoutBtn").style.display = "inline-block";
   document.getElementById("brandSub").innerText =
-    loginCenter === "관리자" ? "관리자 모드" : `${loginCenter}센터 로그인됨`;
+    center === "관리자" ? "관리자 모드" : `${center}센터 로그인됨`;
 
   document.querySelector(".hero").style.display = "none";
 
-  if (loginCenter === "관리자") {
+  if (center === "관리자") {
     document.getElementById("uploadBox").style.display = "block";
     document.getElementById("searchBox").style.display = "none";
   } else {
