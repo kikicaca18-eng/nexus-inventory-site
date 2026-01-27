@@ -3,9 +3,9 @@ const cors = require("cors");
 const multer = require("multer");
 const XLSX = require("xlsx");
 const cron = require("node-cron");
-const pool = require("./db"); // ✅ Supabase(Postgres) 연결은 db.js에서 처리
+const pool = require("./db");
 
-console.log("🔥 server.js VERSION 2026-01-27 / SUPABASE inventory_items SNAPSHOT + SEARCH 🔥");
+console.log("🔥 server.js FINAL / SUPABASE inventory_items + AGENCY AUTH 🔥");
 
 const app = express();
 
@@ -27,10 +27,12 @@ app.get("/", (req, res) => {
 const upload = multer({ storage: multer.memoryStorage() });
 
 /**
- * 한국시간(Asia/Seoul) 기준 YYYY-MM-DD
+ * 한국시간 기준 날짜
  */
 function todayKST() {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date());
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul"
+  }).format(new Date());
 }
 
 function toText(v) {
@@ -40,10 +42,7 @@ function toText(v) {
 
 /**
  * =========================
- * ✅ 업로드: /upload  (기존 프론트 유지)
- * - 새 재고 포맷(0127) 업로드
- * - 오늘 날짜 스냅샷으로 "덮어쓰기"
- * - 저장 테이블: inventory_items
+ * ✅ 업로드: /upload (관리자만)
  * =========================
  */
 app.post("/upload", upload.single("file"), async (req, res) => {
@@ -55,17 +54,14 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     }
 
     const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
-
-    // 시트 1개만 운영한다고 했으니 첫 시트 사용
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
-
     const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
     if (!rows.length) {
       return res.status(400).json({ ok: false, message: "시트에 데이터가 없습니다." });
     }
 
-    // ✅ 기대 컬럼(너가 올린 재고 파일 기준)
     const expected = [
       "대리점코드",
       "대리점명",
@@ -84,12 +80,11 @@ app.post("/upload", upload.single("file"), async (req, res) => {
       if (!Object.prototype.hasOwnProperty.call(rows[0], c)) {
         return res.status(400).json({
           ok: false,
-          message: `엑셀 헤더에 '${c}' 컬럼이 없습니다. (첫줄 헤더 확인)`
+          message: `엑셀 헤더에 '${c}' 컬럼이 없습니다.`
         });
       }
     }
 
-    // ✅ 데이터 가공(일련번호 없는 줄 제외)
     const data = rows
       .filter(r => toText(r["일련번호"]) !== "")
       .map(r => ({
@@ -110,90 +105,77 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     try {
       await client.query("BEGIN");
 
-      // ✅ 오늘 스냅샷 덮어쓰기(안전/단순/왕초보 운영 최적)
-      await client.query("DELETE FROM inventory_items WHERE snapshot_date = $1", [snapshotDate]);
+      await client.query(
+        "DELETE FROM inventory_items WHERE snapshot_date = $1",
+        [snapshotDate]
+      );
 
-      // ✅ 대량 insert(빠르게)
-      // 한 번에 너무 크게 넣지 않도록 800개씩 끊어서 넣음
       const chunkSize = 800;
 
       for (let i = 0; i < data.length; i += chunkSize) {
         const chunk = data.slice(i, i + chunkSize);
-
         const values = [];
-        const placeholders = chunk
-          .map((row, idx) => {
-            const base = idx * 12;
-            values.push(
-              snapshotDate,
-              row.agency_code,
-              row.agency_name,
-              row.sub_market,
-              row.address,
-              row.store_code,
-              row.store_name,
-              row.pet_name,
-              row.model_name,
-              row.color,
-              row.serial_no,
-              row.nickname
-            );
-            // 12 columns
-            return `($${base + 1},$${base + 2},$${base + 3},$${base + 4},$${base + 5},$${base + 6},$${base + 7},$${base + 8},$${base + 9},$${base + 10},$${base + 11},$${base + 12})`;
-          })
-          .join(",");
+        const placeholders = chunk.map((row, idx) => {
+          const b = idx * 12;
+          values.push(
+            snapshotDate,
+            row.agency_code,
+            row.agency_name,
+            row.sub_market,
+            row.address,
+            row.store_code,
+            row.store_name,
+            row.pet_name,
+            row.model_name,
+            row.color,
+            row.serial_no,
+            row.nickname
+          );
+          return `($${b + 1},$${b + 2},$${b + 3},$${b + 4},$${b + 5},$${b + 6},$${b + 7},$${b + 8},$${b + 9},$${b + 10},$${b + 11},$${b + 12})`;
+        });
 
-        const sql = `
+        await client.query(
+          `
           INSERT INTO inventory_items
           (snapshot_date, agency_code, agency_name, sub_market, address, store_code, store_name, pet_name, model_name, color, serial_no, nickname)
-          VALUES ${placeholders}
-        `;
-
-        await client.query(sql, values);
+          VALUES ${placeholders.join(",")}
+          `,
+          values
+        );
       }
 
       await client.query("COMMIT");
 
-      return res.json({
+      res.json({
         ok: true,
         count: data.length,
-        snapshot_date: snapshotDate,
-        sheet: sheetName,
-        message: "재고 업로드 완료 (Supabase snapshot overwrite)"
+        snapshot_date: snapshotDate
       });
     } catch (e) {
       await client.query("ROLLBACK");
-      console.error("❌ 업로드 DB 오류:", e);
-      return res.status(500).json({ ok: false, message: "업로드 실패(DB)" });
+      console.error(e);
+      res.status(500).json({ ok: false, message: "DB 오류" });
     } finally {
       client.release();
     }
-  } catch (err) {
-    console.error("❌ 업로드 오류:", err);
-    return res.status(500).json({ ok: false, message: "업로드 실패" });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ ok: false, message: "업로드 실패" });
   }
 });
 
 /**
  * =========================
- * ✅ 검색: /search  (기존 프론트 유지)
- * - 기존 파라미터 그대로 받음: center(필수), model/address/owner/nickname(선택)
- * - 오늘 스냅샷(snapshot_date=오늘) 기준 검색
- *
- * 매핑:
- *  center   -> store_name(접점명)에서 검색 (필수)
- *  model    -> model_name 또는 pet_name 검색
- *  address  -> address(상세주소) 검색
- *  owner    -> agency_name(대리점명) 검색
- *  nickname -> nickname(애칭) 검색
+ * ✅ 재고 검색: /search
+ * - agency 기준 강제 제한
  * =========================
  */
 app.post("/search", async (req, res) => {
   const snapshotDate = todayKST();
-  const { center, model, address, owner, nickname } = req.body;
+  const { agency, model, address, owner, nickname } = req.body;
 
-  if (!center) {
-    return res.status(400).json({ ok: false, message: "센터(center) 정보가 없습니다." });
+  if (!agency) {
+    return res.status(400).json({ ok: false, message: "agency 정보가 없습니다." });
   }
 
   if (!model && !address && !owner && !nickname) {
@@ -206,18 +188,27 @@ app.post("/search", async (req, res) => {
   let sql = `
     SELECT
       snapshot_date,
-      agency_code, agency_name,
-      sub_market, address,
-      store_code, store_name,
-      pet_name, model_name, color,
-      serial_no, nickname
+      agency_name,
+      store_name,
+      model_name,
+      pet_name,
+      color,
+      serial_no,
+      address,
+      nickname
     FROM inventory_items
     WHERE snapshot_date = $1
-      AND store_name ILIKE $2
   `;
 
-  const params = [snapshotDate, `%${center}%`];
-  let idx = 3;
+  const params = [snapshotDate];
+  let idx = 2;
+
+  // 🔐 관리자 아니면 본인 대리점만
+  if (agency !== "관리자") {
+    sql += ` AND agency_name = $${idx}`;
+    params.push(agency);
+    idx++;
+  }
 
   if (model) {
     sql += ` AND (model_name ILIKE $${idx} OR pet_name ILIKE $${idx})`;
@@ -232,7 +223,7 @@ app.post("/search", async (req, res) => {
   }
 
   if (owner) {
-    sql += ` AND agency_name ILIKE $${idx}`;
+    sql += ` AND store_name ILIKE $${idx}`;
     params.push(`%${owner}%`);
     idx++;
   }
@@ -243,65 +234,54 @@ app.post("/search", async (req, res) => {
     idx++;
   }
 
-  // 너무 많이 뿌리면 프론트가 느려질 수 있어서 제한
   sql += ` ORDER BY store_name ASC, model_name ASC LIMIT 2000`;
 
   try {
     const result = await pool.query(sql, params);
-    return res.json({
+    res.json({
       ok: true,
+      agency,
       snapshot_date: snapshotDate,
       total: result.rows.length,
       table: result.rows
     });
-  } catch (err) {
-    console.error("❌ 검색 오류:", err);
-    return res.status(500).json({ ok: false, message: "검색 실패" });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ ok: false, message: "검색 실패" });
   }
 });
 
 /**
  * =========================
- * ✅ 마지막 업로드 상태: /upload-status (기존 프론트 유지)
- * - "오늘 스냅샷에 데이터가 있냐"로 판단
+ * 업로드 상태
  * =========================
  */
 app.get("/upload-status", async (req, res) => {
   const snapshotDate = todayKST();
+  const r = await pool.query(
+    "SELECT COUNT(*)::int AS cnt FROM inventory_items WHERE snapshot_date = $1",
+    [snapshotDate]
+  );
 
-  try {
-    const r = await pool.query(
-      `SELECT COUNT(*)::int AS cnt FROM inventory_items WHERE snapshot_date = $1`,
-      [snapshotDate]
-    );
-
-    res.json({
-      ok: true,
-      snapshot_date: snapshotDate,
-      today_count: r.rows[0]?.cnt ?? 0
-    });
-  } catch (err) {
-    console.error("❌ 업로드 상태 오류:", err);
-    res.status(500).json({ ok: false, message: "상태 조회 실패" });
-  }
+  res.json({
+    ok: true,
+    snapshot_date: snapshotDate,
+    today_count: r.rows[0]?.cnt ?? 0
+  });
 });
 
 /**
  * =========================
- *  상태 로그용 CRON (선택)
+ * CRON 로그
  * =========================
  */
 cron.schedule("0 * * * *", async () => {
-  const snapshotDate = todayKST();
-  try {
-    const result = await pool.query(
-      `SELECT COUNT(*)::int AS cnt FROM inventory_items WHERE snapshot_date = $1`,
-      [snapshotDate]
-    );
-    console.log(`🕐 [CRON] 오늘(${snapshotDate}) inventory_items row 수: ${result.rows[0].cnt}`);
-  } catch (err) {
-    console.error("❌ [CRON] 오류:", err);
-  }
+  const d = todayKST();
+  const r = await pool.query(
+    "SELECT COUNT(*)::int AS cnt FROM inventory_items WHERE snapshot_date = $1",
+    [d]
+  );
+  console.log(`🕐 [CRON] ${d} 재고 ${r.rows[0].cnt}건`);
 });
 
 const PORT = process.env.PORT || 3000;
