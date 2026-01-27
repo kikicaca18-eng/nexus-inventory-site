@@ -1,4 +1,4 @@
-let currentCenter = "";
+let currentCenter = ""; // 👉 실제 의미: 대리점명
 
 // =========================
 // 비밀번호
@@ -18,12 +18,10 @@ const MASTER_PASSWORD = "1252002"; // ⭐ 반드시 문자열
 // 설정
 // =========================
 const LOGIN_EXPIRE_MS = 24 * 60 * 60 * 1000; // 24시간
-
-// 🔥 중요: 백엔드 Render 주소
 const API_URL = "https://nexus-inventory-site.onrender.com";
 
 // =========================
-// 자동 로그인 (하루 유지)
+// 자동 로그인
 // =========================
 window.addEventListener("load", () => {
   const saved = localStorage.getItem("loginInfo");
@@ -43,7 +41,7 @@ window.addEventListener("load", () => {
     document.getElementById("loginBox").style.display = "none";
     document.getElementById("logoutBtn").style.display = "inline-block";
     document.getElementById("brandSub").innerText =
-      center === "관리자" ? "관리자 모드" : `${center}센터 로그인됨`;
+      center === "관리자" ? "관리자 모드" : `${center} 대리점 로그인됨`;
 
     document.querySelector(".hero").style.display = "none";
 
@@ -66,7 +64,7 @@ function login() {
   const center = document.getElementById("centerSelect").value;
   const inputPassword = document.getElementById("password").value.trim();
 
-  if (!center) return alert("센터를 선택하세요.");
+  if (!center) return alert("센터(대리점)를 선택하세요.");
 
   const isMaster = inputPassword === MASTER_PASSWORD;
   const isCenterValid = inputPassword === passwords[center];
@@ -75,7 +73,6 @@ function login() {
     return alert("비밀번호가 틀렸습니다.");
   }
 
-  // ⭐ 센터는 선택값 그대로 유지
   currentCenter = center;
 
   localStorage.setItem(
@@ -89,7 +86,7 @@ function login() {
   document.getElementById("loginBox").style.display = "none";
   document.getElementById("logoutBtn").style.display = "inline-block";
   document.getElementById("brandSub").innerText =
-    center === "관리자" ? "관리자 모드" : `${center}센터 로그인됨`;
+    center === "관리자" ? "관리자 모드" : `${center} 대리점 로그인됨`;
 
   document.querySelector(".hero").style.display = "none";
 
@@ -127,10 +124,8 @@ async function uploadExcel() {
   }
 
   uploadBtn.disabled = true;
-
   const formData = new FormData();
   formData.append("file", fileInput.files[0]);
-
   status.innerText = "업로드 중...";
 
   try {
@@ -155,7 +150,7 @@ async function uploadExcel() {
 }
 
 // =========================
-// 재고 검색 (🔥 기본 정렬: 보유처)
+// 재고 검색 (🔥 대리점 기준 강제)
 // =========================
 async function runSearch() {
   const status = document.getElementById("status");
@@ -177,7 +172,7 @@ async function runSearch() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        center: currentCenter,
+        agency: currentCenter, // 🔥 핵심: 로그인한 대리점명
         model,
         address,
         owner,
@@ -194,16 +189,15 @@ async function runSearch() {
 
     status.innerText = `총 ${j.total}대 있습니다.`;
 
-    // ✅ 기본 정렬: 보유처 기준 오름차순
+    // 기본 정렬: 접점명(판매점/창고)
     j.table.sort((a, b) =>
-      (a["보유처"] || "").localeCompare(b["보유처"] || "", "ko")
+      (a.store_name || "").localeCompare(b.store_name || "", "ko")
     );
 
-    // 상세 보기 여부
     const detail = document.getElementById("detailToggle")?.checked || false;
 
-    const baseCols = ["보유처", "모델명", "색상", "일련번호"];
-    const detailCols = ["상권주소", "펫네임", "애칭"];
+    const baseCols = ["store_name", "model_name", "color", "serial_no"];
+    const detailCols = ["address", "pet_name", "nickname"];
 
     const cols = detail ? [...baseCols, ...detailCols] : baseCols;
 
@@ -224,9 +218,19 @@ function renderTable(rows, cols) {
   const thead = document.createElement("thead");
   const trh = document.createElement("tr");
 
+  const headerMap = {
+    store_name: "접점명",
+    model_name: "모델명",
+    color: "색상",
+    serial_no: "일련번호",
+    address: "상세주소",
+    pet_name: "펫네임",
+    nickname: "애칭"
+  };
+
   cols.forEach(c => {
     const th = document.createElement("th");
-    th.textContent = c;
+    th.textContent = headerMap[c] || c;
     trh.appendChild(th);
   });
 
