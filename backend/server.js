@@ -253,6 +253,225 @@ app.post("/search", async (req, res) => {
 
 /**
  * =========================
+ * ✅ 재고 대시보드: 요약 카드
+ * POST /inventory/summary
+ * body: { agency }
+ * =========================
+ */
+app.post("/inventory/summary", async (req, res) => {
+  const snapshotDate = todayKST();
+  const { agency } = req.body;
+
+  if (!agency) {
+    return res.status(400).json({ ok: false, message: "agency 정보가 없습니다." });
+  }
+
+  const params = [snapshotDate];
+  let idx = 2;
+
+  let where = `WHERE snapshot_date = $1`;
+
+  // 🔐 관리자 아니면 본인 대리점만
+  if (agency !== "관리자") {
+    where += ` AND agency_name = $${idx}`;
+    params.push(agency);
+    idx++;
+  }
+
+  try {
+    const q = `
+      SELECT
+        COUNT(*)::int AS total_qty,
+        COUNT(DISTINCT store_code)::int AS store_cnt,
+        COUNT(DISTINCT model_name)::int AS model_cnt
+      FROM inventory_items
+      ${where}
+    `;
+
+    const r = await pool.query(q, params);
+
+    return res.json({
+      ok: true,
+      snapshot_date: snapshotDate,
+      agency,
+      summary: r.rows[0]
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ ok: false, message: "요약 조회 실패" });
+  }
+});
+
+/**
+ * =========================
+ * ✅ 재고 대시보드: 모델별 TOP
+ * POST /inventory/by-model
+ * body: { agency, limit }
+ * =========================
+ */
+app.post("/inventory/by-model", async (req, res) => {
+  const snapshotDate = todayKST();
+  const { agency, limit } = req.body;
+
+  if (!agency) {
+    return res.status(400).json({ ok: false, message: "agency 정보가 없습니다." });
+  }
+
+  const topN = Number(limit) > 0 ? Math.min(Number(limit), 100) : 20;
+
+  const params = [snapshotDate];
+  let idx = 2;
+
+  let where = `WHERE snapshot_date = $1`;
+
+  if (agency !== "관리자") {
+    where += ` AND agency_name = $${idx}`;
+    params.push(agency);
+    idx++;
+  }
+
+  try {
+    const q = `
+      SELECT
+        model_name,
+        COUNT(*)::int AS qty
+      FROM inventory_items
+      ${where}
+      GROUP BY model_name
+      ORDER BY qty DESC, model_name ASC
+      LIMIT ${topN}
+    `;
+
+    const r = await pool.query(q, params);
+
+    return res.json({
+      ok: true,
+      snapshot_date: snapshotDate,
+      agency,
+      rows: r.rows
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ ok: false, message: "모델별 조회 실패" });
+  }
+});
+
+/**
+ * =========================
+ * ✅ 재고 대시보드: 판매점(접점)별 TOP
+ * POST /inventory/by-store
+ * body: { agency, limit }
+ * =========================
+ */
+app.post("/inventory/by-store", async (req, res) => {
+  const snapshotDate = todayKST();
+  const { agency, limit } = req.body;
+
+  if (!agency) {
+    return res.status(400).json({ ok: false, message: "agency 정보가 없습니다." });
+  }
+
+  const topN = Number(limit) > 0 ? Math.min(Number(limit), 200) : 30;
+
+  const params = [snapshotDate];
+  let idx = 2;
+
+  let where = `WHERE snapshot_date = $1`;
+
+  if (agency !== "관리자") {
+    where += ` AND agency_name = $${idx}`;
+    params.push(agency);
+    idx++;
+  }
+
+  try {
+    const q = `
+      SELECT
+        store_code,
+        store_name,
+        COUNT(*)::int AS qty
+      FROM inventory_items
+      ${where}
+      GROUP BY store_code, store_name
+      ORDER BY qty DESC, store_name ASC
+      LIMIT ${topN}
+    `;
+
+    const r = await pool.query(q, params);
+
+    return res.json({
+      ok: true,
+      snapshot_date: snapshotDate,
+      agency,
+      rows: r.rows
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ ok: false, message: "판매점별 조회 실패" });
+  }
+});
+
+/**
+ * =========================
+ * ✅ 판매점 상세: 특정 판매점 재고 리스트
+ * POST /inventory/store-detail
+ * body: { agency, store_code }
+ * =========================
+ */
+app.post("/inventory/store-detail", async (req, res) => {
+  const snapshotDate = todayKST();
+  const { agency, store_code } = req.body;
+
+  if (!agency) {
+    return res.status(400).json({ ok: false, message: "agency 정보가 없습니다." });
+  }
+  if (!store_code) {
+    return res.status(400).json({ ok: false, message: "store_code가 없습니다." });
+  }
+
+  const params = [snapshotDate];
+  let idx = 2;
+
+  let where = `WHERE snapshot_date = $1 AND store_code = $${idx}`;
+  params.push(store_code);
+  idx++;
+
+  if (agency !== "관리자") {
+    where += ` AND agency_name = $${idx}`;
+    params.push(agency);
+    idx++;
+  }
+
+  try {
+    const q = `
+      SELECT
+        store_code, store_name,
+        model_name, pet_name, color,
+        serial_no, nickname,
+        address
+      FROM inventory_items
+      ${where}
+      ORDER BY model_name ASC, color ASC, serial_no ASC
+      LIMIT 3000
+    `;
+
+    const r = await pool.query(q, params);
+
+    return res.json({
+      ok: true,
+      snapshot_date: snapshotDate,
+      agency,
+      total: r.rows.length,
+      rows: r.rows
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ ok: false, message: "판매점 상세 조회 실패" });
+  }
+});
+
+/**
+ * =========================
  * 업로드 상태
  * =========================
  */
