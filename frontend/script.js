@@ -1,5 +1,14 @@
 let currentCenter = ""; // 👉 실제 의미: 대리점명
 
+function $(id) {
+  return document.getElementById(id);
+}
+
+function setDisplay(id, display) {
+  const el = $(id);
+  if (el) el.style.display = display;
+}
+
 // =========================
 // 비밀번호
 // =========================
@@ -38,22 +47,28 @@ window.addEventListener("load", () => {
 
     currentCenter = center;
 
-    document.getElementById("loginBox").style.display = "none";
-    document.getElementById("logoutBtn").style.display = "inline-block";
-    document.getElementById("brandSub").innerText =
-      center === "관리자" ? "관리자 모드" : `${center} 대리점 로그인됨`;
+    setDisplay("loginBox", "none");
+    setDisplay("logoutBtn", "inline-block");
 
-    document.querySelector(".hero").style.display = "none";
+    const brandSub = $("brandSub");
+    if (brandSub) {
+      brandSub.innerText = center === "관리자" ? "관리자 모드" : `${center} 대리점 로그인됨`;
+    }
 
-document.getElementById("menuBox").style.display = "block";
-document.getElementById("uploadBox").style.display = "none";
-document.getElementById("searchBox").style.display = "none";
-document.getElementById("inventoryDash").style.display = "none";
+    const hero = document.querySelector(".hero");
+    if (hero) hero.style.display = "none";
 
-  } catch {
+    // ✅ 로그인 후에는 메뉴 화면으로
+    setDisplay("menuBox", "block");
+    setDisplay("uploadBox", "none");
+    setDisplay("searchBox", "none");
+    setDisplay("inventoryDash", "none");
+  } catch (e) {
+    console.error(e);
     localStorage.removeItem("loginInfo");
   }
 });
+
 
 // =========================
 // 로그인 / 로그아웃
@@ -92,7 +107,7 @@ document.getElementById("menuBox").style.display = "block";
 document.getElementById("uploadBox").style.display = "none";
 document.getElementById("searchBox").style.display = "none";
 document.getElementById("inventoryDash").style.display = "none";
-
+}
 
 function logout() {
   currentCenter = "";
@@ -257,12 +272,9 @@ function renderTable(rows, cols) {
 // =========================
 function showOnly(ids) {
   const all = ["menuBox", "inventoryDash", "searchBox", "uploadBox"];
-  all.forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.style.display = ids.includes(id) ? "block" : "none";
-  });
+  all.forEach(id => setDisplay(id, ids.includes(id) ? "block" : "none"));
 }
+
 
 function openInventory() {
   // 일반 대리점: 대시보드+검색
