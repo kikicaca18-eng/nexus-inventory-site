@@ -138,6 +138,36 @@
 
       <div class="status" id="uploadStatus"></div>
     </section>
+
+    <!-- ================= 메뉴 박스 ================= -->
+    <div id="menuBox" style="display:none; margin-top:16px;">
+  <button onclick="openInventory()">재고조회 입장</button>
+  <button onclick="openPerformance()" style="margin-left:10px;">실적조회 입장</button>
+</div>
+
+<div id="inventoryDash" style="display:none; margin-top:16px;">
+  <h3>📦 재고 대시보드(오늘)</h3>
+
+  <div id="invCards" style="display:flex; gap:12px; flex-wrap:wrap; margin:12px 0;"></div>
+
+  <div style="display:flex; gap:20px; flex-wrap:wrap;">
+    <div style="min-width:320px; flex:1;">
+      <h4>모델별 TOP</h4>
+      <div id="byModelTable"></div>
+    </div>
+
+    <div style="min-width:320px; flex:1;">
+      <h4>판매점별 TOP</h4>
+      <div id="byStoreTable"></div>
+    </div>
+  </div>
+
+  <hr style="margin:18px 0;" />
+
+  <h3>🔎 재고 검색</h3>
+  <!-- 기존 searchBox(검색 UI) 영역을 그대로 사용하거나,
+       searchBox를 inventoryDash 안으로 옮겨도 됨 -->
+</div>    
   </main>
 
   <script src="script.js"></script>
