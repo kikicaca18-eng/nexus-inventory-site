@@ -304,6 +304,55 @@ app.post("/inventory/summary", async (req, res) => {
 
 /**
  * =========================
+ * ✅ 재고 대시보드: 창고/판매점 분리 요약
+ * =========================
+ */
+app.post("/inventory/summary-extended", async (req, res) => {
+  const snapshotDate = todayKST();
+  const { agency } = req.body;
+
+  if (!agency) {
+    return res.status(400).json({ ok: false, message: "agency 정보가 없습니다." });
+  }
+
+  const params = [snapshotDate];
+  let idx = 2;
+
+  let where = `WHERE snapshot_date = $1`;
+
+  if (agency !== "관리자") {
+    where += ` AND agency_name = $${idx}`;
+    params.push(agency);
+    idx++;
+  }
+
+  try {
+    const q = `
+      SELECT
+        COUNT(*)::int AS total_qty,
+        COUNT(DISTINCT store_code)::int AS store_cnt,
+        COUNT(DISTINCT model_name)::int AS model_cnt,
+        SUM(CASE WHEN store_name ILIKE '%창고%' THEN 1 ELSE 0 END)::int AS warehouse_qty,
+        SUM(CASE WHEN store_name NOT ILIKE '%창고%' THEN 1 ELSE 0 END)::int AS store_qty
+      FROM inventory_items
+      ${where}
+    `;
+
+    const r = await pool.query(q, params);
+
+    res.json({
+      ok: true,
+      snapshot_date: snapshotDate,
+      summary: r.rows[0]
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ ok: false, message: "확장 요약 실패" });
+  }
+});
+
+/**
+ * =========================
  * ✅ 재고 대시보드: 모델별 TOP
  * POST /inventory/by-model
  * body: { agency, limit }
