@@ -462,6 +462,56 @@ app.post("/inventory/by-store", async (req, res) => {
 
 /**
  * =========================
+ * ✅ 재고 추천 이동 모델
+ * =========================
+ */
+app.post("/inventory/recommend-move", async (req, res) => {
+  const snapshotDate = todayKST();
+  const { agency } = req.body;
+
+  if (!agency) {
+    return res.status(400).json({ ok: false, message: "agency 필요" });
+  }
+
+  const params = [snapshotDate];
+  let idx = 2;
+
+  let where = `WHERE snapshot_date = $1`;
+
+  if (agency !== "관리자") {
+    where += ` AND agency_name = $${idx}`;
+    params.push(agency);
+    idx++;
+  }
+
+  try {
+    const q = `
+      SELECT
+        model_name,
+        SUM(CASE WHEN store_name ILIKE '%창고%' THEN 1 ELSE 0 END) AS warehouse_qty,
+        SUM(CASE WHEN store_name NOT ILIKE '%창고%' THEN 1 ELSE 0 END) AS store_qty
+      FROM inventory_items
+      ${where}
+      GROUP BY model_name
+      HAVING SUM(CASE WHEN store_name ILIKE '%창고%' THEN 1 ELSE 0 END) >= 10
+      ORDER BY warehouse_qty DESC
+      LIMIT 10
+    `;
+
+    const r = await pool.query(q, params);
+
+    res.json({
+      ok: true,
+      rows: r.rows
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ ok: false, message: "추천 조회 실패" });
+  }
+});
+
+/**
+ * =========================
  * ✅ 판매점 상세: 특정 판매점 재고 리스트
  * POST /inventory/store-detail
  * body: { agency, store_code }
