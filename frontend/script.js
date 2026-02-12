@@ -335,6 +335,18 @@ async function loadInventoryDashboard() {
     if (!stResp.ok || !st.ok) throw new Error(st.message || "판매점 TOP 실패");
 
     renderStoreTable(st.rows);
+
+    // 4) 추천 이동 모델
+const rResp = await fetch(`${API_URL}/inventory/recommend-move`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ agency: currentCenter })
+});
+const rec = await rResp.json();
+if (rResp.ok && rec.ok) {
+  renderRecommend(rec.rows);
+}
+
   } catch (e) {
     if (cards) cards.innerHTML = `❌ 대시보드 로드 실패: ${e.message}`;
   }
@@ -491,7 +503,7 @@ td2.textContent = text;
   wrap.appendChild(table);
 }
 
-// 판매점 상세(일단 alert로 보여주고, 다음에 모달로 예쁘게)
+// 판매점 상세(일단 alert로 보여주고, 다음에 모델로 예쁘게)
 async function openStoreDetail(storeCode) {
   if (!storeCode) return alert("store_code가 없습니다.");
 
@@ -507,3 +519,36 @@ async function openStoreDetail(storeCode) {
   alert(`총 ${j.total}대 (상세 UI는 다음 단계에서 테이블/모달로 개선)`);
 }
 
+function renderRecommend(rows) {
+  const wrap = document.getElementById("recommendMove");
+  if (!wrap) return;
+
+  if (!rows.length) {
+    wrap.innerHTML = "추천 이동 대상 없음";
+    return;
+  }
+
+  let html = `<table style="width:100%;border-collapse:collapse;">`;
+
+  html += `
+    <tr>
+      <th style="text-align:left;border-bottom:1px solid #ddd;padding:8px;">모델</th>
+      <th style="text-align:left;border-bottom:1px solid #ddd;padding:8px;">창고</th>
+      <th style="text-align:left;border-bottom:1px solid #ddd;padding:8px;">판매점</th>
+    </tr>
+  `;
+
+  rows.forEach(r => {
+    html += `
+      <tr>
+        <td style="padding:8px;">🔥 ${r.model_name}</td>
+        <td style="padding:8px;">${Number(r.warehouse_qty).toLocaleString()}</td>
+        <td style="padding:8px;">${Number(r.store_qty).toLocaleString()}</td>
+      </tr>
+    `;
+  });
+
+  html += `</table>`;
+
+  wrap.innerHTML = html;
+}
