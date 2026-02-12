@@ -301,7 +301,7 @@ async function loadInventoryDashboard() {
 
   try {
     // 1) 요약
-    const sResp = await fetch(`${API_URL}/inventory/summary`, {
+    const sResp = await fetch(`${API_URL}/inventory/summary-extended`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ agency: currentCenter })
@@ -344,20 +344,30 @@ function renderInvCards(summary) {
   const cards = document.getElementById("invCards");
   if (!cards) return;
 
-  const { total_qty, store_cnt, model_cnt } = summary;
+  const {
+    total_qty,
+    store_cnt,
+    model_cnt,
+    warehouse_qty,
+    store_qty
+  } = summary;
 
   cards.innerHTML = `
-    <div style="padding:12px 14px; border:1px solid #ddd; border-radius:10px; min-width:180px;">
-      <div style="font-size:12px; opacity:0.7;">오늘 총 재고</div>
-      <div style="font-size:22px; font-weight:700;">${Number(total_qty).toLocaleString()} 대</div>
-    </div>
-    <div style="padding:12px 14px; border:1px solid #ddd; border-radius:10px; min-width:180px;">
-      <div style="font-size:12px; opacity:0.7;">판매점(접점) 수</div>
-      <div style="font-size:22px; font-weight:700;">${Number(store_cnt).toLocaleString()} 곳</div>
-    </div>
-    <div style="padding:12px 14px; border:1px solid #ddd; border-radius:10px; min-width:180px;">
-      <div style="font-size:12px; opacity:0.7;">모델 종류 수</div>
-      <div style="font-size:22px; font-weight:700;">${Number(model_cnt).toLocaleString()} 종</div>
+    ${card("오늘 총 재고", total_qty, "대")}
+    ${card("판매점 수", store_cnt, "곳")}
+    ${card("모델 수", model_cnt, "종")}
+    ${card("창고 재고", warehouse_qty, "대")}
+    ${card("판매점 재고", store_qty, "대")}
+  `;
+}
+
+function card(title, value, unit) {
+  return `
+    <div style="padding:14px; border-radius:12px; background:#f8f9fb; min-width:180px;">
+      <div style="font-size:12px; opacity:0.7;">${title}</div>
+      <div style="font-size:22px; font-weight:700;">
+        ${Number(value || 0).toLocaleString()} ${unit}
+      </div>
     </div>
   `;
 }
@@ -387,7 +397,20 @@ function renderSimpleTable(targetId, rows, cols) {
     const tr = document.createElement("tr");
     cols.forEach(c => {
       const td = document.createElement("td");
-      const val = r[c.key];
+const val = r[c.key];
+let displayVal =
+  typeof val === "number" ? val.toLocaleString() : (val ?? "").toString();
+
+if (c.key === "qty" && typeof val === "number") {
+  if (val >= 30) {
+    displayVal = "🔥 " + displayVal;
+  } else if (val <= 2) {
+    displayVal = "⚠️ " + displayVal;
+  }
+}
+
+td.textContent = displayVal;
+
       td.textContent =
         typeof val === "number" ? val.toLocaleString() : (val ?? "").toString();
       td.style.borderBottom = "1px solid #f0f0f0";
@@ -435,7 +458,14 @@ function renderStoreTable(rows) {
     td1.style.padding = "8px";
 
     const td2 = document.createElement("td");
-    td2.textContent = Number(r.qty || 0).toLocaleString();
+    let qty = Number(r.qty || 0);
+let text = qty.toLocaleString();
+
+if (qty >= 30) text = "🔥 " + text;
+if (qty <= 3) text = "⚠️ " + text;
+
+td2.textContent = text;
+
     td2.style.borderBottom = "1px solid #f0f0f0";
     td2.style.padding = "8px";
 
