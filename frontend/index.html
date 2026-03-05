@@ -146,23 +146,52 @@
 </div>
 
 <div id="inventoryDash" style="display:none; margin-top:16px;">
-  <h3>📦 재고 대시보드(오늘)</h3>
-
-  <div id="invCards" style="display:flex; gap:12px; flex-wrap:wrap; margin:12px 0;"></div>
-
-  <div style="display:flex; gap:20px; flex-wrap:wrap;">
-    <div style="min-width:320px; flex:1;">
-      <h4>모델별 TOP</h4>
-      <div id="byModelTable"></div>
+  <div class="dashWrap">
+    <div class="dashHeader">
+      <div>
+        <div class="dashTitle">📦 재고 대시보드 (오늘)</div>
+        <div class="dashSub" id="dashSubText">로그인 대리점 기준 요약</div>
+      </div>
+      <div class="dashPills">
+        <span class="pill">snapshot: 오늘</span>
+        <span class="pill" id="pillAgency">-</span>
+      </div>
     </div>
 
-    <div style="min-width:320px; flex:1;">
-      <h4>판매점별 TOP</h4>
-      <div id="byStoreTable"></div>
+    <!-- 카드 -->
+    <div id="invCards" class="cardGrid"></div>
+
+    <div class="dashGrid2">
+      <div class="panel">
+        <div class="panelHeader">
+          <div class="panelTitle">모델별 TOP</div>
+          <div class="panelHint">🔥 과재고 / ⚠️ 희소</div>
+        </div>
+        <div id="byModelTable"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panelHeader">
+          <div class="panelTitle">판매점별 TOP</div>
+          <div class="panelHint">보기 버튼으로 상세 확인</div>
+        </div>
+        <div id="byStoreTable"></div>
+      </div>
     </div>
-    <div style="margin-top:20px;">
-  <h4>🔥 추천 이동 대상</h4>
-  <div id="recommendMove"></div>
+
+    <div class="panel" style="margin-top:16px;">
+      <div class="panelHeader">
+        <div class="panelTitle">🔥 추천 이동 대상</div>
+        <div class="panelHint">창고 多 / 판매점 少</div>
+      </div>
+      <div id="recommendMove"></div>
+    </div>
+  </div>
+
+  <div class="searchWrap" style="margin-top:18px;">
+    <div class="dashTitle" style="margin-bottom:10px;">🔎 재고 검색</div>
+    <!-- 기존 searchBox는 그대로 사용 (showOnly로 같이 켜짐) -->
+  </div>
 </div>
 
   </div>

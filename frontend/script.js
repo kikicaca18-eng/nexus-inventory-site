@@ -356,13 +356,11 @@ function renderInvCards(summary) {
   const cards = document.getElementById("invCards");
   if (!cards) return;
 
-  const {
-    total_qty,
-    store_cnt,
-    model_cnt,
-    warehouse_qty,
-    store_qty
-  } = summary;
+  const { total_qty, store_cnt, model_cnt, warehouse_qty, store_qty } = summary;
+
+  // 상단 pill 표시 (있으면)
+  const pillAgency = document.getElementById("pillAgency");
+  if (pillAgency) pillAgency.textContent = currentCenter;
 
   cards.innerHTML = `
     ${card("오늘 총 재고", total_qty, "대")}
@@ -375,11 +373,9 @@ function renderInvCards(summary) {
 
 function card(title, value, unit) {
   return `
-    <div style="padding:14px; border-radius:12px; background:#f8f9fb; min-width:180px;">
-      <div style="font-size:12px; opacity:0.7;">${title}</div>
-      <div style="font-size:22px; font-weight:700;">
-        ${Number(value || 0).toLocaleString()} ${unit}
-      </div>
+    <div class="statCard">
+      <div class="statLabel">${title}</div>
+      <div class="statValue">${Number(value || 0).toLocaleString()} ${unit}</div>
     </div>
   `;
 }
