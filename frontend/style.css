@@ -469,3 +469,61 @@ tr:hover td{background:#fafafa}
   margin-bottom:10px;
   font-weight:bold;
 }
+
+.storeSummaryGrid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));
+  gap:12px;
+  margin-bottom:20px;
+}
+
+.miniStat{
+  background:#f8f9fb;
+  border:1px solid #e8ebf0;
+  border-radius:12px;
+  padding:14px;
+}
+
+.miniStatLabel{
+  font-size:13px;
+  color:#666;
+  margin-bottom:6px;
+}
+
+.miniStatValue{
+  font-size:20px;
+  font-weight:700;
+  color:#111;
+  line-height:1.3;
+}
+
+.miniStatValue.small{
+  font-size:14px;
+  font-weight:600;
+  word-break:break-all;
+}
+
+.modalSectionTitle{
+  font-size:16px;
+  font-weight:700;
+  margin-bottom:10px;
+}
+
+.modalBox table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+.modalBox th,
+.modalBox td{
+  padding:10px 8px;
+  border-bottom:1px solid #ececec;
+  text-align:left;
+  font-size:14px;
+}
+
+.modalBox thead th{
+  background:#fafafa;
+  position:sticky;
+  top:0;
+}
