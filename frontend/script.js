@@ -277,12 +277,15 @@ function showOnly(ids) {
 
 
 function openInventory() {
-  // 메뉴 버튼 숨김 + 재고 대시보드/검색만 표시
   if (currentCenter === "관리자") {
-    showOnly(["inventoryDash", "uploadBox", "searchBox"]);
+    showOnly(["menuBox", "inventoryDash", "uploadBox", "searchBox"]);
   } else {
-    showOnly(["inventoryDash", "searchBox"]);
+    showOnly(["menuBox", "inventoryDash", "searchBox"]);
   }
+
+  const detailBox = document.getElementById("inventoryDetailPanels");
+  if (detailBox) detailBox.style.display = "none";
+
   loadInventoryDashboard();
 }
 
@@ -547,4 +550,14 @@ function renderRecommend(rows) {
   html += `</table>`;
 
   wrap.innerHTML = html;
+}
+function toggleInventoryDetails() {
+  const box = document.getElementById("inventoryDetailPanels");
+  if (!box) return;
+
+  if (box.style.display === "none" || box.style.display === "") {
+    box.style.display = "block";
+  } else {
+    box.style.display = "none";
+  }
 }
