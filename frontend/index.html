@@ -58,165 +58,156 @@
       <button class="btn primary" onclick="login()">로그인</button>
     </section>
 
-    <!-- ================= 재고 검색 (유일) ================= -->
-    <section class="card" id="searchBox" style="display:none;">
-      <h2 class="h2">재고 검색</h2>
+    <!-- ================= 로그인 후 영역 ================= -->
+    <div class="pageContainer">
 
-      <p class="muted" style="margin-bottom:8px;">
-        모델 · 상권주소 · 보유처 · 애칭 중<br/>
-        <strong>하나 이상 입력</strong>하면 조회됩니다.
-      </p>
+      <!-- ================= 메뉴 박스 ================= -->
+      <div id="menuBox" class="menuBox" style="display:none; margin-top:16px;">
+        <div class="menuGrid">
+          <button class="menuCard" onclick="openInventory()">
+            <div class="menuIcon">📦</div>
+            <div class="menuTextWrap">
+              <div class="menuTitle">재고조회</div>
+              <div class="menuDesc">상권/모델/애칭별 재고 조회 및 대시보드</div>
+            </div>
+          </button>
 
-      <div class="grid">
-        <div>
-          <label class="label">모델 (선택)</label>
-          <input id="model" class="input" placeholder="예: M366 / 갤25 / S931" />
-        </div>
-
-        <div>
-          <label class="label">상권주소 (선택)</label>
-          <input id="address" class="input" placeholder="예: 군산 / 광주" />
-        </div>
-
-        <div>
-          <label class="label">보유처 (선택)</label>
-          <input id="owner" class="input" placeholder="예: OO대리점" />
-        </div>
-
-        <div>
-          <label class="label">애칭 (선택)</label>
-          <input id="nickname" class="input" placeholder="예: 홍길동" />
+          <button class="menuCard" onclick="openPerformance()">
+            <div class="menuIcon">📈</div>
+            <div class="menuTextWrap">
+              <div class="menuTitle">실적조회</div>
+              <div class="menuDesc">유무선 실적, 추이, 판매점 등급, 대시보드</div>
+            </div>
+          </button>
         </div>
       </div>
 
-      <div class="actions mobile-actions">
-        <button type="button" class="btn primary" onclick="runSearch()">조회</button>
+      <!-- ================= 재고 대시보드 ================= -->
+      <div id="inventoryDash" style="display:none; margin-top:16px;">
+        <div class="dashWrap">
+          <div class="dashHeader">
+            <div>
+              <div class="dashTitle">📦 재고 대시보드 (오늘)</div>
+              <div class="dashSub" id="dashSubText">로그인 대리점 기준 요약</div>
+            </div>
+            <div class="dashPills">
+              <span class="pill">snapshot: 오늘</span>
+              <span class="pill" id="pillAgency">-</span>
+            </div>
+          </div>
 
-        <select id="sortKey" class="input small">
-          <option value="보유처">보유처</option>
-          <option value="모델명">모델명</option>
-          <option value="색상">색상</option>
-        </select>
+          <div id="invCards" class="cardGrid"></div>
 
-        <select id="sortOrder" class="input small">
-          <option value="asc">오름차순</option>
-          <option value="desc">내림차순</option>
-        </select>
+          <div class="dashGrid2">
+            <div class="panel">
+              <div class="panelHeader">
+                <div class="panelTitle">모델별 TOP</div>
+                <div class="panelHint">🔥 과재고 / ⚠️ 희소</div>
+              </div>
+              <div id="byModelTable"></div>
+            </div>
 
-        <label class="check">
-          <input type="checkbox" id="detailToggle" />
-          상세 보기
-        </label>
+            <div class="panel">
+              <div class="panelHeader">
+                <div class="panelTitle">판매점별 TOP</div>
+                <div class="panelHint">보기 버튼으로 상세 확인</div>
+              </div>
+              <div id="byStoreTable"></div>
+            </div>
+          </div>
+
+          <div class="panel" style="margin-top:16px;">
+            <div class="panelHeader">
+              <div class="panelTitle">🔥 추천 이동 대상</div>
+              <div class="panelHint">창고 多 / 판매점 少</div>
+            </div>
+            <div id="recommendMove"></div>
+          </div>
+        </div>
       </div>
 
-      <div class="status" id="status"></div>
-      <div id="result"></div>
-    </section>
+      <!-- ================= 재고 검색 ================= -->
+      <section class="card" id="searchBox" style="display:none; margin-top:16px;">
+        <h2 class="h2">재고 검색</h2>
 
-    <!-- ================= 엑셀 업로드 ================= -->
-    <section class="card" id="uploadBox" style="display:none;">
-      <h2 class="h2">엑셀 업로드 (관리자)</h2>
+        <p class="muted" style="margin-bottom:8px;">
+          모델 · 상권주소 · 보유처 · 애칭 중<br/>
+          <strong>하나 이상 입력</strong>하면 조회됩니다.
+        </p>
 
-      <p class="muted">
-        최신 엑셀을 업로드하면<br/>
-        서버 재고 데이터가 즉시 갱신됩니다.
-      </p>
+        <div class="grid">
+          <div>
+            <label class="label">모델 (선택)</label>
+            <input id="model" class="input" placeholder="예: M366 / 갤25 / S931" />
+          </div>
 
-      <input
-        type="file"
-        id="excelFile"
-        class="input"
-        accept=".xlsx,.xls"
-      />
-      <button
-        class="btn primary"
-        id="uploadBtn"
-        onclick="uploadExcel()"
-      >
-        업로드
-      </button>
+          <div>
+            <label class="label">상권주소 (선택)</label>
+            <input id="address" class="input" placeholder="예: 군산 / 광주" />
+          </div>
 
-      <div class="status" id="uploadStatus"></div>
-    </section>
+          <div>
+            <label class="label">보유처 (선택)</label>
+            <input id="owner" class="input" placeholder="예: OO대리점" />
+          </div>
 
-    <!-- ================= 메뉴 박스 ================= -->
-<div id="menuBox" class="menuBox" style="display:none; margin-top:16px;">
-  <div class="menuGrid">
-    <button class="menuCard" onclick="openInventory()">
-      <div class="menuIcon">📦</div>
-      <div class="menuTextWrap">
-        <div class="menuTitle">재고조회</div>
-        <div class="menuDesc">상권/모델/애칭별 재고 조회 및 대시보드</div>
-      </div>
-    </button>
+          <div>
+            <label class="label">애칭 (선택)</label>
+            <input id="nickname" class="input" placeholder="예: 홍길동" />
+          </div>
+        </div>
 
-    <button class="menuCard" onclick="openPerformance()">
-      <div class="menuIcon">📈</div>
-      <div class="menuTextWrap">
-        <div class="menuTitle">실적조회</div>
-        <div class="menuDesc">유무선 실적, 추이, 판매점 등급, 대시보드</div>
-      </div>
-    </button>
-  </div>
-</div>
+        <div class="actions mobile-actions">
+          <button type="button" class="btn primary" onclick="runSearch()">조회</button>
 
-<div id="inventoryDash" style="display:none; margin-top:16px;">
-  <div class="dashWrap">
-    <div class="dashHeader">
-      <div>
-        <div class="dashTitle">📦 재고 대시보드 (오늘)</div>
-        <div class="dashSub" id="dashSubText">로그인 대리점 기준 요약</div>
-      </div>
-      <div class="dashPills">
-        <span class="pill">snapshot: 오늘</span>
-        <span class="pill" id="pillAgency">-</span>
-      </div>
+          <select id="sortKey" class="input small">
+            <option value="보유처">보유처</option>
+            <option value="모델명">모델명</option>
+            <option value="색상">색상</option>
+          </select>
+
+          <select id="sortOrder" class="input small">
+            <option value="asc">오름차순</option>
+            <option value="desc">내림차순</option>
+          </select>
+
+          <label class="check">
+            <input type="checkbox" id="detailToggle" />
+            상세 보기
+          </label>
+        </div>
+
+        <div class="status" id="status"></div>
+        <div id="result"></div>
+      </section>
+
+      <!-- ================= 엑셀 업로드 ================= -->
+      <section class="card" id="uploadBox" style="display:none; margin-top:16px;">
+        <h2 class="h2">엑셀 업로드 (관리자)</h2>
+
+        <p class="muted">
+          최신 엑셀을 업로드하면<br/>
+          서버 재고 데이터가 즉시 갱신됩니다.
+        </p>
+
+        <input
+          type="file"
+          id="excelFile"
+          class="input"
+          accept=".xlsx,.xls"
+        />
+        <button
+          class="btn primary"
+          id="uploadBtn"
+          onclick="uploadExcel()"
+        >
+          업로드
+        </button>
+
+        <div class="status" id="uploadStatus"></div>
+      </section>
+
     </div>
-
-    <!-- 카드 -->
-    <div id="invCards" class="cardGrid"></div>
-
-    <div class="dashGrid2">
-      <div class="panel">
-        <div class="panelHeader">
-          <div class="panelTitle">모델별 TOP</div>
-          <div class="panelHint">🔥 과재고 / ⚠️ 희소</div>
-        </div>
-        <div id="byModelTable"></div>
-      </div>
-
-      <div class="panel">
-        <div class="panelHeader">
-          <div class="panelTitle">판매점별 TOP</div>
-          <div class="panelHint">보기 버튼으로 상세 확인</div>
-        </div>
-        <div id="byStoreTable"></div>
-      </div>
-    </div>
-
-    <div class="panel" style="margin-top:16px;">
-      <div class="panelHeader">
-        <div class="panelTitle">🔥 추천 이동 대상</div>
-        <div class="panelHint">창고 多 / 판매점 少</div>
-      </div>
-      <div id="recommendMove"></div>
-    </div>
-  </div>
-
-  <div class="searchWrap" style="margin-top:18px;">
-    <div class="dashTitle" style="margin-bottom:10px;">🔎 재고 검색</div>
-    <!-- 기존 searchBox는 그대로 사용 (showOnly로 같이 켜짐) -->
-  </div>
-</div>
-
-  </div>
-
-  <hr style="margin:18px 0;" />
-
-  <h3>🔎 재고 검색</h3>
-  <!-- 기존 searchBox(검색 UI) 영역을 그대로 사용하거나,
-       searchBox를 inventoryDash 안으로 옮겨도 됨 -->
-</div>    
   </main>
 
   <script src="script.js"></script>
