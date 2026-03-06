@@ -140,9 +140,42 @@
     </section>
 
     <!-- ================= 메뉴 박스 ================= -->
-    <div id="menuBox" style="display:none; margin-top:16px;">
-  <button onclick="openInventory()">재고조회 입장</button>
-  <button onclick="openPerformance()" style="margin-left:10px;">실적조회 입장</button>
+     <div class="pageContainer">
+  <div id="menuBox" class="menuBox" style="display:none; margin-top:16px;">
+    ...
+  </div>
+
+  <div id="inventoryDash" style="display:none; margin-top:16px;">
+    ...
+  </div>
+
+  <div id="searchBox" style="display:none; margin-top:16px;">
+    ...
+  </div>
+
+  <div id="uploadBox" style="display:none; margin-top:16px;">
+    ...
+  </div>
+</div>
+
+<div id="menuBox" class="menuBox" style="display:none; margin-top:16px;">
+  <div class="menuGrid">
+    <button class="menuCard" onclick="openInventory()">
+      <div class="menuIcon">📦</div>
+      <div class="menuTextWrap">
+        <div class="menuTitle">재고조회</div>
+        <div class="menuDesc">상권/모델/애칭별 재고 조회 및 대시보드</div>
+      </div>
+    </button>
+
+    <button class="menuCard" onclick="openPerformance()">
+      <div class="menuIcon">📈</div>
+      <div class="menuTextWrap">
+        <div class="menuTitle">실적조회</div>
+        <div class="menuDesc">유무선 실적, 추이, 판매점 등급, 대시보드</div>
+      </div>
+    </button>
+  </div>
 </div>
 
 <div id="inventoryDash" style="display:none; margin-top:16px;">

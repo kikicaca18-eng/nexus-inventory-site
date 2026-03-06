@@ -277,18 +277,18 @@ function showOnly(ids) {
 
 
 function openInventory() {
-  // 일반 대리점: 대시보드+검색
-  // 관리자: 대시보드 + 업로드(원하면)
+  // 메뉴 버튼 숨김 + 재고 대시보드/검색만 표시
   if (currentCenter === "관리자") {
-    showOnly(["menuBox", "inventoryDash", "uploadBox", "searchBox"]);
+    showOnly(["inventoryDash", "uploadBox", "searchBox"]);
   } else {
-    showOnly(["menuBox", "inventoryDash", "searchBox"]);
+    showOnly(["inventoryDash", "searchBox"]);
   }
   loadInventoryDashboard();
 }
 
 function openPerformance() {
-  alert("실적조회는 다음 단계에서 붙일게! (지금은 재고 대시보드부터)");
+  showOnly([]);
+  alert("실적조회는 다음 단계에서 붙일게! 이제 바로 실적 화면 만들자.");
 }
 
 // =========================
