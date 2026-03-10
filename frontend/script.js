@@ -17,6 +17,8 @@ function setDisplay(id, display) {
   if (el) el.style.display = display;
 }
 
+let activeDashboardDetailType = "";
+
 // =========================
 // 비밀번호
 // =========================
@@ -765,6 +767,21 @@ async function loadDashboardDetail(type) {
 
   if (!section || !titleEl || !hintEl || !tableEl) return;
 
+  // ✅ 같은 카드를 다시 누르면 숨기기
+  if (activeDashboardDetailType === type && section.style.display !== "none") {
+    section.style.display = "none";
+    tableEl.innerHTML = "";
+    activeDashboardDetailType = "";
+    dashboardDetailRows = [];
+    dashboardDetailSort = {
+      key: "",
+      order: "asc",
+      type: ""
+    };
+    highlightActiveDashboardCard("");
+    return;
+  }
+
   section.style.display = "block";
   tableEl.innerHTML = "불러오는 중...";
 
@@ -786,6 +803,7 @@ async function loadDashboardDetail(type) {
     hint = "대리점명 / 판매점명 / 모델명 / 수량";
   } else {
     section.style.display = "none";
+    activeDashboardDetailType = "";
     return;
   }
 
@@ -803,25 +821,27 @@ async function loadDashboardDetail(type) {
 
     if (!resp.ok || !j.ok) {
       tableEl.innerHTML = `❌ ${j.message || "조회 실패"}`;
+      activeDashboardDetailType = "";
       return;
     }
 
     dashboardDetailRows = Array.isArray(j.rows) ? j.rows : [];
 
-if (dashboardDetailSort.type !== type) {
-  dashboardDetailSort = {
-    type,
-    key: "",
-    order: "asc"
-  };
-}
+    if (dashboardDetailSort.type !== type) {
+      dashboardDetailSort = {
+        type,
+        key: "",
+        order: "asc"
+      };
+    }
 
-renderDashboardDetailByType(type);
-
+    activeDashboardDetailType = type;
+    renderDashboardDetailByType(type);
     highlightActiveDashboardCard(type);
   } catch (e) {
     console.error(e);
     tableEl.innerHTML = "❌ 네트워크 오류";
+    activeDashboardDetailType = "";
   }
 }
 
@@ -1013,6 +1033,8 @@ function highlightActiveDashboardCard(type) {
   document.querySelectorAll("#invCards .statCard").forEach(card => {
     card.classList.remove("active");
   });
+
+  if (!type) return;
 
   const selector = `#invCards .statCard[onclick="loadDashboardDetail('${type}')"]`;
   const activeCard = document.querySelector(selector);

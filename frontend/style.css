@@ -541,3 +541,308 @@ tr:hover td{background:#fafafa}
 .statCard.active{
   border:2px solid #111;
 }
+
+.sortable{
+  cursor:pointer;
+  user-select:none;
+  white-space:nowrap;
+}
+
+.sortable:hover{
+  background:#f5f7fb;
+}
+
+/* =========================
+   대시보드 카드 클릭감 보완
+========================= */
+.statCard.clickable{
+  cursor:pointer;
+  transition:all 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.statCard.clickable:hover{
+  transform:translateY(-2px);
+  box-shadow:0 6px 18px rgba(0,0,0,0.08);
+}
+
+.statCard.active{
+  border:2px solid #111;
+}
+
+/* =========================
+   상세 테이블 공통
+========================= */
+.tableWrap{
+  width:100%;
+  overflow-x:auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tableWrap table{
+  width:100%;
+  min-width:640px;
+  border-collapse:collapse;
+}
+
+.tableWrap th,
+.tableWrap td{
+  white-space:nowrap;
+}
+
+/* =========================
+   정렬 헤더
+========================= */
+.sortable{
+  cursor:pointer;
+  user-select:none;
+  white-space:nowrap;
+}
+
+.sortable:hover{
+  background:#f5f7fb;
+}
+
+/* =========================
+   모바일 최적화
+========================= */
+@media (max-width: 768px) {
+  .container{
+    padding-left:12px;
+    padding-right:12px;
+  }
+
+  .topbar{
+    padding:12px;
+  }
+
+  .brand-title{
+    font-size:18px;
+  }
+
+  .brand-sub{
+    font-size:12px;
+  }
+
+  .hero h1{
+    font-size:24px;
+    line-height:1.25;
+  }
+
+  .hero p{
+    font-size:14px;
+    line-height:1.5;
+  }
+
+  .card,
+  .panel,
+  .dashWrap{
+    padding:14px;
+    border-radius:14px;
+  }
+
+  .h2{
+    font-size:18px;
+  }
+
+  .label{
+    font-size:13px;
+  }
+
+  .input,
+  select,
+  button.btn{
+    min-height:44px;
+    font-size:15px;
+  }
+
+  .grid{
+    grid-template-columns:1fr !important;
+    gap:10px;
+  }
+
+  .actions.mobile-actions{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    align-items:stretch;
+  }
+
+  .actions.mobile-actions .input.small,
+  .actions.mobile-actions .btn,
+  .actions.mobile-actions .check{
+    width:100%;
+  }
+
+  .menuGrid{
+    grid-template-columns:1fr !important;
+    gap:12px;
+  }
+
+  .menuCard{
+    width:100%;
+    text-align:left;
+    padding:14px;
+  }
+
+  .menuTitle{
+    font-size:16px;
+  }
+
+  .menuDesc{
+    font-size:13px;
+    line-height:1.45;
+  }
+
+  .cardGrid{
+    grid-template-columns:repeat(2, minmax(0, 1fr)) !important;
+    gap:10px;
+  }
+
+  .statCard{
+    padding:12px;
+    border-radius:12px;
+  }
+
+  .statLabel{
+    font-size:12px;
+    line-height:1.35;
+  }
+
+  .statValue{
+    font-size:20px;
+    line-height:1.2;
+    word-break:keep-all;
+  }
+
+  .dashHeader{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    align-items:flex-start;
+  }
+
+  .dashTitle{
+    font-size:18px;
+    line-height:1.3;
+  }
+
+  .dashSub{
+    font-size:13px;
+  }
+
+  .dashPills{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+  }
+
+  .pill{
+    font-size:12px;
+    padding:4px 8px;
+  }
+
+  .dashGrid2{
+    grid-template-columns:1fr !important;
+    gap:14px;
+  }
+
+  .panelHeader{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:4px;
+  }
+
+  .panelTitle{
+    font-size:16px;
+  }
+
+  .panelHint{
+    font-size:12px;
+    line-height:1.4;
+  }
+
+  .tableWrap table{
+    min-width:560px;
+  }
+
+  .tableWrap th,
+  .tableWrap td,
+  .modalBox th,
+  .modalBox td{
+    padding:8px 6px;
+    font-size:13px;
+  }
+
+  .status{
+    font-size:13px;
+    line-height:1.4;
+  }
+
+  .modal{
+    padding:10px;
+    align-items:flex-end;
+  }
+
+  .modalBox{
+    width:100%;
+    max-width:100%;
+    max-height:85vh;
+    border-radius:16px 16px 0 0;
+    padding:14px;
+  }
+
+  .modalHeader{
+    position:sticky;
+    top:0;
+    background:#fff;
+    z-index:2;
+    padding-bottom:8px;
+  }
+
+  .storeSummaryGrid{
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+
+  .miniStat{
+    padding:12px;
+  }
+
+  .miniStatLabel{
+    font-size:12px;
+  }
+
+  .miniStatValue{
+    font-size:17px;
+  }
+
+  .miniStatValue.small{
+    font-size:12px;
+    line-height:1.4;
+  }
+}
+
+/* 아주 작은 화면 */
+@media (max-width: 480px) {
+  .cardGrid{
+    grid-template-columns:1fr !important;
+  }
+
+  .storeSummaryGrid{
+    grid-template-columns:1fr;
+  }
+
+  .tableWrap table{
+    min-width:520px;
+  }
+
+  .statValue{
+    font-size:18px;
+  }
+
+  .dashTitle{
+    font-size:17px;
+  }
+}
