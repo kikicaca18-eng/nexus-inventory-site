@@ -200,9 +200,25 @@ async function runSearch() {
     status.innerText = `총 ${j.total}대 있습니다.`;
 
     // 기본 정렬: 접점명(판매점/창고)
-    j.table.sort((a, b) =>
-      (a.store_name || "").localeCompare(b.store_name || "", "ko")
-    );
+    const sortKey = document.getElementById("sortKey")?.value || "보유처";
+const sortOrder = document.getElementById("sortOrder")?.value || "asc";
+
+const keyMap = {
+  "보유처": "store_name",
+  "모델명": "model_name",
+  "색상": "color"
+};
+
+const field = keyMap[sortKey] || "store_name";
+
+j.table.sort((a, b) => {
+  const A = (a[field] || "").toString();
+  const B = (b[field] || "").toString();
+
+  const cmp = A.localeCompare(B, "ko");
+
+  return sortOrder === "desc" ? -cmp : cmp;
+});
 
     const detail = document.getElementById("detailToggle")?.checked || false;
 
