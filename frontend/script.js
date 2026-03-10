@@ -506,48 +506,218 @@ td2.textContent = text;
 async function openStoreDetail(storeCode) {
   if (!storeCode) return alert("store_code가 없습니다.");
 
-  const resp = await fetch(`${API_URL}/inventory/store-detail`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ agency: currentCenter, store_code: storeCode })
-  });
+  try {
+    const resp = await fetch(`${API_URL}/inventory/store-detail`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        agency: currentCenter,
+        store_code: storeCode
+      })
+    });
 
-  const j = await resp.json();
-  if (!resp.ok || !j.ok) return alert(j.message || "상세 조회 실패");
+    const j = await resp.json();
+    if (!resp.ok || !j.ok) {
+      return alert(j.message || "상세 조회 실패");
+    }
 
-  alert(`총 ${j.total}대 (상세 UI는 다음 단계에서 테이블/모달로 개선)`);
+    const rows = Array.isArray(j.rows) ? j.rows : [];
+    const storeName = rows[0]?.store_name || "판매점";
+    const address = rows[0]?.address || "-";
+
+    // 1. 모델별 집계
+    const modelMap = {};
+    const colorSet = new Set();
+
+    rows.forEach(r => {
+      const model = (r.model_name || "").trim();
+      const color = (r.color || "").trim();
+      const key = `${model}__${color}`;
+
+      colorSet.add(color);
+
+      if (!modelMap[key]) {
+        modelMap[key] = {
+          model_name: model,
+          color: color,
+          qty: 0
+        };
+      }
+      modelMap[key].qty += 1;
+    });
+
+    const summaryRows = Object.values(modelMap).sort((a, b) => {
+      if (b.qty !== a.qty) return b.qty - a.qty;
+      return (a.model_name || "").localeCompare(b.model_name || "", "ko");
+    });
+
+    const modelCount = new Set(rows.map(r => (r.model_name || "").trim())).size;
+    const totalCount = rows.length;
+
+    // 2. 모달 제목
+    document.getElementById("storeModal").style.display = "flex";
+    document.getElementById("modalTitle").innerText = `${storeName} 상세 재고`;
+
+    // 3. 상단 요약 카드
+    const summaryCards = `
+      <div class="storeSummaryGrid">
+        <div class="miniStat">
+          <div class="miniStatLabel">총 재고</div>
+          <div class="miniStatValue">${totalCount.toLocaleString()} 대</div>
+        </div>
+        <div class="miniStat">
+          <div class="miniStatLabel">모델 수</div>
+          <div class="miniStatValue">${modelCount.toLocaleString()} 종</div>
+        </div>
+        <div class="miniStat">
+          <div class="miniStatLabel">색상 수</div>
+          <div class="miniStatValue">${colorSet.size.toLocaleString()} 개</div>
+        </div>
+        <div class="miniStat">
+          <div class="miniStatLabel">주소</div>
+          <div class="miniStatValue small">${escapeHtml(address)}</div>
+        </div>
+      </div>
+    `;
+
+    // 4. 모델별 집계 테이블
+    let summaryTable = `
+      <div class="modalSectionTitle">모델별 집계</div>
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>모델명</th>
+              <th>색상</th>
+              <th>수량</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    summaryRows.forEach(r => {
+      let qtyText = Number(r.qty).toLocaleString();
+      if (r.qty >= 5) qtyText = `🔥 ${qtyText}`;
+
+      summaryTable += `
+        <tr>
+          <td>${escapeHtml(r.model_name)}</td>
+          <td>${escapeHtml(r.color)}</td>
+          <td>${qtyText}</td>
+        </tr>
+      `;
+    });
+
+    summaryTable += `
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    // 5. 원본 상세 리스트
+    let detailTable = `
+      <div class="modalSectionTitle" style="margin-top:20px;">원본 상세 리스트</div>
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>모델명</th>
+              <th>색상</th>
+              <th>일련번호</th>
+              <th>애칭</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    rows.forEach(r => {
+      detailTable += `
+        <tr>
+          <td>${escapeHtml(r.model_name || "")}</td>
+          <td>${escapeHtml(r.color || "")}</td>
+          <td>${escapeHtml(r.serial_no || "")}</td>
+          <td>${escapeHtml(r.nickname || "")}</td>
+        </tr>
+      `;
+    });
+
+    detailTable += `
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    document.getElementById("modalBody").innerHTML =
+      summaryCards + summaryTable + detailTable;
+
+  } catch (e) {
+    console.error(e);
+    alert("상세 조회 실패");
+  }
+}
+
+function closeStoreModal() {
+  document.getElementById("storeModal").style.display = "none";
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 function renderRecommend(rows) {
   const wrap = document.getElementById("recommendMove");
   if (!wrap) return;
 
-  if (!rows.length) {
+  if (!rows || !rows.length) {
     wrap.innerHTML = "추천 이동 대상 없음";
     return;
   }
 
-  let html = `<table style="width:100%;border-collapse:collapse;">`;
-
-  html += `
-    <tr>
-      <th style="text-align:left;border-bottom:1px solid #ddd;padding:8px;">모델</th>
-      <th style="text-align:left;border-bottom:1px solid #ddd;padding:8px;">창고</th>
-      <th style="text-align:left;border-bottom:1px solid #ddd;padding:8px;">판매점</th>
-    </tr>
+  let html = `
+    <div class="tableWrap">
+      <table>
+        <thead>
+          <tr>
+            <th>모델명</th>
+            <th>색상</th>
+            <th>보내는 곳</th>
+            <th>보유</th>
+            <th>받는 곳</th>
+            <th>보유</th>
+            <th>차이</th>
+          </tr>
+        </thead>
+        <tbody>
   `;
 
   rows.forEach(r => {
+    const gapText = Number(r.gap || 0) >= 5
+      ? `🔥 ${Number(r.gap || 0).toLocaleString()}`
+      : Number(r.gap || 0).toLocaleString();
+
     html += `
       <tr>
-        <td style="padding:8px;">🔥 ${r.model_name}</td>
-        <td style="padding:8px;">${Number(r.warehouse_qty).toLocaleString()}</td>
-        <td style="padding:8px;">${Number(r.store_qty).toLocaleString()}</td>
+        <td>${escapeHtml(r.model_name || "")}</td>
+        <td>${escapeHtml(r.color || "")}</td>
+        <td>${escapeHtml(r.from_store_name || "")}</td>
+        <td>${Number(r.from_qty || 0).toLocaleString()}</td>
+        <td>${escapeHtml(r.to_store_name || "")}</td>
+        <td>${Number(r.to_qty || 0).toLocaleString()}</td>
+        <td>${gapText}</td>
       </tr>
     `;
   });
 
-  html += `</table>`;
+  html += `
+        </tbody>
+      </table>
+    </div>
+  `;
 
   wrap.innerHTML = html;
 }
