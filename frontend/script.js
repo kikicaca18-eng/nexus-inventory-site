@@ -377,22 +377,24 @@ function renderInvCards(summary) {
 
   const { total_qty, store_cnt, model_cnt, warehouse_qty, store_qty } = summary;
 
-  // 상단 pill 표시 (있으면)
   const pillAgency = document.getElementById("pillAgency");
   if (pillAgency) pillAgency.textContent = currentCenter;
 
   cards.innerHTML = `
-    ${card("오늘 총 재고", total_qty, "대")}
+    ${card("오늘 총 재고", total_qty, "대", "total")}
     ${card("판매점 수", store_cnt, "곳")}
     ${card("모델 수", model_cnt, "종")}
-    ${card("창고 재고", warehouse_qty, "대")}
-    ${card("판매점 재고", store_qty, "대")}
+    ${card("창고 재고", warehouse_qty, "대", "warehouse")}
+    ${card("판매점 재고", store_qty, "대", "store")}
   `;
 }
 
-function card(title, value, unit) {
+function card(title, value, unit, detailType = "") {
+  const clickable = detailType ? "clickable" : "";
+  const onclick = detailType ? `onclick="loadDashboardDetail('${detailType}')"` : "";
+
   return `
-    <div class="statCard">
+    <div class="statCard ${clickable}" ${onclick}>
       <div class="statLabel">${title}</div>
       <div class="statValue">${Number(value || 0).toLocaleString()} ${unit}</div>
     </div>
@@ -745,5 +747,211 @@ function toggleInventoryDetails() {
     box.style.display = "block";
   } else {
     box.style.display = "none";
+  }
+}
+async function loadDashboardDetail(type) {
+  const section = document.getElementById("dashboardDetailSection");
+  const titleEl = document.getElementById("dashboardDetailTitle");
+  const hintEl = document.getElementById("dashboardDetailHint");
+  const tableEl = document.getElementById("dashboardDetailTable");
+
+  if (!section || !titleEl || !hintEl || !tableEl) return;
+
+  section.style.display = "block";
+  tableEl.innerHTML = "불러오는 중...";
+
+  let url = "";
+  let title = "";
+  let hint = "";
+
+  if (type === "warehouse") {
+    url = `${API_URL}/inventory/warehouse-detail`;
+    title = "창고 재고 상세";
+    hint = "모델명 / 색상 / 수량";
+  } else if (type === "total") {
+    url = `${API_URL}/inventory/total-detail`;
+    title = "총 재고 상세";
+    hint = "모델 / 색상 / 총재고 / 창고재고 / 판매점재고 / 창고비중";
+  } else if (type === "store") {
+    url = `${API_URL}/inventory/store-stock-detail`;
+    title = "판매점 재고 상세";
+    hint = "대리점명 / 판매점명 / 모델명 / 수량";
+  } else {
+    section.style.display = "none";
+    return;
+  }
+
+  titleEl.textContent = title;
+  hintEl.textContent = hint;
+
+  try {
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ agency: currentCenter })
+    });
+
+    const j = await resp.json();
+
+    if (!resp.ok || !j.ok) {
+      tableEl.innerHTML = `❌ ${j.message || "조회 실패"}`;
+      return;
+    }
+
+    if (type === "warehouse") {
+      renderDashboardWarehouseDetail(j.rows);
+    } else if (type === "total") {
+      renderDashboardTotalDetail(j.rows);
+    } else if (type === "store") {
+      renderDashboardStoreDetail(j.rows);
+    }
+
+    highlightActiveDashboardCard(type);
+  } catch (e) {
+    console.error(e);
+    tableEl.innerHTML = "❌ 네트워크 오류";
+  }
+}
+
+function renderDashboardWarehouseDetail(rows) {
+  const wrap = document.getElementById("dashboardDetailTable");
+  if (!wrap) return;
+
+  if (!rows || !rows.length) {
+    wrap.innerHTML = "창고 재고 내역이 없습니다.";
+    return;
+  }
+
+  let html = `
+    <div class="tableWrap">
+      <table>
+        <thead>
+          <tr>
+            <th>모델명</th>
+            <th>색상</th>
+            <th>수량</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  rows.forEach(r => {
+    html += `
+      <tr>
+        <td>${escapeHtml(r.model_name || "")}</td>
+        <td>${escapeHtml(r.color || "")}</td>
+        <td>${Number(r.qty || 0).toLocaleString()}</td>
+      </tr>
+    `;
+  });
+
+  html += `
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  wrap.innerHTML = html;
+}
+
+function renderDashboardTotalDetail(rows) {
+  const wrap = document.getElementById("dashboardDetailTable");
+  if (!wrap) return;
+
+  if (!rows || !rows.length) {
+    wrap.innerHTML = "총 재고 상세 내역이 없습니다.";
+    return;
+  }
+
+  let html = `
+    <div class="tableWrap">
+      <table>
+        <thead>
+          <tr>
+            <th>모델명</th>
+            <th>색상</th>
+            <th>총재고</th>
+            <th>창고재고</th>
+            <th>판매점재고</th>
+            <th>창고비중</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  rows.forEach(r => {
+    html += `
+      <tr>
+        <td>${escapeHtml(r.model_name || "")}</td>
+        <td>${escapeHtml(r.color || "")}</td>
+        <td>${Number(r.total_qty || 0).toLocaleString()}</td>
+        <td>${Number(r.warehouse_qty || 0).toLocaleString()}</td>
+        <td>${Number(r.store_qty || 0).toLocaleString()}</td>
+        <td>${Number(r.warehouse_ratio || 0).toLocaleString()}%</td>
+      </tr>
+    `;
+  });
+
+  html += `
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  wrap.innerHTML = html;
+}
+
+function renderDashboardStoreDetail(rows) {
+  const wrap = document.getElementById("dashboardDetailTable");
+  if (!wrap) return;
+
+  if (!rows || !rows.length) {
+    wrap.innerHTML = "판매점 재고 상세 내역이 없습니다.";
+    return;
+  }
+
+  let html = `
+    <div class="tableWrap">
+      <table>
+        <thead>
+          <tr>
+            <th>대리점명</th>
+            <th>판매점명</th>
+            <th>모델명</th>
+            <th>수량</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  rows.forEach(r => {
+    html += `
+      <tr>
+        <td>${escapeHtml(r.agency_name || "")}</td>
+        <td>${escapeHtml(r.store_name || "")}</td>
+        <td>${escapeHtml(r.model_name || "")}</td>
+        <td>${Number(r.qty || 0).toLocaleString()}</td>
+      </tr>
+    `;
+  });
+
+  html += `
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  wrap.innerHTML = html;
+}
+
+function highlightActiveDashboardCard(type) {
+  document.querySelectorAll("#invCards .statCard").forEach(card => {
+    card.classList.remove("active");
+  });
+
+  const selector = `#invCards .statCard[onclick="loadDashboardDetail('${type}')"]`;
+  const activeCard = document.querySelector(selector);
+  if (activeCard) {
+    activeCard.classList.add("active");
   }
 }
