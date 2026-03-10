@@ -633,6 +633,171 @@ app.post("/inventory/store-detail", async (req, res) => {
 
 /**
  * =========================
+ * ✅ 대시보드 상세: 창고 재고
+ * POST /inventory/warehouse-detail
+ * body: { agency }
+ * =========================
+ */
+app.post("/inventory/warehouse-detail", async (req, res) => {
+  const snapshotDate = todayKST();
+  const { agency } = req.body;
+
+  if (!agency) {
+    return res.status(400).json({ ok: false, message: "agency 정보가 없습니다." });
+  }
+
+  const params = [snapshotDate];
+  let idx = 2;
+  let where = `WHERE snapshot_date = $1 AND store_name ILIKE '%창고%'`;
+
+  if (agency !== "관리자") {
+    where += ` AND agency_name = $${idx}`;
+    params.push(agency);
+    idx++;
+  }
+
+  try {
+    const q = `
+      SELECT
+        model_name,
+        color,
+        COUNT(*)::int AS qty
+      FROM inventory_items
+      ${where}
+      GROUP BY model_name, color
+      ORDER BY qty DESC, model_name ASC, color ASC
+      LIMIT 3000
+    `;
+
+    const r = await pool.query(q, params);
+
+    return res.json({
+      ok: true,
+      snapshot_date: snapshotDate,
+      agency,
+      rows: r.rows
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ ok: false, message: "창고 재고 상세 조회 실패" });
+  }
+});
+
+/**
+ * =========================
+ * ✅ 대시보드 상세: 총 재고
+ * POST /inventory/total-detail
+ * body: { agency }
+ * =========================
+ */
+app.post("/inventory/total-detail", async (req, res) => {
+  const snapshotDate = todayKST();
+  const { agency } = req.body;
+
+  if (!agency) {
+    return res.status(400).json({ ok: false, message: "agency 정보가 없습니다." });
+  }
+
+  const params = [snapshotDate];
+  let idx = 2;
+  let where = `WHERE snapshot_date = $1`;
+
+  if (agency !== "관리자") {
+    where += ` AND agency_name = $${idx}`;
+    params.push(agency);
+    idx++;
+  }
+
+  try {
+    const q = `
+      SELECT
+        model_name,
+        color,
+        COUNT(*)::int AS total_qty,
+        SUM(CASE WHEN store_name ILIKE '%창고%' THEN 1 ELSE 0 END)::int AS warehouse_qty,
+        SUM(CASE WHEN store_name NOT ILIKE '%창고%' THEN 1 ELSE 0 END)::int AS store_qty,
+        ROUND(
+          (
+            SUM(CASE WHEN store_name ILIKE '%창고%' THEN 1 ELSE 0 END)::numeric
+            / NULLIF(COUNT(*)::numeric, 0)
+          ) * 100, 1
+        ) AS warehouse_ratio
+      FROM inventory_items
+      ${where}
+      GROUP BY model_name, color
+      ORDER BY total_qty DESC, model_name ASC, color ASC
+      LIMIT 3000
+    `;
+
+    const r = await pool.query(q, params);
+
+    return res.json({
+      ok: true,
+      snapshot_date: snapshotDate,
+      agency,
+      rows: r.rows
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ ok: false, message: "총 재고 상세 조회 실패" });
+  }
+});
+
+/**
+ * =========================
+ * ✅ 대시보드 상세: 판매점 재고
+ * POST /inventory/store-stock-detail
+ * body: { agency }
+ * =========================
+ */
+app.post("/inventory/store-stock-detail", async (req, res) => {
+  const snapshotDate = todayKST();
+  const { agency } = req.body;
+
+  if (!agency) {
+    return res.status(400).json({ ok: false, message: "agency 정보가 없습니다." });
+  }
+
+  const params = [snapshotDate];
+  let idx = 2;
+  let where = `WHERE snapshot_date = $1 AND store_name NOT ILIKE '%창고%'`;
+
+  if (agency !== "관리자") {
+    where += ` AND agency_name = $${idx}`;
+    params.push(agency);
+    idx++;
+  }
+
+  try {
+    const q = `
+      SELECT
+        agency_name,
+        store_name,
+        model_name,
+        COUNT(*)::int AS qty
+      FROM inventory_items
+      ${where}
+      GROUP BY agency_name, store_name, model_name
+      ORDER BY agency_name ASC, store_name ASC, qty DESC, model_name ASC
+      LIMIT 5000
+    `;
+
+    const r = await pool.query(q, params);
+
+    return res.json({
+      ok: true,
+      snapshot_date: snapshotDate,
+      agency,
+      rows: r.rows
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ ok: false, message: "판매점 재고 상세 조회 실패" });
+  }
+});
+
+/**
+ * =========================
  * 업로드 상태
  * =========================
  */
