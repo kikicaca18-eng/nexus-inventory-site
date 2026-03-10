@@ -1,5 +1,13 @@
 let currentCenter = ""; // 👉 실제 의미: 대리점명
 
+let dashboardDetailSort = {
+  key: "",
+  order: "asc",
+  type: ""
+};
+
+let dashboardDetailRows = [];
+
 function $(id) {
   return document.getElementById(id);
 }
@@ -798,13 +806,17 @@ async function loadDashboardDetail(type) {
       return;
     }
 
-    if (type === "warehouse") {
-      renderDashboardWarehouseDetail(j.rows);
-    } else if (type === "total") {
-      renderDashboardTotalDetail(j.rows);
-    } else if (type === "store") {
-      renderDashboardStoreDetail(j.rows);
-    }
+    dashboardDetailRows = Array.isArray(j.rows) ? j.rows : [];
+
+if (dashboardDetailSort.type !== type) {
+  dashboardDetailSort = {
+    type,
+    key: "",
+    order: "asc"
+  };
+}
+
+renderDashboardDetailByType(type);
 
     highlightActiveDashboardCard(type);
   } catch (e) {
@@ -822,20 +834,35 @@ function renderDashboardWarehouseDetail(rows) {
     return;
   }
 
+  let sortedRows = [...rows];
+  if (dashboardDetailSort.type === "warehouse" && dashboardDetailSort.key) {
+    sortedRows = sortDashboardRows(
+      sortedRows,
+      dashboardDetailSort.key,
+      dashboardDetailSort.order
+    );
+  }
+
   let html = `
     <div class="tableWrap">
       <table>
         <thead>
           <tr>
-            <th>모델명</th>
-            <th>색상</th>
-            <th>수량</th>
+            <th class="sortable" onclick="toggleDashboardSort('warehouse','model_name')">
+              모델명${getSortIndicator("warehouse", "model_name")}
+            </th>
+            <th class="sortable" onclick="toggleDashboardSort('warehouse','color')">
+              색상${getSortIndicator("warehouse", "color")}
+            </th>
+            <th class="sortable" onclick="toggleDashboardSort('warehouse','qty')">
+              수량${getSortIndicator("warehouse", "qty")}
+            </th>
           </tr>
         </thead>
         <tbody>
   `;
 
-  rows.forEach(r => {
+  sortedRows.forEach(r => {
     html += `
       <tr>
         <td>${escapeHtml(r.model_name || "")}</td>
@@ -863,23 +890,44 @@ function renderDashboardTotalDetail(rows) {
     return;
   }
 
+  let sortedRows = [...rows];
+  if (dashboardDetailSort.type === "total" && dashboardDetailSort.key) {
+    sortedRows = sortDashboardRows(
+      sortedRows,
+      dashboardDetailSort.key,
+      dashboardDetailSort.order
+    );
+  }
+
   let html = `
     <div class="tableWrap">
       <table>
         <thead>
           <tr>
-            <th>모델명</th>
-            <th>색상</th>
-            <th>총재고</th>
-            <th>창고재고</th>
-            <th>판매점재고</th>
-            <th>창고비중</th>
+            <th class="sortable" onclick="toggleDashboardSort('total','model_name')">
+              모델명${getSortIndicator("total", "model_name")}
+            </th>
+            <th class="sortable" onclick="toggleDashboardSort('total','color')">
+              색상${getSortIndicator("total", "color")}
+            </th>
+            <th class="sortable" onclick="toggleDashboardSort('total','total_qty')">
+              총재고${getSortIndicator("total", "total_qty")}
+            </th>
+            <th class="sortable" onclick="toggleDashboardSort('total','warehouse_qty')">
+              창고재고${getSortIndicator("total", "warehouse_qty")}
+            </th>
+            <th class="sortable" onclick="toggleDashboardSort('total','store_qty')">
+              판매점재고${getSortIndicator("total", "store_qty")}
+            </th>
+            <th class="sortable" onclick="toggleDashboardSort('total','warehouse_ratio')">
+              창고비중${getSortIndicator("total", "warehouse_ratio")}
+            </th>
           </tr>
         </thead>
         <tbody>
   `;
 
-  rows.forEach(r => {
+  sortedRows.forEach(r => {
     html += `
       <tr>
         <td>${escapeHtml(r.model_name || "")}</td>
@@ -910,21 +958,38 @@ function renderDashboardStoreDetail(rows) {
     return;
   }
 
+  let sortedRows = [...rows];
+  if (dashboardDetailSort.type === "store" && dashboardDetailSort.key) {
+    sortedRows = sortDashboardRows(
+      sortedRows,
+      dashboardDetailSort.key,
+      dashboardDetailSort.order
+    );
+  }
+
   let html = `
     <div class="tableWrap">
       <table>
         <thead>
           <tr>
-            <th>대리점명</th>
-            <th>판매점명</th>
-            <th>모델명</th>
-            <th>수량</th>
+            <th class="sortable" onclick="toggleDashboardSort('store','agency_name')">
+              대리점명${getSortIndicator("store", "agency_name")}
+            </th>
+            <th class="sortable" onclick="toggleDashboardSort('store','store_name')">
+              판매점명${getSortIndicator("store", "store_name")}
+            </th>
+            <th class="sortable" onclick="toggleDashboardSort('store','model_name')">
+              모델명${getSortIndicator("store", "model_name")}
+            </th>
+            <th class="sortable" onclick="toggleDashboardSort('store','qty')">
+              수량${getSortIndicator("store", "qty")}
+            </th>
           </tr>
         </thead>
         <tbody>
   `;
 
-  rows.forEach(r => {
+  sortedRows.forEach(r => {
     html += `
       <tr>
         <td>${escapeHtml(r.agency_name || "")}</td>
@@ -953,5 +1018,67 @@ function highlightActiveDashboardCard(type) {
   const activeCard = document.querySelector(selector);
   if (activeCard) {
     activeCard.classList.add("active");
+  }
+}
+
+function sortDashboardRows(rows, key, order) {
+  const copied = [...rows];
+
+  copied.sort((a, b) => {
+    const av = a[key];
+    const bv = b[key];
+
+    const aNum = Number(av);
+    const bNum = Number(bv);
+
+    const aIsNum = av !== null && av !== undefined && av !== "" && !Number.isNaN(aNum);
+    const bIsNum = bv !== null && bv !== undefined && bv !== "" && !Number.isNaN(bNum);
+
+    let cmp = 0;
+
+    if (aIsNum && bIsNum) {
+      cmp = aNum - bNum;
+    } else {
+      cmp = String(av ?? "").localeCompare(String(bv ?? ""), "ko");
+    }
+
+    return order === "desc" ? -cmp : cmp;
+  });
+
+  return copied;
+}
+
+function toggleDashboardSort(type, key) {
+  if (dashboardDetailSort.type === type && dashboardDetailSort.key === key) {
+    dashboardDetailSort.order = dashboardDetailSort.order === "asc" ? "desc" : "asc";
+  } else {
+    dashboardDetailSort.type = type;
+    dashboardDetailSort.key = key;
+    dashboardDetailSort.order = "asc";
+  }
+
+  renderDashboardDetailByType(type);
+}
+
+function getSortIndicator(type, key) {
+  if (dashboardDetailSort.type !== type || dashboardDetailSort.key !== key) {
+    return "";
+  }
+  return dashboardDetailSort.order === "asc" ? " ▲" : " ▼";
+}
+
+function renderDashboardDetailByType(type) {
+  if (!dashboardDetailRows || !dashboardDetailRows.length) {
+    const wrap = document.getElementById("dashboardDetailTable");
+    if (wrap) wrap.innerHTML = "데이터가 없습니다.";
+    return;
+  }
+
+  if (type === "warehouse") {
+    renderDashboardWarehouseDetail(dashboardDetailRows);
+  } else if (type === "total") {
+    renderDashboardTotalDetail(dashboardDetailRows);
+  } else if (type === "store") {
+    renderDashboardStoreDetail(dashboardDetailRows);
   }
 }
