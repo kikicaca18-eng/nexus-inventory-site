@@ -475,7 +475,6 @@ app.post("/inventory/recommend-move", async (req, res) => {
 
   const params = [snapshotDate];
   let idx = 2;
-
   let where = `WHERE snapshot_date = $1`;
 
   if (agency !== "관리자") {
@@ -487,26 +486,89 @@ app.post("/inventory/recommend-move", async (req, res) => {
   try {
     const q = `
       SELECT
+        agency_name,
+        store_code,
+        store_name,
         model_name,
-        SUM(CASE WHEN store_name ILIKE '%창고%' THEN 1 ELSE 0 END) AS warehouse_qty,
-        SUM(CASE WHEN store_name NOT ILIKE '%창고%' THEN 1 ELSE 0 END) AS store_qty
+        color,
+        COUNT(*)::int AS qty
       FROM inventory_items
       ${where}
-      GROUP BY model_name
-      HAVING SUM(CASE WHEN store_name ILIKE '%창고%' THEN 1 ELSE 0 END) >= 10
-      ORDER BY warehouse_qty DESC
-      LIMIT 10
+      AND store_name NOT ILIKE '%창고%'
+      GROUP BY agency_name, store_code, store_name, model_name, color
     `;
 
     const r = await pool.query(q, params);
+    const rows = r.rows || [];
 
-    res.json({
+    // 모델+색상별로 묶기
+    const grouped = {};
+    for (const row of rows) {
+      const model = row.model_name || "";
+      const color = row.color || "";
+      const key = `${model}__${color}`;
+
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push({
+        agency_name: row.agency_name,
+        store_code: row.store_code,
+        store_name: row.store_name,
+        model_name: model,
+        color,
+        qty: Number(row.qty || 0)
+      });
+    }
+
+    const recommendations = [];
+
+    Object.values(grouped).forEach(list => {
+      // 많은 곳 / 적은 곳 정렬
+      const sortedDesc = [...list].sort((a, b) => b.qty - a.qty);
+      const sortedAsc = [...list].sort((a, b) => a.qty - b.qty);
+
+      const high = sortedDesc[0];
+      const low = sortedAsc[0];
+
+      // 룰:
+      // 공급 가능: 5대 이상
+      // 부족: 1대 이하
+      // 차이 3대 이상일 때만 추천
+      if (
+        high &&
+        low &&
+        high.store_code !== low.store_code &&
+        high.qty >= 5 &&
+        low.qty <= 1 &&
+        high.qty - low.qty >= 3
+      ) {
+        recommendations.push({
+          model_name: high.model_name,
+          color: high.color,
+          from_store_code: high.store_code,
+          from_store_name: high.store_name,
+          from_qty: high.qty,
+          to_store_code: low.store_code,
+          to_store_name: low.store_name,
+          to_qty: low.qty,
+          gap: high.qty - low.qty
+        });
+      }
+    });
+
+    recommendations.sort((a, b) => {
+      if (b.gap !== a.gap) return b.gap - a.gap;
+      return (a.model_name || "").localeCompare(b.model_name || "", "ko");
+    });
+
+    return res.json({
       ok: true,
-      rows: r.rows
+      snapshot_date: snapshotDate,
+      agency,
+      rows: recommendations.slice(0, 30)
     });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ ok: false, message: "추천 조회 실패" });
+    return res.status(500).json({ ok: false, message: "추천 조회 실패" });
   }
 });
 
