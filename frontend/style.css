@@ -579,15 +579,34 @@ tr:hover td{background:#fafafa}
   -webkit-overflow-scrolling: touch;
 }
 
+/* 기본: 컬럼 많은 표는 가로 스크롤 허용 */
 .tableWrap table{
   width:100%;
-  min-width:640px;
   border-collapse:collapse;
+}
+
+/* 대시보드 상세 / 모달 상세처럼 항목 많은 표 */
+#dashboardDetailTable .tableWrap table,
+#inventoryDetailPanels .tableWrap table,
+.modalBox .tableWrap table{
+  min-width:640px;
 }
 
 .tableWrap th,
 .tableWrap td{
   white-space:nowrap;
+}
+
+/* 재고조회 결과처럼 컬럼 적은 표는 모바일에서도 한 번에 보이게 */
+.compactTable table{
+  min-width:unset !important;
+  table-layout:fixed;
+}
+
+.compactTable th,
+.compactTable td{
+  white-space:normal;
+  word-break:break-word;
 }
 
 /* =========================
@@ -763,9 +782,15 @@ tr:hover td{background:#fafafa}
     line-height:1.4;
   }
 
-  .tableWrap table{
-    min-width:560px;
-  }
+  #dashboardDetailTable .tableWrap table,
+#inventoryDetailPanels .tableWrap table,
+.modalBox .tableWrap table{
+  min-width:560px;
+}
+
+.compactTable table{
+  min-width:unset !important;
+}
 
   .tableWrap th,
   .tableWrap td,

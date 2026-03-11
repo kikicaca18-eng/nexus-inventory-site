@@ -248,7 +248,7 @@ j.table.sort((a, b) => {
 // =========================
 function renderTable(rows, cols) {
   const wrap = document.createElement("div");
-  wrap.className = "tableWrap";
+  wrap.className = "tableWrap compactTable";
 
   const table = document.createElement("table");
   const thead = document.createElement("thead");
