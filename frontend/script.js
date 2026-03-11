@@ -863,9 +863,9 @@ function renderDashboardWarehouseDetail(rows) {
     );
   }
 
-  let html = `
-    <div class="tableWrap">
-      <table>
+let html = `
+  <div class="tableWrap compactTable warehouseCompactTable">
+    <table>
         <thead>
           <tr>
             <th class="sortable" onclick="toggleDashboardSort('warehouse','model_name')">
