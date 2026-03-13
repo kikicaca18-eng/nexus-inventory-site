@@ -73,6 +73,9 @@ window.addEventListener("load", () => {
     setDisplay("uploadBox", "none");
     setDisplay("searchBox", "none");
     setDisplay("inventoryDash", "none");
+
+        setDisplay("todayLoginInfo", "block");
+    loadTodayLoginInfo();
   } catch (e) {
     console.error(e);
     localStorage.removeItem("loginInfo");
@@ -117,11 +120,21 @@ document.getElementById("menuBox").style.display = "block";
 document.getElementById("uploadBox").style.display = "none";
 document.getElementById("searchBox").style.display = "none";
 document.getElementById("inventoryDash").style.display = "none";
+  setDisplay("todayLoginInfo", "block");
+  saveLoginLog();
+  loadTodayLoginInfo();
 }
 
 function logout() {
   currentCenter = "";
   localStorage.removeItem("loginInfo");
+
+  const info = document.getElementById("todayLoginInfo");
+  if (info) {
+    info.style.display = "none";
+    info.textContent = "";
+  }
+
   location.reload();
 }
 
@@ -1102,5 +1115,55 @@ function renderDashboardDetailByType(type) {
     renderDashboardTotalDetail(dashboardDetailRows);
   } else if (type === "store") {
     renderDashboardStoreDetail(dashboardDetailRows);
+  }
+}
+async function saveLoginLog() {
+  if (!currentCenter) return;
+
+  try {
+    await fetch(`${API_URL}/login-log`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ agency: currentCenter })
+    });
+  } catch (e) {
+    console.error("로그인 기록 저장 실패", e);
+  }
+}
+
+async function loadTodayLoginInfo() {
+  if (!currentCenter) return;
+
+  const info = document.getElementById("todayLoginInfo");
+  if (!info) return;
+
+  try {
+    const resp = await fetch(
+      `${API_URL}/login-today-summary?agency=${encodeURIComponent(currentCenter)}`
+    );
+    const j = await resp.json();
+
+    if (!resp.ok || !j.ok) {
+      info.textContent = "오늘 접속자 조회 실패";
+      return;
+    }
+
+    if (currentCenter === "관리자") {
+      const order = ["광주", "목포", "순천", "전북", "제주"];
+      const map = {};
+
+      (j.rows || []).forEach(r => {
+        map[r.agency_name] = Number(r.cnt || 0);
+      });
+
+      info.textContent = order
+        .map(name => `${name} ${Number(map[name] || 0)}명`)
+        .join(" · ");
+    } else {
+      info.textContent = `오늘 접속자 ${Number(j.count || 0)}명`;
+    }
+  } catch (e) {
+    console.error("오늘 접속자 조회 실패", e);
+    info.textContent = "오늘 접속자 조회 실패";
   }
 }

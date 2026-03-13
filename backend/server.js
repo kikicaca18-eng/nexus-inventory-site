@@ -24,6 +24,19 @@ app.get("/", (req, res) => {
   res.send("✅ BACKEND OK - Supabase PostgreSQL connected");
 });
 
+function getClientIp(req) {
+  const forwarded = req.headers["x-forwarded-for"];
+  if (forwarded) {
+    return String(forwarded).split(",")[0].trim();
+  }
+  return (
+    req.ip ||
+    req.connection?.remoteAddress ||
+    req.socket?.remoteAddress ||
+    ""
+  );
+}
+
 const upload = multer({ storage: multer.memoryStorage() });
 
 /**
@@ -813,6 +826,110 @@ app.get("/upload-status", async (req, res) => {
     snapshot_date: snapshotDate,
     today_count: r.rows[0]?.cnt ?? 0
   });
+});
+
+/**
+ * =========================
+ * ✅ 로그인 기록 저장
+ * POST /login-log
+ * body: { agency }
+ * =========================
+ */
+app.post("/login-log", async (req, res) => {
+  const loginDate = todayKST();
+  const { agency } = req.body;
+  const ipAddress = getClientIp(req);
+  const userAgent = req.headers["user-agent"] || "";
+
+  if (!agency) {
+    return res.status(400).json({ ok: false, message: "agency 정보가 없습니다." });
+  }
+  // ⭐ 관리자 로그인은 접속자 카운트에서 제외
+  if (agency === "관리자") {
+    return res.json({ ok: true, skipped: true });
+  }
+
+  try {
+    await pool.query(
+      `
+      INSERT INTO login_logs (login_date, agency_name, ip_address, user_agent)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (login_date, agency_name, ip_address) DO NOTHING
+      `,
+      [loginDate, agency, ipAddress, userAgent]
+    );
+
+    return res.json({ ok: true, login_date: loginDate });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ ok: false, message: "로그인 기록 저장 실패" });
+  }
+});
+
+/**
+ * =========================
+ * ✅ 오늘 접속자 조회
+ * GET /login-today-summary?agency=광주
+ * GET /login-today-summary?agency=관리자
+ * =========================
+ */
+app.get("/login-today-summary", async (req, res) => {
+  const loginDate = todayKST();
+  const agency = req.query.agency;
+
+  if (!agency) {
+    return res.status(400).json({ ok: false, message: "agency 정보가 없습니다." });
+  }
+
+  try {
+    if (agency === "관리자") {
+      const r = await pool.query(
+        `
+        SELECT agency_name, COUNT(*)::int AS cnt
+        FROM login_logs
+        WHERE login_date = $1
+        GROUP BY agency_name
+        ORDER BY
+          CASE agency_name
+            WHEN '광주' THEN 1
+            WHEN '목포' THEN 2
+            WHEN '순천' THEN 3
+            WHEN '전북' THEN 4
+            WHEN '제주' THEN 5
+            ELSE 99
+          END
+        `,
+        [loginDate]
+      );
+
+      return res.json({
+        ok: true,
+        login_date: loginDate,
+        agency,
+        rows: r.rows
+      });
+    }
+
+    const r = await pool.query(
+      `
+      SELECT COUNT(*)::int AS cnt
+      FROM login_logs
+      WHERE login_date = $1
+        AND agency_name = $2
+      `,
+      [loginDate, agency]
+    );
+
+    return res.json({
+      ok: true,
+      login_date: loginDate,
+      agency,
+      count: r.rows[0]?.cnt ?? 0
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ ok: false, message: "접속자 조회 실패" });
+  }
 });
 
 /**

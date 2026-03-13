@@ -871,3 +871,42 @@ tr:hover td{background:#fafafa}
     font-size:17px;
   }
 }
+
+.topbarRight{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.todayLoginInfo{
+  font-size:13px;
+  color:#333;
+  background:#f6f7f9;
+  border:1px solid #e3e6ea;
+  border-radius:999px;
+  padding:6px 10px;
+  line-height:1.2;
+  white-space:nowrap;
+}
+
+@media (max-width: 768px) {
+  .topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:10px;
+  }
+
+  .topbarRight{
+    flex-direction:column;
+    align-items:flex-end;
+    gap:6px;
+  }
+
+  .todayLoginInfo{
+    font-size:12px;
+    padding:5px 8px;
+    white-space:normal;
+    text-align:right;
+  }
+}
