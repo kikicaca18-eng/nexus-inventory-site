@@ -329,10 +329,11 @@ function openInventory() {
 }
 
 function openPerformance() {
-  if (currentCenter === "관리자") {
-    showOnly(["menuBox", "performanceBox"]);
-  } else {
-    showOnly(["menuBox", "performanceBox"]);
+  showOnly(["menuBox", "performanceBox"]);
+
+  const uploadSection = document.getElementById("performanceUploadSection");
+  if (uploadSection) {
+    uploadSection.style.display = currentCenter === "관리자" ? "block" : "none";
   }
 }
 

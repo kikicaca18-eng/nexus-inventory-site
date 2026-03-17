@@ -126,23 +126,81 @@
 </div>
 
 <div id="inventoryDetailPanels" style="display:none; margin-top:16px;">
+<div id="performanceUploadSection" style="display:none;">
   <div class="dashGrid2">
+    <!-- 누적실적 업로드 -->
     <div class="panel">
       <div class="panelHeader">
-        <div class="panelTitle">모델별 TOP</div>
-        <div class="panelHint">🔥 과재고 / ⚠️ 희소</div>
+        <div class="panelTitle">📁 누적실적 업로드</div>
+        <div class="panelHint">월별 누적 데이터 (예: 2026-02)</div>
       </div>
-      <div id="byModelTable"></div>
+
+      <label class="label">기준월</label>
+      <input
+        type="text"
+        id="monthlyBaseMonth"
+        class="input"
+        placeholder="예: 2026-02"
+      />
+
+      <label class="label" style="margin-top:10px;">엑셀 파일</label>
+      <input
+        type="file"
+        id="monthlySalesFile"
+        class="input"
+        accept=".xlsx,.xls"
+      />
+
+      <button
+        class="btn primary"
+        id="monthlyUploadBtn"
+        type="button"
+        onclick="uploadMonthlySales()"
+        style="margin-top:10px;"
+      >
+        누적실적 업로드
+      </button>
+
+      <div class="status" id="monthlyUploadStatus"></div>
     </div>
 
+    <!-- 당월실적 업로드 -->
     <div class="panel">
       <div class="panelHeader">
-        <div class="panelTitle">판매점별 TOP</div>
-        <div class="panelHint">보기 버튼으로 상세 확인</div>
+        <div class="panelTitle">📁 당월실적 업로드</div>
+        <div class="panelHint">일 단위 누적 데이터 (예: 2026-03)</div>
       </div>
-      <div id="byStoreTable"></div>
+
+      <label class="label">기준월</label>
+      <input
+        type="text"
+        id="dailyBaseMonth"
+        class="input"
+        placeholder="예: 2026-03"
+      />
+
+      <label class="label" style="margin-top:10px;">엑셀 파일</label>
+      <input
+        type="file"
+        id="dailySalesFile"
+        class="input"
+        accept=".xlsx,.xls"
+      />
+
+      <button
+        class="btn primary"
+        id="dailyUploadBtn"
+        type="button"
+        onclick="uploadDailySales()"
+        style="margin-top:10px;"
+      >
+        당월실적 업로드
+      </button>
+
+      <div class="status" id="dailyUploadStatus"></div>
     </div>
   </div>
+</div>
 
   <div class="panel" style="margin-top:16px;">
     <div class="panelHeader">
