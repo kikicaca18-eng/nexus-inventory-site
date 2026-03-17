@@ -39,6 +39,252 @@ function getClientIp(req) {
 
 const upload = multer({ storage: multer.memoryStorage() });
 
+function toNumber(v) {
+  if (v === null || v === undefined || v === "") return 0;
+  const n = Number(String(v).toString().replace(/,/g, "").trim());
+  return Number.isNaN(n) ? 0 : n;
+}
+
+function toDateText(v) {
+  if (!v) return null;
+
+  if (v instanceof Date && !isNaN(v)) {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Seoul"
+    }).format(v);
+  }
+
+  const s = String(v).trim();
+
+  // 2026-03-01 / 2026.03.01 / 2026/03/01 대응
+  const normalized = s.replace(/\./g, "-").replace(/\//g, "-");
+  const d = new Date(normalized);
+  if (!isNaN(d)) {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Seoul"
+    }).format(d);
+  }
+
+  return null;
+}
+
+function normalizeSheetRows(rows, metricType, dataScope, baseMonth) {
+  return rows.map(r => {
+    const common = {
+      data_scope: dataScope,
+      metric_type: metricType,
+      record_date: toDateText(r["일자"]),
+      base_month: baseMonth || null,
+      is_ms: toText(r["M&S여부"]),
+      agency_code: toText(r["대리점코드"]),
+      agency_name: toText(r["대리점명"]),
+      store_code: toText(r["판매점코드"]),
+      store_name: toText(r["판매점명"]),
+      market: toText(r["상권"]),
+      manager_name: toText(r["영업M"]),
+      model_name: null,
+      product_name: null,
+      wireless_type: null,
+      total_score: toNumber(r["총실적"]),
+      new_010: 0,
+      mnp: 0,
+      change_device: 0
+    };
+
+    if (metricType === "후불") {
+      common.model_name = toText(r["단말기모델"]);
+      common.new_010 = toNumber(r["010신규"]);
+      common.mnp = toNumber(r["MNP"]);
+      common.change_device = toNumber(r["기변"]);
+    }
+
+    if (metricType === "순신규" || metricType === "약정갱신") {
+      common.product_name = toText(r["상품"]);
+    }
+
+    if (metricType === "MIT") {
+      common.product_name = toText(r["상품"]);
+      common.wireless_type = toText(r["무선유형"]);
+    }
+
+    return common;
+  });
+}
+
+async function insertSalesData({
+  fileBuffer,
+  fileName,
+  uploadType,
+  baseMonth,
+  uploadedBy
+}) {
+  const workbook = XLSX.read(fileBuffer, { type: "buffer" });
+
+  const requiredSheets = ["후불", "순신규", "약정갱신", "MIT", "판매점LIST"];
+  for (const s of requiredSheets) {
+    if (!workbook.SheetNames.includes(s)) {
+      throw new Error(`엑셀에 '${s}' 시트가 없습니다.`);
+    }
+  }
+
+  const postpaidRows = XLSX.utils.sheet_to_json(workbook.Sheets["후불"], { defval: "" });
+  const pureNewRows = XLSX.utils.sheet_to_json(workbook.Sheets["순신규"], { defval: "" });
+  const renewalRows = XLSX.utils.sheet_to_json(workbook.Sheets["약정갱신"], { defval: "" });
+  const mitRows = XLSX.utils.sheet_to_json(workbook.Sheets["MIT"], { defval: "" });
+  const storeRows = XLSX.utils.sheet_to_json(workbook.Sheets["판매점LIST"], { defval: "" });
+
+  const allSalesRows = [
+    ...normalizeSheetRows(postpaidRows, "후불", uploadType, baseMonth),
+    ...normalizeSheetRows(pureNewRows, "순신규", uploadType, baseMonth),
+    ...normalizeSheetRows(renewalRows, "약정갱신", uploadType, baseMonth),
+    ...normalizeSheetRows(mitRows, "MIT", uploadType, baseMonth)
+  ];
+
+  const storeMasterRows = storeRows.map(r => ({
+    store_code: toText(r["판매점코드"]),
+    store_name: toText(r["판매점명"]),
+    market_category: toText(r["상권구분"]),
+    address: toText(r["주소"])
+  })).filter(r => r.store_code !== "");
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    // 1) 업로드 이력 생성
+    const batchResult = await client.query(
+      `
+      INSERT INTO sales_upload_batches
+      (upload_type, base_month, file_name, uploaded_by)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id
+      `,
+      [uploadType, baseMonth || null, fileName || null, uploadedBy || "관리자"]
+    );
+
+    const batchId = batchResult.rows[0].id;
+
+    // 2) 같은 base_month / upload_type 데이터 삭제 후 재적재
+    if (uploadType === "monthly" && baseMonth) {
+      await client.query(
+        `
+        DELETE FROM sales_records
+        WHERE data_scope = 'monthly'
+          AND base_month = $1
+        `,
+        [baseMonth]
+      );
+    }
+
+    if (storeMasterRows.length > 0) {
+      await client.query(`DELETE FROM sales_store_master`);
+
+      const storeValues = [];
+      const storePlaceholders = storeMasterRows.map((row, idx) => {
+        const b = idx * 4;
+        storeValues.push(
+          row.store_code,
+          row.store_name,
+          row.market_category,
+          row.address
+        );
+        return `($${b + 1}, $${b + 2}, $${b + 3}, $${b + 4})`;
+      });
+
+      await client.query(
+        `
+        INSERT INTO sales_store_master
+        (store_code, store_name, market_category, address)
+        VALUES ${storePlaceholders.join(",")}
+        `,
+        storeValues
+      );
+    }
+
+    const chunkSize = 500;
+
+    for (let i = 0; i < allSalesRows.length; i += chunkSize) {
+      const chunk = allSalesRows.slice(i, i + chunkSize);
+
+      const values = [];
+      const placeholders = chunk.map((row, idx) => {
+        const b = idx * 17;
+        values.push(
+          batchId,
+          row.data_scope,
+          row.metric_type,
+          row.record_date,
+          row.base_month,
+          row.is_ms,
+          row.agency_code,
+          row.agency_name,
+          row.store_code,
+          row.store_name,
+          row.market,
+          row.manager_name,
+          row.model_name,
+          row.product_name,
+          row.wireless_type,
+          row.total_score,
+          row.new_010,
+          row.mnp,
+          row.change_device
+        );
+
+        return `(
+          $${b + 1}, $${b + 2}, $${b + 3}, $${b + 4}, $${b + 5},
+          $${b + 6}, $${b + 7}, $${b + 8}, $${b + 9}, $${b + 10},
+          $${b + 11}, $${b + 12}, $${b + 13}, $${b + 14}, $${b + 15},
+          $${b + 16}, $${b + 17}, $${b + 18}, $${b + 19}
+        )`;
+      });
+
+      await client.query(
+        `
+        INSERT INTO sales_records
+        (
+          batch_id,
+          data_scope,
+          metric_type,
+          record_date,
+          base_month,
+          is_ms,
+          agency_code,
+          agency_name,
+          store_code,
+          store_name,
+          market,
+          manager_name,
+          model_name,
+          product_name,
+          wireless_type,
+          total_score,
+          new_010,
+          mnp,
+          change_device
+        )
+        VALUES ${placeholders.join(",")}
+        `,
+        values
+      );
+    }
+
+    await client.query("COMMIT");
+
+    return {
+      batch_id: batchId,
+      sales_count: allSalesRows.length,
+      store_count: storeMasterRows.length
+    };
+  } catch (e) {
+    await client.query("ROLLBACK");
+    throw e;
+  } finally {
+    client.release();
+  }
+}
+
 /**
  * 한국시간 기준 날짜
  */
@@ -174,6 +420,112 @@ app.post("/upload", upload.single("file"), async (req, res) => {
   } catch (e) {
     console.error(e);
     res.status(500).json({ ok: false, message: "업로드 실패" });
+  }
+});
+
+/**
+ * =========================
+ * ✅ 월 누적 실적 업로드
+ * POST /sales/upload-monthly
+ * form-data:
+ * - file
+ * - base_month (예: 2026-02)
+ * - uploaded_by (선택)
+ * =========================
+ */
+app.post("/sales/upload-monthly", upload.single("file"), async (req, res) => {
+  try {
+    const baseMonth = toText(req.body.base_month);
+    const uploadedBy = toText(req.body.uploaded_by) || "관리자";
+
+    if (!req.file) {
+      return res.status(400).json({ ok: false, message: "파일이 없습니다." });
+    }
+
+    if (!baseMonth) {
+      return res.status(400).json({ ok: false, message: "base_month가 없습니다. 예: 2026-02" });
+    }
+
+    const result = await insertSalesData({
+      fileBuffer: req.file.buffer,
+      fileName: req.file.originalname,
+      uploadType: "monthly",
+      baseMonth,
+      uploadedBy
+    });
+
+    return res.json({
+      ok: true,
+      message: "월 누적 실적 업로드 완료",
+      base_month: baseMonth,
+      batch_id: result.batch_id,
+      sales_count: result.sales_count,
+      store_count: result.store_count
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({
+      ok: false,
+      message: e.message || "월 누적 실적 업로드 실패"
+    });
+  }
+});
+
+/**
+ * =========================
+ * ✅ 당월 실적 업로드
+ * POST /sales/upload-daily
+ * form-data:
+ * - file
+ * - base_month (예: 2026-03)
+ * - uploaded_by (선택)
+ * =========================
+ */
+app.post("/sales/upload-daily", upload.single("file"), async (req, res) => {
+  try {
+    const baseMonth = toText(req.body.base_month);
+    const uploadedBy = toText(req.body.uploaded_by) || "관리자";
+
+    if (!req.file) {
+      return res.status(400).json({ ok: false, message: "파일이 없습니다." });
+    }
+
+    if (!baseMonth) {
+      return res.status(400).json({ ok: false, message: "base_month가 없습니다. 예: 2026-03" });
+    }
+
+    // daily는 같은 달 데이터 지우고 다시 넣는 방식
+    await pool.query(
+      `
+      DELETE FROM sales_records
+      WHERE data_scope = 'daily'
+        AND base_month = $1
+      `,
+      [baseMonth]
+    );
+
+    const result = await insertSalesData({
+      fileBuffer: req.file.buffer,
+      fileName: req.file.originalname,
+      uploadType: "daily",
+      baseMonth,
+      uploadedBy
+    });
+
+    return res.json({
+      ok: true,
+      message: "당월 실적 업로드 완료",
+      base_month: baseMonth,
+      batch_id: result.batch_id,
+      sales_count: result.sales_count,
+      store_count: result.store_count
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({
+      ok: false,
+      message: e.message || "당월 실적 업로드 실패"
+    });
   }
 });
 
