@@ -235,7 +235,122 @@
 
         <div class="status" id="uploadStatus"></div>
       </section>
+<!-- ================= 실적조회 ================= -->
+<section class="card" id="performanceBox" style="display:none; margin-top:16px;">
+  <h2 class="h2">실적조회</h2>
 
+  <p class="muted" style="margin-bottom:12px;">
+    누적실적 / 당월실적 업로드 후<br/>
+    Gemma3 AI 기반 질의응답을 진행할 예정입니다.
+  </p>
+
+  <div class="dashGrid2">
+    <!-- 누적실적 업로드 -->
+    <div class="panel">
+      <div class="panelHeader">
+        <div class="panelTitle">📁 누적실적 업로드</div>
+        <div class="panelHint">월별 누적 데이터 (예: 2026-02)</div>
+      </div>
+
+      <label class="label">기준월</label>
+      <input
+        type="text"
+        id="monthlyBaseMonth"
+        class="input"
+        placeholder="예: 2026-02"
+      />
+
+      <label class="label" style="margin-top:10px;">엑셀 파일</label>
+      <input
+        type="file"
+        id="monthlySalesFile"
+        class="input"
+        accept=".xlsx,.xls"
+      />
+
+      <button
+        class="btn primary"
+        id="monthlyUploadBtn"
+        type="button"
+        onclick="uploadMonthlySales()"
+        style="margin-top:10px;"
+      >
+        누적실적 업로드
+      </button>
+
+      <div class="status" id="monthlyUploadStatus"></div>
+    </div>
+
+    <!-- 당월실적 업로드 -->
+    <div class="panel">
+      <div class="panelHeader">
+        <div class="panelTitle">📁 당월실적 업로드</div>
+        <div class="panelHint">일 단위 누적 데이터 (예: 2026-03)</div>
+      </div>
+
+      <label class="label">기준월</label>
+      <input
+        type="text"
+        id="dailyBaseMonth"
+        class="input"
+        placeholder="예: 2026-03"
+      />
+
+      <label class="label" style="margin-top:10px;">엑셀 파일</label>
+      <input
+        type="file"
+        id="dailySalesFile"
+        class="input"
+        accept=".xlsx,.xls"
+      />
+
+      <button
+        class="btn primary"
+        id="dailyUploadBtn"
+        type="button"
+        onclick="uploadDailySales()"
+        style="margin-top:10px;"
+      >
+        당월실적 업로드
+      </button>
+
+      <div class="status" id="dailyUploadStatus"></div>
+    </div>
+  </div>
+
+  <!-- Gemma3 자리 -->
+  <div class="panel" style="margin-top:16px;">
+    <div class="panelHeader">
+      <div class="panelTitle">🤖 Gemma3 AI 질의응답</div>
+      <div class="panelHint">업로드된 실적 데이터 기반 응답 예정</div>
+    </div>
+
+    <div class="gemmaBox">
+      <div class="gemmaNotice">
+        현재는 AI 연동 전 단계입니다.<br/>
+        다음 단계에서 <strong>업로드된 실적 데이터만 기반</strong>으로 응답하는
+        실적 전용 AI 채팅을 연결합니다.
+      </div>
+
+      <div class="chatPlaceholder">
+        <div class="chatBubble ai">
+          안녕하세요. 업로드된 실적 데이터를 기반으로만 답변하는
+          Gemma3 실적 도우미가 여기에 연결될 예정입니다.
+        </div>
+
+        <div class="chatInputRow">
+          <input
+            type="text"
+            class="input"
+            placeholder="예: 2026년 2월 광주 후불 실적 알려줘"
+            disabled
+          />
+          <button class="btn ghost" disabled>질문</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
     </div>
   </main>
 

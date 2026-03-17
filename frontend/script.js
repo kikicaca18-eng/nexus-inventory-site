@@ -310,7 +310,7 @@ function renderTable(rows, cols) {
 // 화면 전환
 // =========================
 function showOnly(ids) {
-  const all = ["menuBox", "inventoryDash", "searchBox", "uploadBox"];
+  const all = ["menuBox", "inventoryDash", "searchBox", "uploadBox", "performanceBox"];
   all.forEach(id => setDisplay(id, ids.includes(id) ? "block" : "none"));
 }
 
@@ -329,8 +329,11 @@ function openInventory() {
 }
 
 function openPerformance() {
-  showOnly([]);
-  alert("실적조회는 다음 단계에서 붙일게! 이제 바로 실적 화면 만들자.");
+  if (currentCenter === "관리자") {
+    showOnly(["menuBox", "performanceBox"]);
+  } else {
+    showOnly(["menuBox", "performanceBox"]);
+  }
 }
 
 // =========================
@@ -1165,5 +1168,110 @@ async function loadTodayLoginInfo() {
   } catch (e) {
     console.error("오늘 접속자 조회 실패", e);
     info.textContent = "오늘 접속자 조회 실패";
+  }
+}
+async function uploadMonthlySales() {
+  if (currentCenter !== "관리자") {
+    alert("관리자만 업로드할 수 있습니다.");
+    return;
+  }
+
+  const fileInput = document.getElementById("monthlySalesFile");
+  const baseMonth = document.getElementById("monthlyBaseMonth").value.trim();
+  const btn = document.getElementById("monthlyUploadBtn");
+  const status = document.getElementById("monthlyUploadStatus");
+
+  if (!baseMonth) {
+    status.innerText = "기준월을 입력하세요. 예: 2026-02";
+    return;
+  }
+
+  if (!fileInput.files.length) {
+    status.innerText = "엑셀 파일을 선택해주세요.";
+    return;
+  }
+
+  btn.disabled = true;
+  status.innerText = "누적실적 업로드 중...";
+
+  try {
+    const formData = new FormData();
+    formData.append("file", fileInput.files[0]);
+    formData.append("base_month", baseMonth);
+    formData.append("uploaded_by", currentCenter);
+
+    const resp = await fetch(`${API_URL}/sales/upload-monthly`, {
+      method: "POST",
+      body: formData
+    });
+
+    const j = await resp.json();
+
+    if (!resp.ok || !j.ok) {
+      status.innerText = `❌ 업로드 실패: ${j.message || "오류"}`;
+      return;
+    }
+
+    status.innerText =
+      `✅ 누적실적 업로드 완료! 기준월 ${j.base_month} / 실적 ${Number(j.sales_count || 0).toLocaleString()}건 / 판매점 ${Number(j.store_count || 0).toLocaleString()}건`;
+    fileInput.value = "";
+  } catch (e) {
+    console.error(e);
+    status.innerText = "❌ 업로드 실패: 네트워크 오류";
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function uploadDailySales() {
+  if (currentCenter !== "관리자") {
+    alert("관리자만 업로드할 수 있습니다.");
+    return;
+  }
+
+  const fileInput = document.getElementById("dailySalesFile");
+  const baseMonth = document.getElementById("dailyBaseMonth").value.trim();
+  const btn = document.getElementById("dailyUploadBtn");
+  const status = document.getElementById("dailyUploadStatus");
+
+  if (!baseMonth) {
+    status.innerText = "기준월을 입력하세요. 예: 2026-03";
+    return;
+  }
+
+  if (!fileInput.files.length) {
+    status.innerText = "엑셀 파일을 선택해주세요.";
+    return;
+  }
+
+  btn.disabled = true;
+  status.innerText = "당월실적 업로드 중...";
+
+  try {
+    const formData = new FormData();
+    formData.append("file", fileInput.files[0]);
+    formData.append("base_month", baseMonth);
+    formData.append("uploaded_by", currentCenter);
+
+    const resp = await fetch(`${API_URL}/sales/upload-daily`, {
+      method: "POST",
+      body: formData
+    });
+
+    const j = await resp.json();
+
+    if (!resp.ok || !j.ok) {
+      status.innerText = `❌ 업로드 실패: ${j.message || "오류"}`;
+      return;
+    }
+
+    status.innerText =
+      `✅ 당월실적 업로드 완료! 기준월 ${j.base_month} / 실적 ${Number(j.sales_count || 0).toLocaleString()}건 / 판매점 ${Number(j.store_count || 0).toLocaleString()}건`;
+    fileInput.value = "";
+  } catch (e) {
+    console.error(e);
+    status.innerText = "❌ 업로드 실패: 네트워크 오류";
+  } finally {
+    btn.disabled = false;
   }
 }
