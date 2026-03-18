@@ -1276,3 +1276,113 @@ async function uploadDailySales() {
     btn.disabled = false;
   }
 }
+async function loadSalesSummary() {
+  const baseMonth = document.getElementById("salesSummaryMonth")?.value.trim();
+  const cards = document.getElementById("salesSummaryCards");
+  const typeTable = document.getElementById("salesTypeTable");
+  const agencyTable = document.getElementById("salesAgencyTable");
+
+  if (!baseMonth) {
+    alert("조회 기준월을 입력하세요. 예: 2026-02");
+    return;
+  }
+
+  if (cards) cards.innerHTML = "불러오는 중...";
+  if (typeTable) typeTable.innerHTML = "";
+  if (agencyTable) agencyTable.innerHTML = "";
+
+  try {
+    const resp = await fetch(`${API_URL}/sales/summary?base_month=${encodeURIComponent(baseMonth)}`);
+    const j = await resp.json();
+
+    if (!resp.ok || !j.ok) {
+      if (cards) cards.innerHTML = `❌ ${j.message || "조회 실패"}`;
+      return;
+    }
+
+    const s = j.summary || {};
+
+    if (cards) {
+      cards.innerHTML = `
+        ${card("실적 행 수", s.row_count || 0, "건")}
+        ${card("총 실적", s.total_score || 0, "점")}
+        ${card("센터 수", s.agency_count || 0, "개")}
+        ${card("판매점 수", s.store_count || 0, "개")}
+      `;
+    }
+
+    renderSimpleTable("salesTypeTable", j.by_type || [], [
+      { key: "metric_type", label: "유형" },
+      { key: "row_count", label: "건수" },
+      { key: "total_score", label: "총실적" }
+    ]);
+
+    renderSimpleTable("salesAgencyTable", j.by_agency || [], [
+      { key: "agency_name", label: "센터" },
+      { key: "total_score", label: "총실적" }
+    ]);
+  } catch (e) {
+    console.error(e);
+    if (cards) cards.innerHTML = "❌ 네트워크 오류";
+  }
+}
+
+async function loadSalesUploadHistory() {
+  const wrap = document.getElementById("salesUploadHistory");
+  if (!wrap) return;
+
+  wrap.innerHTML = "불러오는 중...";
+
+  try {
+    const resp = await fetch(`${API_URL}/sales/upload-history`);
+    const j = await resp.json();
+
+    if (!resp.ok || !j.ok) {
+      wrap.innerHTML = `❌ ${j.message || "조회 실패"}`;
+      return;
+    }
+
+    if (!j.rows || !j.rows.length) {
+      wrap.innerHTML = "업로드 이력이 없습니다.";
+      return;
+    }
+
+    let html = `
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>업로드구분</th>
+              <th>기준월</th>
+              <th>파일명</th>
+              <th>업로드자</th>
+              <th>업로드시각</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    j.rows.forEach(r => {
+      html += `
+        <tr>
+          <td>${escapeHtml(r.upload_type || "")}</td>
+          <td>${escapeHtml(r.base_month || "")}</td>
+          <td>${escapeHtml(r.file_name || "")}</td>
+          <td>${escapeHtml(r.uploaded_by || "")}</td>
+          <td>${escapeHtml((r.uploaded_at || "").replace("T", " ").slice(0, 19))}</td>
+        </tr>
+      `;
+    });
+
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    wrap.innerHTML = html;
+  } catch (e) {
+    console.error(e);
+    wrap.innerHTML = "❌ 네트워크 오류";
+  }
+}

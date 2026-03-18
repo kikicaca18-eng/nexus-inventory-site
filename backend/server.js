@@ -1302,3 +1302,113 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("🚀 Backend running on port", PORT);
 });
+
+/**
+ * =========================
+ * ✅ 최근 실적 업로드 이력
+ * GET /sales/upload-history
+ * =========================
+ */
+app.get("/sales/upload-history", async (req, res) => {
+  try {
+    const r = await pool.query(
+      `
+      SELECT
+        id,
+        upload_type,
+        base_month,
+        file_name,
+        uploaded_by,
+        uploaded_at
+      FROM sales_upload_batches
+      ORDER BY uploaded_at DESC
+      LIMIT 20
+      `
+    );
+
+    return res.json({
+      ok: true,
+      rows: r.rows
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ ok: false, message: "업로드 이력 조회 실패" });
+  }
+});
+
+/**
+ * =========================
+ * ✅ 기준월 실적 요약
+ * GET /sales/summary?base_month=2026-02
+ * =========================
+ */
+app.get("/sales/summary", async (req, res) => {
+  const baseMonth = toText(req.query.base_month);
+
+  if (!baseMonth) {
+    return res.status(400).json({ ok: false, message: "base_month가 필요합니다." });
+  }
+
+  try {
+    const totalQ = await pool.query(
+      `
+      SELECT
+        COUNT(*)::int AS row_count,
+        COALESCE(SUM(total_score), 0)::numeric AS total_score,
+        COUNT(DISTINCT agency_name)::int AS agency_count,
+        COUNT(DISTINCT store_code)::int AS store_count
+      FROM sales_records
+      WHERE base_month = $1
+        AND is_ms = 'Y'
+      `,
+      [baseMonth]
+    );
+
+    const typeQ = await pool.query(
+      `
+      SELECT
+        metric_type,
+        COUNT(*)::int AS row_count,
+        COALESCE(SUM(total_score), 0)::numeric AS total_score
+      FROM sales_records
+      WHERE base_month = $1
+        AND is_ms = 'Y'
+      GROUP BY metric_type
+      ORDER BY
+        CASE metric_type
+          WHEN '후불' THEN 1
+          WHEN '순신규' THEN 2
+          WHEN '약정갱신' THEN 3
+          WHEN 'MIT' THEN 4
+          ELSE 99
+        END
+      `,
+      [baseMonth]
+    );
+
+    const agencyQ = await pool.query(
+      `
+      SELECT
+        agency_name,
+        COALESCE(SUM(total_score), 0)::numeric AS total_score
+      FROM sales_records
+      WHERE base_month = $1
+        AND is_ms = 'Y'
+      GROUP BY agency_name
+      ORDER BY total_score DESC, agency_name ASC
+      `,
+      [baseMonth]
+    );
+
+    return res.json({
+      ok: true,
+      base_month: baseMonth,
+      summary: totalQ.rows[0],
+      by_type: typeQ.rows,
+      by_agency: agencyQ.rows
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ ok: false, message: "실적 요약 조회 실패" });
+  }
+});
