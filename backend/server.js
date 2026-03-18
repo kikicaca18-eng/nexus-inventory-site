@@ -1364,6 +1364,37 @@ pool.query("SELECT NOW()")
   .then(r => console.log("✅ DB 연결 성공:", r.rows[0]))
   .catch(err => console.error("❌ DB 연결 실패:", err));
 
+/**
+ * =========================
+ * ✅ Gemma 테스트 API
+ * =========================
+ */
+app.post("/ai/test", async (req, res) => {
+  try {
+    const response = await fetch("http://localhost:11434/api/generate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "gemma3:4b",
+        prompt: "너는 M&S 호남도매 실적 분석 AI야. 간단히 자기소개 해봐.",
+        stream: false
+      })
+    });
+
+    const data = await response.json();
+
+    res.json({
+      ok: true,
+      result: data.response
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ ok: false, message: "AI 호출 실패" });
+  }
+});
+
 app.listen(PORT, () => {
   console.log("🚀 Backend running on port", PORT);
 });
