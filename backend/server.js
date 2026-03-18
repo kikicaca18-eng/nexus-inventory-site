@@ -1360,6 +1360,10 @@ app.post("/sales/query", async (req, res) => {
   }
 });
 
+pool.query("SELECT NOW()")
+  .then(r => console.log("✅ DB 연결 성공:", r.rows[0]))
+  .catch(err => console.error("❌ DB 연결 실패:", err));
+
 app.listen(PORT, () => {
   console.log("🚀 Backend running on port", PORT);
 });
