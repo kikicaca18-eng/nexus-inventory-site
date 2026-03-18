@@ -24,24 +24,27 @@ app.get("/", (req, res) => {
   res.send("✅ BACKEND OK - Supabase PostgreSQL connected");
 });
 
-function getClientIp(req) {
-  const forwarded = req.headers["x-forwarded-for"];
-  if (forwarded) {
-    return String(forwarded).split(",")[0].trim();
-  }
-  return (
-    req.ip ||
-    req.connection?.remoteAddress ||
-    req.socket?.remoteAddress ||
-    ""
-  );
+const upload = multer({ storage: multer.memoryStorage() });
+
+/**
+ * =========================
+ * 공통 유틸
+ * =========================
+ */
+function todayKST() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul"
+  }).format(new Date());
 }
 
-const upload = multer({ storage: multer.memoryStorage() });
+function toText(v) {
+  if (v === null || v === undefined) return "";
+  return String(v).trim();
+}
 
 function toNumber(v) {
   if (v === null || v === undefined || v === "") return 0;
-  const n = Number(String(v).toString().replace(/,/g, "").trim());
+  const n = Number(String(v).replace(/,/g, "").trim());
   return Number.isNaN(n) ? 0 : n;
 }
 
@@ -55,10 +58,9 @@ function toDateText(v) {
   }
 
   const s = String(v).trim();
-
-  // 2026-03-01 / 2026.03.01 / 2026/03/01 대응
   const normalized = s.replace(/\./g, "-").replace(/\//g, "-");
   const d = new Date(normalized);
+
   if (!isNaN(d)) {
     return new Intl.DateTimeFormat("en-CA", {
       timeZone: "Asia/Seoul"
@@ -66,6 +68,20 @@ function toDateText(v) {
   }
 
   return null;
+}
+
+function getClientIp(req) {
+  const forwarded = req.headers["x-forwarded-for"];
+  if (forwarded) {
+    return String(forwarded).split(",")[0].trim();
+  }
+
+  return (
+    req.ip ||
+    req.connection?.remoteAddress ||
+    req.socket?.remoteAddress ||
+    ""
+  );
 }
 
 function normalizeSheetRows(rows, metricType, dataScope, baseMonth) {
@@ -121,9 +137,9 @@ async function insertSalesData({
   const workbook = XLSX.read(fileBuffer, { type: "buffer" });
 
   const requiredSheets = ["후불", "순신규", "약정갱신", "MIT", "판매점LIST"];
-  for (const s of requiredSheets) {
-    if (!workbook.SheetNames.includes(s)) {
-      throw new Error(`엑셀에 '${s}' 시트가 없습니다.`);
+  for (const sheetName of requiredSheets) {
+    if (!workbook.SheetNames.includes(sheetName)) {
+      throw new Error(`엑셀에 '${sheetName}' 시트가 없습니다.`);
     }
   }
 
@@ -140,19 +156,20 @@ async function insertSalesData({
     ...normalizeSheetRows(mitRows, "MIT", uploadType, baseMonth)
   ];
 
-  const storeMasterRows = storeRows.map(r => ({
-    store_code: toText(r["판매점코드"]),
-    store_name: toText(r["판매점명"]),
-    market_category: toText(r["상권구분"]),
-    address: toText(r["주소"])
-  })).filter(r => r.store_code !== "");
+  const storeMasterRows = storeRows
+    .map(r => ({
+      store_code: toText(r["판매점코드"]),
+      store_name: toText(r["판매점명"]),
+      market_category: toText(r["상권구분"]),
+      address: toText(r["주소"])
+    }))
+    .filter(r => r.store_code !== "");
 
   const client = await pool.connect();
 
   try {
     await client.query("BEGIN");
 
-    // 1) 업로드 이력 생성
     const batchResult = await client.query(
       `
       INSERT INTO sales_upload_batches
@@ -165,7 +182,6 @@ async function insertSalesData({
 
     const batchId = batchResult.rows[0].id;
 
-    // 2) 같은 base_month / upload_type 데이터 삭제 후 재적재
     if (uploadType === "monthly" && baseMonth) {
       await client.query(
         `
@@ -206,10 +222,11 @@ async function insertSalesData({
 
     for (let i = 0; i < allSalesRows.length; i += chunkSize) {
       const chunk = allSalesRows.slice(i, i + chunkSize);
-
       const values = [];
+
       const placeholders = chunk.map((row, idx) => {
-        const b = idx * 17;
+        const b = idx * 19;
+
         values.push(
           batchId,
           row.data_scope,
@@ -286,22 +303,8 @@ async function insertSalesData({
 }
 
 /**
- * 한국시간 기준 날짜
- */
-function todayKST() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Seoul"
-  }).format(new Date());
-}
-
-function toText(v) {
-  if (v === null || v === undefined) return "";
-  return String(v).trim();
-}
-
-/**
  * =========================
- * ✅ 업로드: /upload (관리자만)
+ * 재고 업로드 / 검색
  * =========================
  */
 app.post("/upload", upload.single("file"), async (req, res) => {
@@ -361,6 +364,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
       }));
 
     const client = await pool.connect();
+
     try {
       await client.query("BEGIN");
 
@@ -374,8 +378,10 @@ app.post("/upload", upload.single("file"), async (req, res) => {
       for (let i = 0; i < data.length; i += chunkSize) {
         const chunk = data.slice(i, i + chunkSize);
         const values = [];
+
         const placeholders = chunk.map((row, idx) => {
           const b = idx * 12;
+
           values.push(
             snapshotDate,
             row.agency_code,
@@ -390,6 +396,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
             row.serial_no,
             row.nickname
           );
+
           return `($${b + 1},$${b + 2},$${b + 3},$${b + 4},$${b + 5},$${b + 6},$${b + 7},$${b + 8},$${b + 9},$${b + 10},$${b + 11},$${b + 12})`;
         });
 
@@ -405,7 +412,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 
       await client.query("COMMIT");
 
-      res.json({
+      return res.json({
         ok: true,
         count: data.length,
         snapshot_date: snapshotDate
@@ -413,128 +420,16 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     } catch (e) {
       await client.query("ROLLBACK");
       console.error(e);
-      res.status(500).json({ ok: false, message: "DB 오류" });
+      return res.status(500).json({ ok: false, message: "DB 오류" });
     } finally {
       client.release();
     }
   } catch (e) {
     console.error(e);
-    res.status(500).json({ ok: false, message: "업로드 실패" });
+    return res.status(500).json({ ok: false, message: "업로드 실패" });
   }
 });
 
-/**
- * =========================
- * ✅ 월 누적 실적 업로드
- * POST /sales/upload-monthly
- * form-data:
- * - file
- * - base_month (예: 2026-02)
- * - uploaded_by (선택)
- * =========================
- */
-app.post("/sales/upload-monthly", upload.single("file"), async (req, res) => {
-  try {
-    const baseMonth = toText(req.body.base_month);
-    const uploadedBy = toText(req.body.uploaded_by) || "관리자";
-
-    if (!req.file) {
-      return res.status(400).json({ ok: false, message: "파일이 없습니다." });
-    }
-
-    if (!baseMonth) {
-      return res.status(400).json({ ok: false, message: "base_month가 없습니다. 예: 2026-02" });
-    }
-
-    const result = await insertSalesData({
-      fileBuffer: req.file.buffer,
-      fileName: req.file.originalname,
-      uploadType: "monthly",
-      baseMonth,
-      uploadedBy
-    });
-
-    return res.json({
-      ok: true,
-      message: "월 누적 실적 업로드 완료",
-      base_month: baseMonth,
-      batch_id: result.batch_id,
-      sales_count: result.sales_count,
-      store_count: result.store_count
-    });
-  } catch (e) {
-    console.error(e);
-    return res.status(500).json({
-      ok: false,
-      message: e.message || "월 누적 실적 업로드 실패"
-    });
-  }
-});
-
-/**
- * =========================
- * ✅ 당월 실적 업로드
- * POST /sales/upload-daily
- * form-data:
- * - file
- * - base_month (예: 2026-03)
- * - uploaded_by (선택)
- * =========================
- */
-app.post("/sales/upload-daily", upload.single("file"), async (req, res) => {
-  try {
-    const baseMonth = toText(req.body.base_month);
-    const uploadedBy = toText(req.body.uploaded_by) || "관리자";
-
-    if (!req.file) {
-      return res.status(400).json({ ok: false, message: "파일이 없습니다." });
-    }
-
-    if (!baseMonth) {
-      return res.status(400).json({ ok: false, message: "base_month가 없습니다. 예: 2026-03" });
-    }
-
-    // daily는 같은 달 데이터 지우고 다시 넣는 방식
-    await pool.query(
-      `
-      DELETE FROM sales_records
-      WHERE data_scope = 'daily'
-        AND base_month = $1
-      `,
-      [baseMonth]
-    );
-
-    const result = await insertSalesData({
-      fileBuffer: req.file.buffer,
-      fileName: req.file.originalname,
-      uploadType: "daily",
-      baseMonth,
-      uploadedBy
-    });
-
-    return res.json({
-      ok: true,
-      message: "당월 실적 업로드 완료",
-      base_month: baseMonth,
-      batch_id: result.batch_id,
-      sales_count: result.sales_count,
-      store_count: result.store_count
-    });
-  } catch (e) {
-    console.error(e);
-    return res.status(500).json({
-      ok: false,
-      message: e.message || "당월 실적 업로드 실패"
-    });
-  }
-});
-
-/**
- * =========================
- * ✅ 재고 검색: /search
- * - agency 기준 강제 제한
- * =========================
- */
 app.post("/search", async (req, res) => {
   const snapshotDate = todayKST();
   const { agency, model, address, owner, nickname } = req.body;
@@ -568,7 +463,6 @@ app.post("/search", async (req, res) => {
   const params = [snapshotDate];
   let idx = 2;
 
-  // 🔐 관리자 아니면 본인 대리점만
   if (agency !== "관리자") {
     sql += ` AND agency_name = $${idx}`;
     params.push(agency);
@@ -603,7 +497,8 @@ app.post("/search", async (req, res) => {
 
   try {
     const result = await pool.query(sql, params);
-    res.json({
+
+    return res.json({
       ok: true,
       agency,
       snapshot_date: snapshotDate,
@@ -612,15 +507,13 @@ app.post("/search", async (req, res) => {
     });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ ok: false, message: "검색 실패" });
+    return res.status(500).json({ ok: false, message: "검색 실패" });
   }
 });
 
 /**
  * =========================
- * ✅ 재고 대시보드: 요약 카드
- * POST /inventory/summary
- * body: { agency }
+ * 재고 대시보드
  * =========================
  */
 app.post("/inventory/summary", async (req, res) => {
@@ -633,10 +526,8 @@ app.post("/inventory/summary", async (req, res) => {
 
   const params = [snapshotDate];
   let idx = 2;
-
   let where = `WHERE snapshot_date = $1`;
 
-  // 🔐 관리자 아니면 본인 대리점만
   if (agency !== "관리자") {
     where += ` AND agency_name = $${idx}`;
     params.push(agency);
@@ -667,11 +558,6 @@ app.post("/inventory/summary", async (req, res) => {
   }
 });
 
-/**
- * =========================
- * ✅ 재고 대시보드: 창고/판매점 분리 요약
- * =========================
- */
 app.post("/inventory/summary-extended", async (req, res) => {
   const snapshotDate = todayKST();
   const { agency } = req.body;
@@ -682,7 +568,6 @@ app.post("/inventory/summary-extended", async (req, res) => {
 
   const params = [snapshotDate];
   let idx = 2;
-
   let where = `WHERE snapshot_date = $1`;
 
   if (agency !== "관리자") {
@@ -705,24 +590,17 @@ app.post("/inventory/summary-extended", async (req, res) => {
 
     const r = await pool.query(q, params);
 
-    res.json({
+    return res.json({
       ok: true,
       snapshot_date: snapshotDate,
       summary: r.rows[0]
     });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ ok: false, message: "확장 요약 실패" });
+    return res.status(500).json({ ok: false, message: "확장 요약 실패" });
   }
 });
 
-/**
- * =========================
- * ✅ 재고 대시보드: 모델별 TOP
- * POST /inventory/by-model
- * body: { agency, limit }
- * =========================
- */
 app.post("/inventory/by-model", async (req, res) => {
   const snapshotDate = todayKST();
   const { agency, limit } = req.body;
@@ -735,7 +613,6 @@ app.post("/inventory/by-model", async (req, res) => {
 
   const params = [snapshotDate];
   let idx = 2;
-
   let where = `WHERE snapshot_date = $1`;
 
   if (agency !== "관리자") {
@@ -770,13 +647,6 @@ app.post("/inventory/by-model", async (req, res) => {
   }
 });
 
-/**
- * =========================
- * ✅ 재고 대시보드: 판매점(접점)별 TOP
- * POST /inventory/by-store
- * body: { agency, limit }
- * =========================
- */
 app.post("/inventory/by-store", async (req, res) => {
   const snapshotDate = todayKST();
   const { agency, limit } = req.body;
@@ -789,7 +659,6 @@ app.post("/inventory/by-store", async (req, res) => {
 
   const params = [snapshotDate];
   let idx = 2;
-
   let where = `WHERE snapshot_date = $1`;
 
   if (agency !== "관리자") {
@@ -825,11 +694,6 @@ app.post("/inventory/by-store", async (req, res) => {
   }
 });
 
-/**
- * =========================
- * ✅ 재고 추천 이동 모델
- * =========================
- */
 app.post("/inventory/recommend-move", async (req, res) => {
   const snapshotDate = todayKST();
   const { agency } = req.body;
@@ -865,9 +729,8 @@ app.post("/inventory/recommend-move", async (req, res) => {
 
     const r = await pool.query(q, params);
     const rows = r.rows || [];
-
-    // 모델+색상별로 묶기
     const grouped = {};
+
     for (const row of rows) {
       const model = row.model_name || "";
       const color = row.color || "";
@@ -887,17 +750,12 @@ app.post("/inventory/recommend-move", async (req, res) => {
     const recommendations = [];
 
     Object.values(grouped).forEach(list => {
-      // 많은 곳 / 적은 곳 정렬
       const sortedDesc = [...list].sort((a, b) => b.qty - a.qty);
       const sortedAsc = [...list].sort((a, b) => a.qty - b.qty);
 
       const high = sortedDesc[0];
       const low = sortedAsc[0];
 
-      // 룰:
-      // 공급 가능: 5대 이상
-      // 부족: 1대 이하
-      // 차이 3대 이상일 때만 추천
       if (
         high &&
         low &&
@@ -937,13 +795,6 @@ app.post("/inventory/recommend-move", async (req, res) => {
   }
 });
 
-/**
- * =========================
- * ✅ 판매점 상세: 특정 판매점 재고 리스트
- * POST /inventory/store-detail
- * body: { agency, store_code }
- * =========================
- */
 app.post("/inventory/store-detail", async (req, res) => {
   const snapshotDate = todayKST();
   const { agency, store_code } = req.body;
@@ -951,6 +802,7 @@ app.post("/inventory/store-detail", async (req, res) => {
   if (!agency) {
     return res.status(400).json({ ok: false, message: "agency 정보가 없습니다." });
   }
+
   if (!store_code) {
     return res.status(400).json({ ok: false, message: "store_code가 없습니다." });
   }
@@ -971,9 +823,13 @@ app.post("/inventory/store-detail", async (req, res) => {
   try {
     const q = `
       SELECT
-        store_code, store_name,
-        model_name, pet_name, color,
-        serial_no, nickname,
+        store_code,
+        store_name,
+        model_name,
+        pet_name,
+        color,
+        serial_no,
+        nickname,
         address
       FROM inventory_items
       ${where}
@@ -996,13 +852,6 @@ app.post("/inventory/store-detail", async (req, res) => {
   }
 });
 
-/**
- * =========================
- * ✅ 대시보드 상세: 창고 재고
- * POST /inventory/warehouse-detail
- * body: { agency }
- * =========================
- */
 app.post("/inventory/warehouse-detail", async (req, res) => {
   const snapshotDate = todayKST();
   const { agency } = req.body;
@@ -1048,13 +897,6 @@ app.post("/inventory/warehouse-detail", async (req, res) => {
   }
 });
 
-/**
- * =========================
- * ✅ 대시보드 상세: 총 재고
- * POST /inventory/total-detail
- * body: { agency }
- * =========================
- */
 app.post("/inventory/total-detail", async (req, res) => {
   const snapshotDate = todayKST();
   const { agency } = req.body;
@@ -1108,13 +950,6 @@ app.post("/inventory/total-detail", async (req, res) => {
   }
 });
 
-/**
- * =========================
- * ✅ 대시보드 상세: 판매점 재고
- * POST /inventory/store-stock-detail
- * body: { agency }
- * =========================
- */
 app.post("/inventory/store-stock-detail", async (req, res) => {
   const snapshotDate = todayKST();
   const { agency } = req.body;
@@ -1161,30 +996,29 @@ app.post("/inventory/store-stock-detail", async (req, res) => {
   }
 });
 
-/**
- * =========================
- * 업로드 상태
- * =========================
- */
 app.get("/upload-status", async (req, res) => {
   const snapshotDate = todayKST();
-  const r = await pool.query(
-    "SELECT COUNT(*)::int AS cnt FROM inventory_items WHERE snapshot_date = $1",
-    [snapshotDate]
-  );
 
-  res.json({
-    ok: true,
-    snapshot_date: snapshotDate,
-    today_count: r.rows[0]?.cnt ?? 0
-  });
+  try {
+    const r = await pool.query(
+      "SELECT COUNT(*)::int AS cnt FROM inventory_items WHERE snapshot_date = $1",
+      [snapshotDate]
+    );
+
+    return res.json({
+      ok: true,
+      snapshot_date: snapshotDate,
+      today_count: r.rows[0]?.cnt ?? 0
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ ok: false, message: "업로드 상태 조회 실패" });
+  }
 });
 
 /**
  * =========================
- * ✅ 로그인 기록 저장
- * POST /login-log
- * body: { agency }
+ * 접속자 카운트
  * =========================
  */
 app.post("/login-log", async (req, res) => {
@@ -1196,7 +1030,7 @@ app.post("/login-log", async (req, res) => {
   if (!agency) {
     return res.status(400).json({ ok: false, message: "agency 정보가 없습니다." });
   }
-  // ⭐ 관리자 로그인은 접속자 카운트에서 제외
+
   if (agency === "관리자") {
     return res.json({ ok: true, skipped: true });
   }
@@ -1218,13 +1052,6 @@ app.post("/login-log", async (req, res) => {
   }
 });
 
-/**
- * =========================
- * ✅ 오늘 접속자 조회
- * GET /login-today-summary?agency=광주
- * GET /login-today-summary?agency=관리자
- * =========================
- */
 app.get("/login-today-summary", async (req, res) => {
   const loginDate = todayKST();
   const agency = req.query.agency;
@@ -1286,123 +1113,103 @@ app.get("/login-today-summary", async (req, res) => {
 
 /**
  * =========================
- * CRON 로그
+ * 실적 업로드
  * =========================
  */
-cron.schedule("0 * * * *", async () => {
-  const d = todayKST();
-  const r = await pool.query(
-    "SELECT COUNT(*)::int AS cnt FROM inventory_items WHERE snapshot_date = $1",
-    [d]
-  );
-  console.log(`🕐 [CRON] ${d} 재고 ${r.rows[0].cnt}건`);
-});
-
-const PORT = process.env.PORT || 3000;
-/**
- * =========================
- * ✅ 실적 질의 API (AI용)
- * POST /sales/query
- * body:
- * {
- *   base_month: "2026-02",
- *   agency: "광주",
- *   metric_type: "후불"
- * }
- * =========================
- */
-app.post("/sales/query", async (req, res) => {
-  const { base_month, agency, metric_type } = req.body;
-
-  if (!base_month) {
-    return res.status(400).json({ ok: false, message: "base_month 필요" });
-  }
-
+app.post("/sales/upload-monthly", upload.single("file"), async (req, res) => {
   try {
-    let where = `WHERE base_month = $1 AND is_ms = 'Y'`;
-    const params = [base_month];
-    let idx = 2;
+    const baseMonth = toText(req.body.base_month);
+    const uploadedBy = toText(req.body.uploaded_by) || "관리자";
 
-    if (agency) {
-      where += ` AND agency_name = $${idx}`;
-      params.push(agency);
-      idx++;
+    if (!req.file) {
+      return res.status(400).json({ ok: false, message: "파일이 없습니다." });
     }
 
-    if (metric_type) {
-      where += ` AND metric_type = $${idx}`;
-      params.push(metric_type);
-      idx++;
+    if (!baseMonth) {
+      return res.status(400).json({
+        ok: false,
+        message: "base_month가 없습니다. 예: 2026-02"
+      });
     }
 
-    const q = `
-      SELECT
-        agency_name,
-        metric_type,
-        COUNT(*)::int AS row_count,
-        COALESCE(SUM(total_score), 0)::numeric AS total_score
-      FROM sales_records
-      ${where}
-      GROUP BY agency_name, metric_type
-      ORDER BY total_score DESC
-    `;
-
-    const r = await pool.query(q, params);
+    const result = await insertSalesData({
+      fileBuffer: req.file.buffer,
+      fileName: req.file.originalname,
+      uploadType: "monthly",
+      baseMonth,
+      uploadedBy
+    });
 
     return res.json({
       ok: true,
-      base_month,
-      rows: r.rows
+      message: "월 누적 실적 업로드 완료",
+      base_month: baseMonth,
+      batch_id: result.batch_id,
+      sales_count: result.sales_count,
+      store_count: result.store_count
     });
   } catch (e) {
     console.error(e);
-    return res.status(500).json({ ok: false, message: "질의 실패" });
+    return res.status(500).json({
+      ok: false,
+      message: e.message || "월 누적 실적 업로드 실패"
+    });
   }
 });
 
-pool.query("SELECT NOW()")
-  .then(r => console.log("✅ DB 연결 성공:", r.rows[0]))
-  .catch(err => console.error("❌ DB 연결 실패:", err));
-
-/**
- * =========================
- * ✅ Gemma 테스트 API
- * =========================
- */
-app.post("/ai/test", async (req, res) => {
+app.post("/sales/upload-daily", upload.single("file"), async (req, res) => {
   try {
-    const response = await fetch("http://localhost:11434/api/generate", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "gemma3:4b",
-        prompt: "너는 M&S 호남도매 실적 분석 AI야. 간단히 자기소개 해봐.",
-        stream: false
-      })
+    const baseMonth = toText(req.body.base_month);
+    const uploadedBy = toText(req.body.uploaded_by) || "관리자";
+
+    if (!req.file) {
+      return res.status(400).json({ ok: false, message: "파일이 없습니다." });
+    }
+
+    if (!baseMonth) {
+      return res.status(400).json({
+        ok: false,
+        message: "base_month가 없습니다. 예: 2026-03"
+      });
+    }
+
+    await pool.query(
+      `
+      DELETE FROM sales_records
+      WHERE data_scope = 'daily'
+        AND base_month = $1
+      `,
+      [baseMonth]
+    );
+
+    const result = await insertSalesData({
+      fileBuffer: req.file.buffer,
+      fileName: req.file.originalname,
+      uploadType: "daily",
+      baseMonth,
+      uploadedBy
     });
 
-    const data = await response.json();
-
-    res.json({
+    return res.json({
       ok: true,
-      result: data.response
+      message: "당월 실적 업로드 완료",
+      base_month: baseMonth,
+      batch_id: result.batch_id,
+      sales_count: result.sales_count,
+      store_count: result.store_count
     });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ ok: false, message: "AI 호출 실패" });
+    return res.status(500).json({
+      ok: false,
+      message: e.message || "당월 실적 업로드 실패"
+    });
   }
-});
-
-app.listen(PORT, () => {
-  console.log("🚀 Backend running on port", PORT);
 });
 
 /**
  * =========================
- * ✅ 최근 실적 업로드 이력
- * GET /sales/upload-history
+ * 실적 조회
  * =========================
  */
 app.get("/sales/upload-history", async (req, res) => {
@@ -1432,12 +1239,6 @@ app.get("/sales/upload-history", async (req, res) => {
   }
 });
 
-/**
- * =========================
- * ✅ 기준월 실적 요약
- * GET /sales/summary?base_month=2026-02
- * =========================
- */
 app.get("/sales/summary", async (req, res) => {
   const baseMonth = toText(req.query.base_month);
 
@@ -1507,4 +1308,117 @@ app.get("/sales/summary", async (req, res) => {
     console.error(e);
     return res.status(500).json({ ok: false, message: "실적 요약 조회 실패" });
   }
+});
+
+app.post("/sales/query", async (req, res) => {
+  const { base_month, agency, metric_type } = req.body;
+
+  if (!base_month) {
+    return res.status(400).json({ ok: false, message: "base_month 필요" });
+  }
+
+  try {
+    let where = `WHERE base_month = $1 AND is_ms = 'Y'`;
+    const params = [base_month];
+    let idx = 2;
+
+    if (agency) {
+      where += ` AND agency_name = $${idx}`;
+      params.push(agency);
+      idx++;
+    }
+
+    if (metric_type) {
+      where += ` AND metric_type = $${idx}`;
+      params.push(metric_type);
+      idx++;
+    }
+
+    const q = `
+      SELECT
+        agency_name,
+        metric_type,
+        COUNT(*)::int AS row_count,
+        COALESCE(SUM(total_score), 0)::numeric AS total_score
+      FROM sales_records
+      ${where}
+      GROUP BY agency_name, metric_type
+      ORDER BY total_score DESC
+    `;
+
+    const r = await pool.query(q, params);
+
+    return res.json({
+      ok: true,
+      base_month,
+      rows: r.rows
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ ok: false, message: "질의 실패" });
+  }
+});
+
+/**
+ * =========================
+ * AI 테스트
+ * =========================
+ */
+app.post("/ai/test", async (req, res) => {
+  try {
+    const response = await fetch("http://localhost:11434/api/generate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "gemma3:4b",
+        prompt: "너는 M&S 호남도매 실적 분석 AI야. 간단히 자기소개 해봐.",
+        stream: false
+      })
+    });
+
+    const data = await response.json();
+
+    return res.json({
+      ok: true,
+      result: data.response
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ ok: false, message: "AI 호출 실패" });
+  }
+});
+
+/**
+ * =========================
+ * DB 연결 테스트
+ * =========================
+ */
+pool.query("SELECT NOW()")
+  .then(r => console.log("✅ DB 연결 성공:", r.rows[0]))
+  .catch(err => console.error("❌ DB 연결 실패:", err));
+
+/**
+ * =========================
+ * CRON 로그
+ * =========================
+ */
+cron.schedule("0 * * * *", async () => {
+  try {
+    const d = todayKST();
+    const r = await pool.query(
+      "SELECT COUNT(*)::int AS cnt FROM inventory_items WHERE snapshot_date = $1",
+      [d]
+    );
+    console.log(`🕐 [CRON] ${d} 재고 ${r.rows[0].cnt}건`);
+  } catch (e) {
+    console.error("❌ CRON 오류:", e);
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log("🚀 Backend running on port", PORT);
 });
