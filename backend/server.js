@@ -1299,6 +1299,67 @@ cron.schedule("0 * * * *", async () => {
 });
 
 const PORT = process.env.PORT || 3000;
+/**
+ * =========================
+ * ✅ 실적 질의 API (AI용)
+ * POST /sales/query
+ * body:
+ * {
+ *   base_month: "2026-02",
+ *   agency: "광주",
+ *   metric_type: "후불"
+ * }
+ * =========================
+ */
+app.post("/sales/query", async (req, res) => {
+  const { base_month, agency, metric_type } = req.body;
+
+  if (!base_month) {
+    return res.status(400).json({ ok: false, message: "base_month 필요" });
+  }
+
+  try {
+    let where = `WHERE base_month = $1 AND is_ms = 'Y'`;
+    const params = [base_month];
+    let idx = 2;
+
+    if (agency) {
+      where += ` AND agency_name = $${idx}`;
+      params.push(agency);
+      idx++;
+    }
+
+    if (metric_type) {
+      where += ` AND metric_type = $${idx}`;
+      params.push(metric_type);
+      idx++;
+    }
+
+    const q = `
+      SELECT
+        agency_name,
+        metric_type,
+        COUNT(*)::int AS row_count,
+        COALESCE(SUM(total_score), 0)::numeric AS total_score
+      FROM sales_records
+      ${where}
+      GROUP BY agency_name, metric_type
+      ORDER BY total_score DESC
+    `;
+
+    const r = await pool.query(q, params);
+
+    return res.json({
+      ok: true,
+      base_month,
+      rows: r.rows
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ ok: false, message: "질의 실패" });
+  }
+});
+
 app.listen(PORT, () => {
   console.log("🚀 Backend running on port", PORT);
 });
