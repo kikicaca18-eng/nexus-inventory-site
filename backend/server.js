@@ -155,6 +155,33 @@ async function insertSalesData({
     ...normalizeSheetRows(renewalRows, "약정갱신", uploadType, baseMonth),
     ...normalizeSheetRows(mitRows, "MIT", uploadType, baseMonth)
   ];
+  const rawRows = [];
+
+function pushRawRows(rows, sheetName) {
+  rows.forEach((r, idx) => {
+    const text = Object.values(r)
+      .map(v => String(v || ""))
+      .join(" ")
+      .toLowerCase();
+
+    rawRows.push({
+      sheet_name: sheetName,
+      row_no: idx + 1,
+      is_ms: toText(r["M&S여부"]),
+      agency_name: toText(r["대리점명"]),
+      store_code: toText(r["판매점코드"]),
+      store_name: toText(r["판매점명"]),
+      searchable_text: text,
+      raw_json: r
+    });
+  });
+}
+
+pushRawRows(postpaidRows, "후불");
+pushRawRows(pureNewRows, "순신규");
+pushRawRows(renewalRows, "약정갱신");
+pushRawRows(mitRows, "MIT");
+pushRawRows(storeRows, "판매점LIST");
 
   // 🔥 원본 raw rows 생성
 const rawRows = [];
@@ -211,6 +238,17 @@ pushRawRows(storeRows, "판매점LIST");
     );
 
     const batchId = batchResult.rows[0].id;
+
+if (baseMonth) {
+  await client.query(
+    `
+    DELETE FROM sales_raw_rows
+    WHERE data_scope = $1
+      AND base_month = $2
+    `,
+    [uploadType, baseMonth]
+  );
+}
 
     if (uploadType === "monthly" && baseMonth) {
       await client.query(
@@ -352,6 +390,55 @@ for (let i = 0; i < rawRows.length; i += 500) {
      searchable_text, raw_json)
     VALUES ${placeholders.join(",")}
   `, values);
+}
+
+for (let i = 0; i < rawRows.length; i += 300) {
+  const chunk = rawRows.slice(i, i + 300);
+  const values = [];
+
+  const placeholders = chunk.map((row, idx) => {
+    const b = idx * 11;
+
+    values.push(
+      batchId,
+      uploadType,
+      baseMonth,
+      row.sheet_name,
+      row.row_no,
+      row.is_ms,
+      row.agency_name,
+      row.store_code,
+      row.store_name,
+      row.searchable_text,
+      JSON.stringify(row.raw_json)
+    );
+
+    return `(
+      $${b + 1}, $${b + 2}, $${b + 3}, $${b + 4}, $${b + 5},
+      $${b + 6}, $${b + 7}, $${b + 8}, $${b + 9}, $${b + 10}, $${b + 11}
+    )`;
+  });
+
+  await client.query(
+    `
+    INSERT INTO sales_raw_rows
+    (
+      batch_id,
+      data_scope,
+      base_month,
+      sheet_name,
+      row_no,
+      is_ms,
+      agency_name,
+      store_code,
+      store_name,
+      searchable_text,
+      raw_json
+    )
+    VALUES ${placeholders.join(",")}
+    `,
+    values
+  );
 }
 
     await client.query("COMMIT");
