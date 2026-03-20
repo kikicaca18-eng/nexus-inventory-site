@@ -335,6 +335,8 @@ function openPerformance() {
   if (uploadSection) {
     uploadSection.style.display = currentCenter === "관리자" ? "block" : "none";
   }
+
+  loadSalesUploadHistory();
 }
 
 // =========================
@@ -1384,5 +1386,74 @@ async function loadSalesUploadHistory() {
   } catch (e) {
     console.error(e);
     wrap.innerHTML = "❌ 네트워크 오류";
+  }
+}
+
+async function askSalesAI() {
+  const input = document.getElementById("salesQuestion");
+  const chatBox = document.getElementById("salesChatBox");
+
+  if (!input || !chatBox) return;
+
+  const question = input.value.trim();
+  if (!question) {
+    alert("질문을 입력하세요.");
+    return;
+  }
+
+  appendChatBubble("user", question);
+  input.value = "";
+
+  appendChatBubble("ai", "답변 생성 중...");
+
+  try {
+    const resp = await fetch(`${API_URL}/sales/ask-ai-raw`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        question,
+        agency: currentCenter
+      })
+    });
+
+    const j = await resp.json();
+
+    removeLastAiLoadingBubble();
+
+    if (!resp.ok || !j.ok) {
+      appendChatBubble("ai", j.message || "AI 응답 실패");
+      return;
+    }
+
+    appendChatBubble("ai", j.answer || "응답이 없습니다.");
+  } catch (e) {
+    console.error(e);
+    removeLastAiLoadingBubble();
+    appendChatBubble("ai", "네트워크 오류로 AI 답변을 불러오지 못했습니다.");
+  }
+}
+
+function appendChatBubble(role, text) {
+  const chatBox = document.getElementById("salesChatBox");
+  if (!chatBox) return;
+
+  const bubble = document.createElement("div");
+  bubble.className = `chatBubble ${role}`;
+  bubble.innerHTML = escapeHtml(text).replace(/\n/g, "<br>");
+
+  chatBox.appendChild(bubble);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function removeLastAiLoadingBubble() {
+  const chatBox = document.getElementById("salesChatBox");
+  if (!chatBox) return;
+
+  const bubbles = chatBox.querySelectorAll(".chatBubble.ai");
+  if (!bubbles.length) return;
+
+  const lastBubble = bubbles[bubbles.length - 1];
+  if (lastBubble.textContent.includes("답변 생성 중")) {
+    lastBubble.remove();
   }
 }

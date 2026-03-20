@@ -6,39 +6,41 @@
   <title>kt m&s H.O.S</title>
   <link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
+  <!-- ================= 판매점 상세 모달 ================= -->
   <div id="storeModal" class="modal" style="display:none;">
-  <div class="modalBox">
-    <div class="modalHeader">
-      <span id="modalTitle">판매점 상세</span>
-      <button onclick="closeStoreModal()">닫기</button>
+    <div class="modalBox">
+      <div class="modalHeader">
+        <span id="modalTitle">판매점 상세</span>
+        <button onclick="closeStoreModal()">닫기</button>
+      </div>
+      <div id="modalBody"></div>
     </div>
-
-    <div id="modalBody"></div>
   </div>
-</div>
+
+  <!-- ================= 상단바 ================= -->
   <header class="topbar">
     <div class="brand">
       <div class="brand-title">kt m&s H.O.S</div>
       <div class="brand-sub" id="brandSub">HoNam Operation System</div>
     </div>
 
-<div class="topbarRight">
-  <div id="todayLoginInfo" class="todayLoginInfo" style="display:none;"></div>
+    <div class="topbarRight">
+      <div id="todayLoginInfo" class="todayLoginInfo" style="display:none;"></div>
 
-  <button
-    class="btn ghost"
-    id="logoutBtn"
-    onclick="logout()"
-    style="display:none;"
-  >
-    로그아웃
-  </button>
-</div>
-</header>
+      <button
+        class="btn ghost"
+        id="logoutBtn"
+        onclick="logout()"
+        style="display:none;"
+      >
+        로그아웃
+      </button>
+    </div>
+  </header>
 
   <main class="container">
+    <!-- ================= 히어로 ================= -->
     <section class="hero">
       <h1>kt m&s H.O.S</h1>
       <p>
@@ -75,7 +77,6 @@
 
     <!-- ================= 로그인 후 영역 ================= -->
     <div class="pageContainer">
-
       <!-- ================= 메뉴 박스 ================= -->
       <div id="menuBox" class="menuBox" style="display:none; margin-top:16px;">
         <div class="menuGrid">
@@ -112,68 +113,48 @@
           </div>
 
           <div id="invCards" class="cardGrid"></div>
+
           <div id="dashboardDetailSection" class="panel" style="margin-top:16px; display:none;">
-  <div class="panelHeader">
-    <div class="panelTitle" id="dashboardDetailTitle">상세 내역</div>
-    <div class="panelHint" id="dashboardDetailHint">카드를 클릭하면 세부 내역이 표시됩니다.</div>
-  </div>
-  <div id="dashboardDetailTable"></div>
-</div>
+            <div class="panelHeader">
+              <div class="panelTitle" id="dashboardDetailTitle">상세 내역</div>
+              <div class="panelHint" id="dashboardDetailHint">카드를 클릭하면 세부 내역이 표시됩니다.</div>
+            </div>
+            <div id="dashboardDetailTable"></div>
+          </div>
 
           <div style="margin-top:16px;">
-  <button class="btn ghost" type="button" onclick="toggleInventoryDetails()">
-    상세 분석 보기 / 숨기기
-  </button>
-</div>
+            <button class="btn ghost" type="button" onclick="toggleInventoryDetails()">
+              상세 분석 보기 / 숨기기
+            </button>
+          </div>
 
-<div id="inventoryDetailPanels" style="display:none; margin-top:16px;">
+          <div id="inventoryDetailPanels" style="display:none; margin-top:16px;">
+            <div class="dashGrid2">
+              <div class="panel">
+                <div class="panelHeader">
+                  <div class="panelTitle">모델별 TOP</div>
+                  <div class="panelHint">🔥 과재고 / ⚠️ 희소</div>
+                </div>
+                <div id="byModelTable"></div>
+              </div>
 
-    <!-- 당월실적 업로드 -->
-    <div class="panel">
-      <div class="panelHeader">
-        <div class="panelTitle">📁 당월실적 업로드</div>
-        <div class="panelHint">일 단위 누적 데이터 (예: 2026-03)</div>
-      </div>
+              <div class="panel">
+                <div class="panelHeader">
+                  <div class="panelTitle">판매점별 TOP</div>
+                  <div class="panelHint">보기 버튼으로 상세 확인</div>
+                </div>
+                <div id="byStoreTable"></div>
+              </div>
+            </div>
 
-      <label class="label">기준월</label>
-      <input
-        type="text"
-        id="dailyBaseMonth"
-        class="input"
-        placeholder="예: 2026-03"
-      />
-
-      <label class="label" style="margin-top:10px;">엑셀 파일</label>
-      <input
-        type="file"
-        id="dailySalesFile"
-        class="input"
-        accept=".xlsx,.xls"
-      />
-
-      <button
-        class="btn primary"
-        id="dailyUploadBtn"
-        type="button"
-        onclick="uploadDailySales()"
-        style="margin-top:10px;"
-      >
-        당월실적 업로드
-      </button>
-
-      <div class="status" id="dailyUploadStatus"></div>
-    </div>
-  </div>
-</div>
-
-  <div class="panel" style="margin-top:16px;">
-    <div class="panelHeader">
-      <div class="panelTitle">🔥 추천 이동 대상</div>
-      <div class="panelHint">과다 보유점 → 부족 판매점 추천</div>
-    </div>
-    <div id="recommendMove"></div>
-  </div>
-</div>
+            <div class="panel" style="margin-top:16px;">
+              <div class="panelHeader">
+                <div class="panelTitle">🔥 추천 이동 대상</div>
+                <div class="panelHint">과다 보유점 → 부족 판매점 추천</div>
+              </div>
+              <div id="recommendMove"></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -232,7 +213,7 @@
         <div id="result"></div>
       </section>
 
-      <!-- ================= 엑셀 업로드 ================= -->
+      <!-- ================= 재고 업로드 ================= -->
       <section class="card" id="uploadBox" style="display:none; margin-top:16px;">
         <h2 class="h2">엑셀 업로드 (관리자)</h2>
 
@@ -257,176 +238,180 @@
 
         <div class="status" id="uploadStatus"></div>
       </section>
-<!-- ================= 실적조회 ================= -->
-<section class="card" id="performanceBox" style="display:none; margin-top:16px;">
-  <h2 class="h2">실적조회</h2>
 
-  <p class="muted" style="margin-bottom:12px;">
-    누적실적 / 당월실적 업로드 후<br/>
-    Gemma3 AI 기반 질의응답을 진행할 예정입니다.
-  </p>
+      <!-- ================= 실적조회 ================= -->
+      <section class="card" id="performanceBox" style="display:none; margin-top:16px;">
+        <h2 class="h2">실적조회</h2>
 
-  <div id="performanceUploadSection" style="display:none;">
-    <div class="dashGrid2">
-      <!-- 누적실적 업로드 -->
-      <div class="panel">
-        <div class="panelHeader">
-          <div class="panelTitle">📁 누적실적 업로드</div>
-          <div class="panelHint">월별 누적 데이터 (예: 2026-02)</div>
+        <p class="muted" style="margin-bottom:12px;">
+          누적실적 / 당월실적 업로드 후<br/>
+          업로드된 엑셀 데이터를 기반으로 Gemma3 AI 질의응답을 진행합니다.
+        </p>
+
+        <!-- 관리자만 보이는 업로드 영역 -->
+        <div id="performanceUploadSection" style="display:none;">
+          <div class="dashGrid2">
+            <!-- 누적실적 업로드 -->
+            <div class="panel">
+              <div class="panelHeader">
+                <div class="panelTitle">📁 누적실적 업로드</div>
+                <div class="panelHint">월별 누적 데이터 (예: 2026-02)</div>
+              </div>
+
+              <label class="label">기준월</label>
+              <input
+                type="text"
+                id="monthlyBaseMonth"
+                class="input"
+                placeholder="예: 2026-02"
+              />
+
+              <label class="label" style="margin-top:10px;">엑셀 파일</label>
+              <input
+                type="file"
+                id="monthlySalesFile"
+                class="input"
+                accept=".xlsx,.xls"
+              />
+
+              <button
+                class="btn primary"
+                id="monthlyUploadBtn"
+                type="button"
+                onclick="uploadMonthlySales()"
+                style="margin-top:10px;"
+              >
+                누적실적 업로드
+              </button>
+
+              <div class="status" id="monthlyUploadStatus"></div>
+            </div>
+
+            <!-- 당월실적 업로드 -->
+            <div class="panel">
+              <div class="panelHeader">
+                <div class="panelTitle">📁 당월실적 업로드</div>
+                <div class="panelHint">일 단위 누적 데이터 (예: 2026-03)</div>
+              </div>
+
+              <label class="label">기준월</label>
+              <input
+                type="text"
+                id="dailyBaseMonth"
+                class="input"
+                placeholder="예: 2026-03"
+              />
+
+              <label class="label" style="margin-top:10px;">엑셀 파일</label>
+              <input
+                type="file"
+                id="dailySalesFile"
+                class="input"
+                accept=".xlsx,.xls"
+              />
+
+              <button
+                class="btn primary"
+                id="dailyUploadBtn"
+                type="button"
+                onclick="uploadDailySales()"
+                style="margin-top:10px;"
+              >
+                당월실적 업로드
+              </button>
+
+              <div class="status" id="dailyUploadStatus"></div>
+            </div>
+          </div>
         </div>
 
-        <label class="label">기준월</label>
-        <input
-          type="text"
-          id="monthlyBaseMonth"
-          class="input"
-          placeholder="예: 2026-02"
-        />
+        <!-- 실적 요약 -->
+        <div class="panel" style="margin-bottom:16px;">
+          <div class="panelHeader">
+            <div class="panelTitle">📊 최근 업로드 실적 현황</div>
+            <div class="panelHint">기준월 선택 후 업로드 상태 확인</div>
+          </div>
 
-        <label class="label" style="margin-top:10px;">엑셀 파일</label>
-        <input
-          type="file"
-          id="monthlySalesFile"
-          class="input"
-          accept=".xlsx,.xls"
-        />
+          <div class="dashGrid2">
+            <div>
+              <label class="label">조회 기준월</label>
+              <input
+                type="text"
+                id="salesSummaryMonth"
+                class="input"
+                placeholder="예: 2026-02"
+              />
+              <button
+                class="btn ghost"
+                type="button"
+                onclick="loadSalesSummary()"
+                style="margin-top:10px;"
+              >
+                실적 요약 조회
+              </button>
+            </div>
 
-        <button
-          class="btn primary"
-          id="monthlyUploadBtn"
-          type="button"
-          onclick="uploadMonthlySales()"
-          style="margin-top:10px;"
-        >
-          누적실적 업로드
-        </button>
+            <div id="salesSummaryCards" class="cardGrid"></div>
+          </div>
 
-        <div class="status" id="monthlyUploadStatus"></div>
-      </div>
+          <div class="dashGrid2" style="margin-top:16px;">
+            <div class="panel">
+              <div class="panelHeader">
+                <div class="panelTitle">유형별 실적</div>
+              </div>
+              <div id="salesTypeTable"></div>
+            </div>
 
-      <!-- 당월실적 업로드 -->
-      <div class="panel">
-        <div class="panelHeader">
-          <div class="panelTitle">📁 당월실적 업로드</div>
-          <div class="panelHint">일 단위 누적 데이터 (예: 2026-03)</div>
+            <div class="panel">
+              <div class="panelHeader">
+                <div class="panelTitle">센터별 실적</div>
+              </div>
+              <div id="salesAgencyTable"></div>
+            </div>
+          </div>
+
+          <div class="panel" style="margin-top:16px;">
+            <div class="panelHeader">
+              <div class="panelTitle">최근 업로드 이력</div>
+            </div>
+            <div id="salesUploadHistory"></div>
+          </div>
         </div>
 
-        <label class="label">기준월</label>
-        <input
-          type="text"
-          id="dailyBaseMonth"
-          class="input"
-          placeholder="예: 2026-03"
-        />
+        <!-- Gemma3 AI 채팅 -->
+        <div class="panel" style="margin-top:16px;">
+          <div class="panelHeader">
+            <div class="panelTitle">🤖 Gemma3 AI 질의응답</div>
+            <div class="panelHint">업로드된 실적 엑셀 데이터 기반 응답</div>
+          </div>
 
-        <label class="label" style="margin-top:10px;">엑셀 파일</label>
-        <input
-          type="file"
-          id="dailySalesFile"
-          class="input"
-          accept=".xlsx,.xls"
-        />
+          <div class="gemmaBox">
+            <div class="gemmaNotice">
+              업로드된 엑셀 데이터 안에 있는 내용만 답변합니다.<br/>
+              예: <strong>2026년 2월 광주 후불 실적 알려줘</strong><br/>
+              예: <strong>명진텔레콤 최근 3개월 실적 알려줘</strong><br/>
+              예: <strong>판매점LIST 기준 제주 주소 알려줘</strong>
+            </div>
 
-        <button
-          class="btn primary"
-          id="dailyUploadBtn"
-          type="button"
-          onclick="uploadDailySales()"
-          style="margin-top:10px;"
-        >
-          당월실적 업로드
-        </button>
+            <div class="chatPlaceholder" id="salesChatBox">
+              <div class="chatBubble ai">
+                안녕하세요. 저는 H.O.S 실적 전용 AI입니다.<br/>
+                업로드된 엑셀 데이터 안에 있는 내용만 기반으로 답변합니다.
+              </div>
+            </div>
 
-        <div class="status" id="dailyUploadStatus"></div>
-      </div>
-    </div>
-  </div>
-  
-<div class="panel" style="margin-bottom:16px;">
-  <div class="panelHeader">
-    <div class="panelTitle">📊 최근 업로드 실적 현황</div>
-    <div class="panelHint">기준월 선택 후 업로드 상태 확인</div>
-  </div>
-
-  <div class="dashGrid2">
-    <div>
-      <label class="label">조회 기준월</label>
-      <input
-        type="text"
-        id="salesSummaryMonth"
-        class="input"
-        placeholder="예: 2026-02"
-      />
-      <button
-        class="btn ghost"
-        type="button"
-        onclick="loadSalesSummary()"
-        style="margin-top:10px;"
-      >
-        실적 요약 조회
-      </button>
-    </div>
-
-    <div id="salesSummaryCards" class="cardGrid"></div>
-  </div>
-
-  <div class="dashGrid2" style="margin-top:16px;">
-    <div class="panel">
-      <div class="panelHeader">
-        <div class="panelTitle">유형별 실적</div>
-      </div>
-      <div id="salesTypeTable"></div>
-    </div>
-
-    <div class="panel">
-      <div class="panelHeader">
-        <div class="panelTitle">센터별 실적</div>
-      </div>
-      <div id="salesAgencyTable"></div>
-    </div>
-  </div>
-
-  <div class="panel" style="margin-top:16px;">
-    <div class="panelHeader">
-      <div class="panelTitle">최근 업로드 이력</div>
-    </div>
-    <div id="salesUploadHistory"></div>
-  </div>
-</div>
-
-  <!-- Gemma3 자리 -->
-  <div class="panel" style="margin-top:16px;">
-    <div class="panelHeader">
-      <div class="panelTitle">🤖 Gemma3 AI 질의응답</div>
-      <div class="panelHint">업로드된 실적 데이터 기반 응답 예정</div>
-    </div>
-
-    <div class="gemmaBox">
-      <div class="gemmaNotice">
-        현재는 AI 연동 전 단계입니다.<br/>
-        다음 단계에서 <strong>업로드된 실적 데이터만 기반</strong>으로 응답하는
-        실적 전용 AI 채팅을 연결합니다.
-      </div>
-
-      <div class="chatPlaceholder">
-        <div class="chatBubble ai">
-          안녕하세요. 업로드된 실적 데이터를 기반으로만 답변하는
-          Gemma3 실적 도우미가 여기에 연결될 예정입니다.
+            <div class="chatInputRow">
+              <input
+                type="text"
+                class="input"
+                id="salesQuestion"
+                placeholder="예: 2026년 2월 광주 후불 실적 알려줘"
+              />
+              <button class="btn ghost" type="button" onclick="askSalesAI()">질문</button>
+            </div>
+          </div>
         </div>
-
-        <div class="chatInputRow">
-          <input
-            type="text"
-            class="input"
-            placeholder="예: 2026년 2월 광주 후불 실적 알려줘"
-            disabled
-          />
-          <button class="btn ghost" disabled>질문</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+      </section>
     </div>
   </main>
 

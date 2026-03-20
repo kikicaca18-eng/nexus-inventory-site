@@ -156,6 +156,36 @@ async function insertSalesData({
     ...normalizeSheetRows(mitRows, "MIT", uploadType, baseMonth)
   ];
 
+  // 🔥 원본 raw rows 생성
+const rawRows = [];
+
+function pushRawRows(rows, sheetName) {
+  rows.forEach((r, idx) => {
+    const text = Object.values(r)
+      .map(v => String(v || ""))
+      .join(" ")
+      .toLowerCase();
+
+    rawRows.push({
+      sheet_name: sheetName,
+      row_no: idx + 1,
+      is_ms: toText(r["M&S여부"]),
+      agency_name: toText(r["대리점명"]),
+      store_code: toText(r["판매점코드"]),
+      store_name: toText(r["판매점명"]),
+      searchable_text: text,
+      raw_json: r
+    });
+  });
+}
+
+// 시트별 적용
+pushRawRows(postpaidRows, "후불");
+pushRawRows(pureNewRows, "순신규");
+pushRawRows(renewalRows, "약정갱신");
+pushRawRows(mitRows, "MIT");
+pushRawRows(storeRows, "판매점LIST");
+
   const storeMasterRows = storeRows
     .map(r => ({
       store_code: toText(r["판매점코드"]),
@@ -286,6 +316,43 @@ async function insertSalesData({
         values
       );
     }
+
+    // 🔥 raw rows insert
+for (let i = 0; i < rawRows.length; i += 500) {
+  const chunk = rawRows.slice(i, i + 500);
+  const values = [];
+
+  const placeholders = chunk.map((row, idx) => {
+    const b = idx * 10;
+
+    values.push(
+      batchId,
+      uploadType,
+      baseMonth,
+      row.sheet_name,
+      row.row_no,
+      row.is_ms,
+      row.agency_name,
+      row.store_code,
+      row.store_name,
+      row.searchable_text,
+      JSON.stringify(row.raw_json)
+    );
+
+    return `(
+      $${b + 1}, $${b + 2}, $${b + 3}, $${b + 4}, $${b + 5},
+      $${b + 6}, $${b + 7}, $${b + 8}, $${b + 9}, $${b + 10}, $${b + 11}
+    )`;
+  });
+
+  await client.query(`
+    INSERT INTO sales_raw_rows
+    (batch_id, data_scope, base_month, sheet_name, row_no,
+     is_ms, agency_name, store_code, store_name,
+     searchable_text, raw_json)
+    VALUES ${placeholders.join(",")}
+  `, values);
+}
 
     await client.query("COMMIT");
 
@@ -1366,7 +1433,7 @@ app.post("/sales/query", async (req, res) => {
  */
 app.post("/ai/test", async (req, res) => {
   try {
-    const response = await fetch("http://localhost:11434/api/generate", {
+    const response = await fetch("http://127.0.0.1:11434/api/generate", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -1387,6 +1454,102 @@ app.post("/ai/test", async (req, res) => {
   } catch (e) {
     console.error(e);
     return res.status(500).json({ ok: false, message: "AI 호출 실패" });
+  }
+});
+
+app.post("/sales/ask-ai-raw", async (req, res) => {
+  const question = toText(req.body.question);
+  const loginAgency = toText(req.body.agency);
+
+  if (!question) {
+    return res.status(400).json({ ok: false, message: "question 필요" });
+  }
+
+  try {
+    // 🔥 키워드 단순 분해
+    const keywords = question
+      .split(/[\s,]+/)
+      .filter(k => k.length >= 2);
+
+    let where = `WHERE 1=1`;
+    const params = [];
+    let idx = 1;
+
+    // 🔥 센터 제한
+    if (loginAgency && loginAgency !== "관리자") {
+      where += ` AND agency_name = $${idx}`;
+      params.push(loginAgency);
+      idx++;
+    }
+
+    // 🔥 키워드 LIKE 검색
+    keywords.forEach(k => {
+      where += ` AND searchable_text ILIKE $${idx}`;
+      params.push(`%${k.toLowerCase()}%`);
+      idx++;
+    });
+
+    const q = `
+      SELECT raw_json
+      FROM sales_raw_rows
+      ${where}
+      LIMIT 50
+    `;
+
+    const r = await pool.query(q, params);
+
+    if (!r.rows.length) {
+      return res.json({
+        ok: true,
+        answer: "엑셀 데이터에서 해당 조건을 찾지 못했습니다."
+      });
+    }
+
+    const rawData = r.rows.map(row => row.raw_json);
+
+    // 🔥 Gemma에게 전달
+    const prompt = `
+너는 H.O.S 실적 분석 AI다.
+
+반드시 지켜라:
+- 아래 데이터 안에서만 답해라
+- 없는 내용은 절대 추측하지 마라
+- 업무와 관련된 질문만 답해라
+
+[사용자 질문]
+${question}
+
+[엑셀 데이터]
+${JSON.stringify(rawData, null, 2)}
+
+위 데이터만 보고 답변해라.
+`;
+
+    const response = await fetch("http://127.0.0.1:11434/api/generate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "gemma3:4b",
+        prompt,
+        stream: false
+      })
+    });
+
+    const data = await response.json();
+
+    return res.json({
+      ok: true,
+      answer: data.response
+    });
+
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({
+      ok: false,
+      message: "AI raw 질의 실패"
+    });
   }
 });
 
