@@ -127,6 +127,50 @@ function normalizeSheetRows(rows, metricType, dataScope, baseMonth) {
   });
 }
 
+/**
+ * =========================
+ * 원본 raw 검색용 유틸
+ * =========================
+ */
+function normalizeQuestionForSearch(question) {
+  let q = (question || "").toLowerCase().trim();
+
+  // 26년 2월 -> 2026-02, 2026년 2월 -> 2026-02
+  q = q.replace(/(\d{2})년\s*(\d{1,2})월/g, (_, yy, mm) => {
+    return `20${yy}-${String(mm).padStart(2, "0")}`;
+  });
+
+  q = q.replace(/(20\d{2})년\s*(\d{1,2})월/g, (_, yyyy, mm) => {
+    return `${yyyy}-${String(mm).padStart(2, "0")}`;
+  });
+
+  // m&s -> ms
+  q = q.replace(/m\s*&\s*s/gi, "ms");
+
+  return q;
+}
+
+function extractMeaningfulKeywords(question) {
+  const normalized = normalizeQuestionForSearch(question);
+
+  const stopwords = new Set([
+    "알려줘", "알려주", "좀", "해주세요", "해줘", "뭐야", "무엇", "어떻게",
+    "의", "가", "이", "은", "는", "을", "를", "좀", "한번", "한", "번",
+    "실적좀", "실적", "데이터", "내용", "기반", "업로드", "엑셀", "해주세요"
+  ]);
+
+  return normalized
+    .split(/[\s,()/]+/)
+    .map(v => v.trim())
+    .filter(v => v.length >= 2)
+    .filter(v => !stopwords.has(v));
+}
+
+/**
+ * =========================
+ * 실적 업로드 공통
+ * =========================
+ */
 async function insertSalesData({
   fileBuffer,
   fileName,
@@ -155,63 +199,6 @@ async function insertSalesData({
     ...normalizeSheetRows(renewalRows, "약정갱신", uploadType, baseMonth),
     ...normalizeSheetRows(mitRows, "MIT", uploadType, baseMonth)
   ];
-  const rawRows = [];
-
-function pushRawRows(rows, sheetName) {
-  rows.forEach((r, idx) => {
-    const text = Object.values(r)
-      .map(v => String(v || ""))
-      .join(" ")
-      .toLowerCase();
-
-    rawRows.push({
-      sheet_name: sheetName,
-      row_no: idx + 1,
-      is_ms: toText(r["M&S여부"]),
-      agency_name: toText(r["대리점명"]),
-      store_code: toText(r["판매점코드"]),
-      store_name: toText(r["판매점명"]),
-      searchable_text: text,
-      raw_json: r
-    });
-  });
-}
-
-pushRawRows(postpaidRows, "후불");
-pushRawRows(pureNewRows, "순신규");
-pushRawRows(renewalRows, "약정갱신");
-pushRawRows(mitRows, "MIT");
-pushRawRows(storeRows, "판매점LIST");
-
-  // 🔥 원본 raw rows 생성
-const rawRows = [];
-
-function pushRawRows(rows, sheetName) {
-  rows.forEach((r, idx) => {
-    const text = Object.values(r)
-      .map(v => String(v || ""))
-      .join(" ")
-      .toLowerCase();
-
-    rawRows.push({
-      sheet_name: sheetName,
-      row_no: idx + 1,
-      is_ms: toText(r["M&S여부"]),
-      agency_name: toText(r["대리점명"]),
-      store_code: toText(r["판매점코드"]),
-      store_name: toText(r["판매점명"]),
-      searchable_text: text,
-      raw_json: r
-    });
-  });
-}
-
-// 시트별 적용
-pushRawRows(postpaidRows, "후불");
-pushRawRows(pureNewRows, "순신규");
-pushRawRows(renewalRows, "약정갱신");
-pushRawRows(mitRows, "MIT");
-pushRawRows(storeRows, "판매점LIST");
 
   const storeMasterRows = storeRows
     .map(r => ({
@@ -221,6 +208,33 @@ pushRawRows(storeRows, "판매점LIST");
       address: toText(r["주소"])
     }))
     .filter(r => r.store_code !== "");
+
+  // raw rows는 1번만 선언
+  const rawRows = [];
+
+  function pushRawRows(rows, sheetName) {
+    rows.forEach((r, idx) => {
+      const values = Object.values(r).map(v => String(v || "").trim().toLowerCase());
+      const searchableText = values.join(" ");
+
+      rawRows.push({
+        sheet_name: sheetName,
+        row_no: idx + 1,
+        is_ms: toText(r["M&S여부"]),
+        agency_name: toText(r["대리점명"]),
+        store_code: toText(r["판매점코드"]),
+        store_name: toText(r["판매점명"]),
+        searchable_text: searchableText,
+        raw_json: r
+      });
+    });
+  }
+
+  pushRawRows(postpaidRows, "후불");
+  pushRawRows(pureNewRows, "순신규");
+  pushRawRows(renewalRows, "약정갱신");
+  pushRawRows(mitRows, "MIT");
+  pushRawRows(storeRows, "판매점LIST");
 
   const client = await pool.connect();
 
@@ -239,57 +253,60 @@ pushRawRows(storeRows, "판매점LIST");
 
     const batchId = batchResult.rows[0].id;
 
-if (baseMonth) {
-  await client.query(
-    `
-    DELETE FROM sales_raw_rows
-    WHERE data_scope = $1
-      AND base_month = $2
-    `,
-    [uploadType, baseMonth]
-  );
-}
-
-    if (uploadType === "monthly" && baseMonth) {
+    // 같은 월/구분 재업로드 시 기존 데이터 삭제
+    if (baseMonth) {
       await client.query(
         `
         DELETE FROM sales_records
-        WHERE data_scope = 'monthly'
-          AND base_month = $1
+        WHERE data_scope = $1
+          AND base_month = $2
         `,
-        [baseMonth]
+        [uploadType, baseMonth]
       );
-    }
-
-    if (storeMasterRows.length > 0) {
-      await client.query(`DELETE FROM sales_store_master`);
-
-      const storeValues = [];
-      const storePlaceholders = storeMasterRows.map((row, idx) => {
-        const b = idx * 4;
-        storeValues.push(
-          row.store_code,
-          row.store_name,
-          row.market_category,
-          row.address
-        );
-        return `($${b + 1}, $${b + 2}, $${b + 3}, $${b + 4})`;
-      });
 
       await client.query(
         `
-        INSERT INTO sales_store_master
-        (store_code, store_name, market_category, address)
-        VALUES ${storePlaceholders.join(",")}
+        DELETE FROM sales_raw_rows
+        WHERE data_scope = $1
+          AND base_month = $2
         `,
-        storeValues
+        [uploadType, baseMonth]
       );
     }
 
-    const chunkSize = 500;
+    // 판매점 마스터 갱신
+    if (storeMasterRows.length > 0) {
+      await client.query(`DELETE FROM sales_store_master`);
 
-    for (let i = 0; i < allSalesRows.length; i += chunkSize) {
-      const chunk = allSalesRows.slice(i, i + chunkSize);
+      for (let i = 0; i < storeMasterRows.length; i += 300) {
+        const chunk = storeMasterRows.slice(i, i + 300);
+        const values = [];
+
+        const placeholders = chunk.map((row, idx) => {
+          const b = idx * 4;
+          values.push(
+            row.store_code,
+            row.store_name,
+            row.market_category,
+            row.address
+          );
+          return `($${b + 1}, $${b + 2}, $${b + 3}, $${b + 4})`;
+        });
+
+        await client.query(
+          `
+          INSERT INTO sales_store_master
+          (store_code, store_name, market_category, address)
+          VALUES ${placeholders.join(",")}
+          `,
+          values
+        );
+      }
+    }
+
+    // sales_records insert
+    for (let i = 0; i < allSalesRows.length; i += 300) {
+      const chunk = allSalesRows.slice(i, i + 300);
       const values = [];
 
       const placeholders = chunk.map((row, idx) => {
@@ -355,98 +372,63 @@ if (baseMonth) {
       );
     }
 
-    // 🔥 raw rows insert
-for (let i = 0; i < rawRows.length; i += 500) {
-  const chunk = rawRows.slice(i, i + 500);
-  const values = [];
+    // sales_raw_rows insert
+    for (let i = 0; i < rawRows.length; i += 300) {
+      const chunk = rawRows.slice(i, i + 300);
+      const values = [];
 
-  const placeholders = chunk.map((row, idx) => {
-    const b = idx * 10;
+      const placeholders = chunk.map((row, idx) => {
+        const b = idx * 11;
 
-    values.push(
-      batchId,
-      uploadType,
-      baseMonth,
-      row.sheet_name,
-      row.row_no,
-      row.is_ms,
-      row.agency_name,
-      row.store_code,
-      row.store_name,
-      row.searchable_text,
-      JSON.stringify(row.raw_json)
-    );
+        values.push(
+          batchId,
+          uploadType,
+          baseMonth,
+          row.sheet_name,
+          row.row_no,
+          row.is_ms,
+          row.agency_name,
+          row.store_code,
+          row.store_name,
+          row.searchable_text,
+          JSON.stringify(row.raw_json)
+        );
 
-    return `(
-      $${b + 1}, $${b + 2}, $${b + 3}, $${b + 4}, $${b + 5},
-      $${b + 6}, $${b + 7}, $${b + 8}, $${b + 9}, $${b + 10}, $${b + 11}
-    )`;
-  });
+        return `(
+          $${b + 1}, $${b + 2}, $${b + 3}, $${b + 4}, $${b + 5},
+          $${b + 6}, $${b + 7}, $${b + 8}, $${b + 9}, $${b + 10}, $${b + 11}
+        )`;
+      });
 
-  await client.query(`
-    INSERT INTO sales_raw_rows
-    (batch_id, data_scope, base_month, sheet_name, row_no,
-     is_ms, agency_name, store_code, store_name,
-     searchable_text, raw_json)
-    VALUES ${placeholders.join(",")}
-  `, values);
-}
-
-for (let i = 0; i < rawRows.length; i += 300) {
-  const chunk = rawRows.slice(i, i + 300);
-  const values = [];
-
-  const placeholders = chunk.map((row, idx) => {
-    const b = idx * 11;
-
-    values.push(
-      batchId,
-      uploadType,
-      baseMonth,
-      row.sheet_name,
-      row.row_no,
-      row.is_ms,
-      row.agency_name,
-      row.store_code,
-      row.store_name,
-      row.searchable_text,
-      JSON.stringify(row.raw_json)
-    );
-
-    return `(
-      $${b + 1}, $${b + 2}, $${b + 3}, $${b + 4}, $${b + 5},
-      $${b + 6}, $${b + 7}, $${b + 8}, $${b + 9}, $${b + 10}, $${b + 11}
-    )`;
-  });
-
-  await client.query(
-    `
-    INSERT INTO sales_raw_rows
-    (
-      batch_id,
-      data_scope,
-      base_month,
-      sheet_name,
-      row_no,
-      is_ms,
-      agency_name,
-      store_code,
-      store_name,
-      searchable_text,
-      raw_json
-    )
-    VALUES ${placeholders.join(",")}
-    `,
-    values
-  );
-}
+      await client.query(
+        `
+        INSERT INTO sales_raw_rows
+        (
+          batch_id,
+          data_scope,
+          base_month,
+          sheet_name,
+          row_no,
+          is_ms,
+          agency_name,
+          store_code,
+          store_name,
+          searchable_text,
+          raw_json
+        )
+        VALUES ${placeholders.join(",")}
+        `,
+        values
+      );
+    }
 
     await client.query("COMMIT");
 
     return {
       batch_id: batchId,
       sales_count: allSalesRows.length,
-      store_count: storeMasterRows.length
+      store_count: storeMasterRows.length,
+      raw_count: rawRows.length
     };
   } catch (e) {
     await client.query("ROLLBACK");
@@ -527,15 +509,12 @@ app.post("/upload", upload.single("file"), async (req, res) => {
         [snapshotDate]
       );
 
-      const chunkSize = 800;
-
-      for (let i = 0; i < data.length; i += chunkSize) {
-        const chunk = data.slice(i, i + chunkSize);
+      for (let i = 0; i < data.length; i += 500) {
+        const chunk = data.slice(i, i + 500);
         const values = [];
 
         const placeholders = chunk.map((row, idx) => {
           const b = idx * 12;
-
           values.push(
             snapshotDate,
             row.agency_code,
@@ -551,13 +530,19 @@ app.post("/upload", upload.single("file"), async (req, res) => {
             row.nickname
           );
 
-          return `($${b + 1},$${b + 2},$${b + 3},$${b + 4},$${b + 5},$${b + 6},$${b + 7},$${b + 8},$${b + 9},$${b + 10},$${b + 11},$${b + 12})`;
+          return `(
+            $${b + 1}, $${b + 2}, $${b + 3}, $${b + 4}, $${b + 5}, $${b + 6},
+            $${b + 7}, $${b + 8}, $${b + 9}, $${b + 10}, $${b + 11}, $${b + 12}
+          )`;
         });
 
         await client.query(
           `
           INSERT INTO inventory_items
-          (snapshot_date, agency_code, agency_name, sub_market, address, store_code, store_name, pet_name, model_name, color, serial_no, nickname)
+          (
+            snapshot_date, agency_code, agency_name, sub_market, address,
+            store_code, store_name, pet_name, model_name, color, serial_no, nickname
+          )
           VALUES ${placeholders.join(",")}
           `,
           values
@@ -1278,40 +1263,56 @@ app.post("/sales/upload-monthly", upload.single("file"), async (req, res) => {
     console.log("file name:", req.file?.originalname);
     console.log("file size:", req.file?.size);
 
+    const baseMonth = toText(req.body.base_month);
+    const uploadedBy = toText(req.body.uploaded_by) || "관리자";
+
     if (!req.file) {
-      return res.status(400).json({ ok: false, message: "파일 없음" });
+      return res.status(400).json({ ok: false, message: "파일이 없습니다." });
     }
 
-    const baseMonth = req.body.base_month;
+    if (!baseMonth) {
+      return res.status(400).json({
+        ok: false,
+        message: "base_month가 없습니다. 예: 2026-02"
+      });
+    }
 
-    // 👉 여기 기존 엑셀 파싱 / DB insert 코드 그대로 유지
-
-    const result = {
-      sales_count: 123,
-      store_count: 45
-    };
+    const result = await insertSalesData({
+      fileBuffer: req.file.buffer,
+      fileName: req.file.originalname,
+      uploadType: "monthly",
+      baseMonth,
+      uploadedBy
+    });
 
     console.log("✅ /sales/upload-monthly 완료", result);
 
     return res.json({
       ok: true,
+      message: "월 누적 실적 업로드 완료",
       base_month: baseMonth,
+      batch_id: result.batch_id,
       sales_count: result.sales_count,
-      store_count: result.store_count
+      store_count: result.store_count,
+      raw_count: result.raw_count
     });
-
   } catch (e) {
     console.error("❌ /sales/upload-monthly 실패", e);
-
     return res.status(500).json({
       ok: false,
-      message: e.message
+      message: e.message || "월 누적 실적 업로드 실패"
     });
   }
 });
 
 app.post("/sales/upload-daily", upload.single("file"), async (req, res) => {
   try {
+    console.log("📥 /sales/upload-daily 시작");
+    console.log("base_month:", req.body?.base_month);
+    console.log("uploaded_by:", req.body?.uploaded_by);
+    console.log("file name:", req.file?.originalname);
+    console.log("file size:", req.file?.size);
+
     const baseMonth = toText(req.body.base_month);
     const uploadedBy = toText(req.body.uploaded_by) || "관리자";
 
@@ -1326,15 +1327,6 @@ app.post("/sales/upload-daily", upload.single("file"), async (req, res) => {
       });
     }
 
-    await pool.query(
-      `
-      DELETE FROM sales_records
-      WHERE data_scope = 'daily'
-        AND base_month = $1
-      `,
-      [baseMonth]
-    );
-
     const result = await insertSalesData({
       fileBuffer: req.file.buffer,
       fileName: req.file.originalname,
@@ -1343,16 +1335,19 @@ app.post("/sales/upload-daily", upload.single("file"), async (req, res) => {
       uploadedBy
     });
 
+    console.log("✅ /sales/upload-daily 완료", result);
+
     return res.json({
       ok: true,
       message: "당월 실적 업로드 완료",
       base_month: baseMonth,
       batch_id: result.batch_id,
       sales_count: result.sales_count,
-      store_count: result.store_count
+      store_count: result.store_count,
+      raw_count: result.raw_count
     });
   } catch (e) {
-    console.error(e);
+    console.error("❌ /sales/upload-daily 실패", e);
     return res.status(500).json({
       ok: false,
       message: e.message || "당월 실적 업로드 실패"
@@ -1543,6 +1538,11 @@ app.post("/ai/test", async (req, res) => {
   }
 });
 
+/**
+ * =========================
+ * 엑셀 원본 기반 AI 질의
+ * =========================
+ */
 app.post("/sales/ask-ai-raw", async (req, res) => {
   const question = toText(req.body.question);
   const loginAgency = toText(req.body.agency);
@@ -1552,33 +1552,52 @@ app.post("/sales/ask-ai-raw", async (req, res) => {
   }
 
   try {
-    // 🔥 키워드 단순 분해
-    const keywords = question
-      .split(/[\s,]+/)
-      .filter(k => k.length >= 2);
+    const keywords = extractMeaningfulKeywords(question);
+
+    if (!keywords.length) {
+      return res.json({
+        ok: true,
+        answer: "질문에서 검색할 핵심 단어를 찾지 못했습니다."
+      });
+    }
 
     let where = `WHERE 1=1`;
     const params = [];
     let idx = 1;
 
-    // 🔥 센터 제한
+    // 일반 센터 사용자는 자기 센터만
     if (loginAgency && loginAgency !== "관리자") {
       where += ` AND agency_name = $${idx}`;
       params.push(loginAgency);
       idx++;
     }
 
-    // 🔥 키워드 LIKE 검색
-    keywords.forEach(k => {
-      where += ` AND searchable_text ILIKE $${idx}`;
-      params.push(`%${k.toLowerCase()}%`);
+    // OR 기반으로 느슨하게 찾기
+    const orParts = [];
+    for (const keyword of keywords) {
+      orParts.push(`searchable_text ILIKE $${idx}`);
+      params.push(`%${keyword}%`);
       idx++;
-    });
+    }
+
+    if (orParts.length) {
+      where += ` AND (${orParts.join(" OR ")})`;
+    }
 
     const q = `
-      SELECT raw_json
+      SELECT
+        sheet_name,
+        base_month,
+        agency_name,
+        store_code,
+        store_name,
+        raw_json,
+        (
+          ${keywords.map((_, i) => `(CASE WHEN searchable_text ILIKE $${(loginAgency && loginAgency !== "관리자" ? 2 : 1) + i} THEN 1 ELSE 0 END)`).join(" + ")}
+        ) AS match_score
       FROM sales_raw_rows
       ${where}
+      ORDER BY match_score DESC, id DESC
       LIMIT 50
     `;
 
@@ -1591,24 +1610,37 @@ app.post("/sales/ask-ai-raw", async (req, res) => {
       });
     }
 
-    const rawData = r.rows.map(row => row.raw_json);
+    const rawData = r.rows.map(row => ({
+      sheet_name: row.sheet_name,
+      base_month: row.base_month,
+      agency_name: row.agency_name,
+      store_code: row.store_code,
+      store_name: row.store_name,
+      raw_json: row.raw_json
+    }));
 
-    // 🔥 Gemma에게 전달
     const prompt = `
 너는 H.O.S 실적 분석 AI다.
 
-반드시 지켜라:
-- 아래 데이터 안에서만 답해라
-- 없는 내용은 절대 추측하지 마라
-- 업무와 관련된 질문만 답해라
+반드시 아래 규칙을 지켜라.
+- 아래 데이터 안에서만 답해라.
+- 데이터에 없는 내용은 절대 추측하지 마라.
+- 질문과 관련 없는 내용은 말하지 마라.
+- 답변은 한국어로 해라.
+- 표처럼 정리할 수 있으면 깔끔하게 요약해라.
+- M&S 여부, 센터, 판매점, 상품, 모델, 주소, 코드 등 엑셀에 있는 내용이면 모두 답변 가능하다.
+- 질문이 거칠어도 무시하고 데이터 기준으로만 답해라.
 
 [사용자 질문]
 ${question}
 
-[엑셀 데이터]
+[검색 키워드]
+${JSON.stringify(keywords)}
+
+[엑셀 검색 결과]
 ${JSON.stringify(rawData, null, 2)}
 
-위 데이터만 보고 답변해라.
+위 데이터만 근거로 답변해라.
 `;
 
     const response = await fetch("http://127.0.0.1:11434/api/generate", {
@@ -1627,9 +1659,8 @@ ${JSON.stringify(rawData, null, 2)}
 
     return res.json({
       ok: true,
-      answer: data.response
+      answer: data.response || "응답이 없습니다."
     });
-
   } catch (e) {
     console.error(e);
     return res.status(500).json({
