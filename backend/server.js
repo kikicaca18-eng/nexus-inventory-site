@@ -1185,6 +1185,12 @@ app.get("/login-today-summary", async (req, res) => {
  */
 app.post("/sales/upload-monthly", upload.single("file"), async (req, res) => {
   try {
+    console.log("📥 /sales/upload-monthly 시작");
+    console.log("base_month:", req.body?.base_month);
+    console.log("uploaded_by:", req.body?.uploaded_by);
+    console.log("file name:", req.file?.originalname);
+    console.log("file size:", req.file?.size);
+  try {
     const baseMonth = toText(req.body.base_month);
     const uploadedBy = toText(req.body.uploaded_by) || "관리자";
 
@@ -1206,7 +1212,7 @@ app.post("/sales/upload-monthly", upload.single("file"), async (req, res) => {
       baseMonth,
       uploadedBy
     });
-
+    console.log("✅ /sales/upload-monthly 완료", result);
     return res.json({
       ok: true,
       message: "월 누적 실적 업로드 완료",
@@ -1216,7 +1222,7 @@ app.post("/sales/upload-monthly", upload.single("file"), async (req, res) => {
       store_count: result.store_count
     });
   } catch (e) {
-    console.error(e);
+    console.error("❌ /sales/upload-monthly 실패", e);
     return res.status(500).json({
       ok: false,
       message: e.message || "월 누적 실적 업로드 실패"

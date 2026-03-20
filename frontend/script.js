@@ -1208,19 +1208,32 @@ async function uploadMonthlySales() {
       body: formData
     });
 
-    const j = await resp.json();
+    const rawText = await resp.text();
+    console.log("upload-monthly status:", resp.status);
+    console.log("upload-monthly raw response:", rawText);
+
+    let j = {};
+    try {
+      j = JSON.parse(rawText);
+    } catch (e) {
+      j = {
+        ok: false,
+        message: rawText || `응답 파싱 실패 (HTTP ${resp.status})`
+      };
+    }
 
     if (!resp.ok || !j.ok) {
-      status.innerText = `❌ 업로드 실패: ${j.message || "오류"}`;
+      status.innerText = `❌ 업로드 실패: ${j.message || `HTTP ${resp.status}`}`;
       return;
     }
 
     status.innerText =
       `✅ 누적실적 업로드 완료! 기준월 ${j.base_month} / 실적 ${Number(j.sales_count || 0).toLocaleString()}건 / 판매점 ${Number(j.store_count || 0).toLocaleString()}건`;
+
     fileInput.value = "";
   } catch (e) {
-    console.error(e);
-    status.innerText = "❌ 업로드 실패: 네트워크 오류";
+    console.error("uploadMonthlySales error:", e);
+    status.innerText = `❌ 업로드 실패: ${e.message || "네트워크 오류"}`;
   } finally {
     btn.disabled = false;
   }
@@ -1261,19 +1274,32 @@ async function uploadDailySales() {
       body: formData
     });
 
-    const j = await resp.json();
+    const rawText = await resp.text();
+    console.log("upload-daily status:", resp.status);
+    console.log("upload-daily raw response:", rawText);
+
+    let j = {};
+    try {
+      j = JSON.parse(rawText);
+    } catch (e) {
+      j = {
+        ok: false,
+        message: rawText || `응답 파싱 실패 (HTTP ${resp.status})`
+      };
+    }
 
     if (!resp.ok || !j.ok) {
-      status.innerText = `❌ 업로드 실패: ${j.message || "오류"}`;
+      status.innerText = `❌ 업로드 실패: ${j.message || `HTTP ${resp.status}`}`;
       return;
     }
 
     status.innerText =
       `✅ 당월실적 업로드 완료! 기준월 ${j.base_month} / 실적 ${Number(j.sales_count || 0).toLocaleString()}건 / 판매점 ${Number(j.store_count || 0).toLocaleString()}건`;
+
     fileInput.value = "";
   } catch (e) {
-    console.error(e);
-    status.innerText = "❌ 업로드 실패: 네트워크 오류";
+    console.error("uploadDailySales error:", e);
+    status.innerText = `❌ 업로드 실패: ${e.message || "네트워크 오류"}`;
   } finally {
     btn.disabled = false;
   }
