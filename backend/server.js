@@ -127,6 +127,14 @@ function normalizeSheetRows(rows, metricType, dataScope, baseMonth) {
   });
 }
 
+function makeSearchableText(row, sheetName, baseMonth) {
+  const pairs = Object.entries(row || {})
+    .map(([k, v]) => `${k} ${String(v ?? "").trim()}`)
+    .join(" ");
+
+  return `기준월 ${baseMonth} 시트 ${sheetName} ${pairs}`.toLowerCase();
+}
+
 /**
  * =========================
  * 원본 raw 검색용 유틸
@@ -193,6 +201,7 @@ async function insertSalesData({
   const mitRows = XLSX.utils.sheet_to_json(workbook.Sheets["MIT"], { defval: "" });
   const storeRows = XLSX.utils.sheet_to_json(workbook.Sheets["판매점LIST"], { defval: "" });
 
+  // 기존 집계/요약용 records
   const allSalesRows = [
     ...normalizeSheetRows(postpaidRows, "후불", uploadType, baseMonth),
     ...normalizeSheetRows(pureNewRows, "순신규", uploadType, baseMonth),
@@ -200,6 +209,7 @@ async function insertSalesData({
     ...normalizeSheetRows(mitRows, "MIT", uploadType, baseMonth)
   ];
 
+  // 판매점 마스터
   const storeMasterRows = storeRows
     .map(r => ({
       store_code: toText(r["판매점코드"]),
@@ -209,32 +219,29 @@ async function insertSalesData({
     }))
     .filter(r => r.store_code !== "");
 
-  // raw rows는 1번만 선언
-  const rawRows = [];
+  // Gemma 검색용 경량 텍스트 rows
+  const aiRows = [];
 
-  function pushRawRows(rows, sheetName) {
-    rows.forEach((r, idx) => {
-      const values = Object.values(r).map(v => String(v || "").trim().toLowerCase());
-      const searchableText = values.join(" ");
+  function pushAiRows(rows, sheetName) {
+    rows.forEach((r) => {
+      const searchableText = makeSearchableText(r, sheetName, baseMonth);
 
-      rawRows.push({
+      aiRows.push({
         sheet_name: sheetName,
-        row_no: idx + 1,
         is_ms: toText(r["M&S여부"]),
         agency_name: toText(r["대리점명"]),
         store_code: toText(r["판매점코드"]),
         store_name: toText(r["판매점명"]),
-        searchable_text: searchableText,
-        raw_json: r
+        searchable_text: searchableText
       });
     });
   }
 
-  pushRawRows(postpaidRows, "후불");
-  pushRawRows(pureNewRows, "순신규");
-  pushRawRows(renewalRows, "약정갱신");
-  pushRawRows(mitRows, "MIT");
-  pushRawRows(storeRows, "판매점LIST");
+  pushAiRows(postpaidRows, "후불");
+  pushAiRows(pureNewRows, "순신규");
+  pushAiRows(renewalRows, "약정갱신");
+  pushAiRows(mitRows, "MIT");
+  pushAiRows(storeRows, "판매점LIST");
 
   const client = await pool.connect();
 
@@ -251,7 +258,7 @@ async function insertSalesData({
       [uploadType, baseMonth || null, fileName || null, uploadedBy || "관리자"]
     );
 
-    const batchId = batchResult.rows[0].id;
+    const batchId = String(batchResult.rows[0].id);
 
     // 같은 월/구분 재업로드 시 기존 데이터 삭제
     if (baseMonth) {
@@ -266,7 +273,7 @@ async function insertSalesData({
 
       await client.query(
         `
-        DELETE FROM sales_raw_rows
+        DELETE FROM sales_ai_rows
         WHERE data_scope = $1
           AND base_month = $2
         `,
@@ -304,7 +311,7 @@ async function insertSalesData({
       }
     }
 
-    // sales_records insert
+    // sales_records 저장
     for (let i = 0; i < allSalesRows.length; i += 300) {
       const chunk = allSalesRows.slice(i, i + 300);
       const values = [];
@@ -372,49 +379,45 @@ async function insertSalesData({
       );
     }
 
-    // sales_raw_rows insert
-    for (let i = 0; i < rawRows.length; i += 300) {
-      const chunk = rawRows.slice(i, i + 300);
+    // sales_ai_rows 저장 (가벼운 텍스트만)
+    for (let i = 0; i < aiRows.length; i += 300) {
+      const chunk = aiRows.slice(i, i + 300);
       const values = [];
 
       const placeholders = chunk.map((row, idx) => {
-        const b = idx * 11;
+        const b = idx * 9;
 
         values.push(
           batchId,
           uploadType,
           baseMonth,
           row.sheet_name,
-          row.row_no,
           row.is_ms,
           row.agency_name,
           row.store_code,
           row.store_name,
-          row.searchable_text,
-          JSON.stringify(row.raw_json)
+          row.searchable_text
         );
 
         return `(
           $${b + 1}, $${b + 2}, $${b + 3}, $${b + 4}, $${b + 5},
-          $${b + 6}, $${b + 7}, $${b + 8}, $${b + 9}, $${b + 10}, $${b + 11}
+          $${b + 6}, $${b + 7}, $${b + 8}, $${b + 9}
         )`;
       });
 
       await client.query(
         `
-        INSERT INTO sales_raw_rows
+        INSERT INTO sales_ai_rows
         (
           batch_id,
           data_scope,
           base_month,
           sheet_name,
-          row_no,
           is_ms,
           agency_name,
           store_code,
           store_name,
-          searchable_text,
-          raw_json
+          searchable_text
         )
         VALUES ${placeholders.join(",")}
         `,
@@ -428,7 +431,7 @@ async function insertSalesData({
       batch_id: batchId,
       sales_count: allSalesRows.length,
       store_count: storeMasterRows.length,
-      raw_count: rawRows.length
+      ai_count: aiRows.length
     };
   } catch (e) {
     await client.query("ROLLBACK");
@@ -1572,7 +1575,6 @@ app.post("/sales/ask-ai-raw", async (req, res) => {
       idx++;
     }
 
-    // OR 기반으로 느슨하게 찾기
     const orParts = [];
     for (const keyword of keywords) {
       orParts.push(`searchable_text ILIKE $${idx}`);
@@ -1591,14 +1593,11 @@ app.post("/sales/ask-ai-raw", async (req, res) => {
         agency_name,
         store_code,
         store_name,
-        raw_json,
-        (
-          ${keywords.map((_, i) => `(CASE WHEN searchable_text ILIKE $${(loginAgency && loginAgency !== "관리자" ? 2 : 1) + i} THEN 1 ELSE 0 END)`).join(" + ")}
-        ) AS match_score
-      FROM sales_raw_rows
+        searchable_text
+      FROM sales_ai_rows
       ${where}
-      ORDER BY match_score DESC, id DESC
-      LIMIT 50
+      ORDER BY id DESC
+      LIMIT 30
     `;
 
     const r = await pool.query(q, params);
@@ -1610,14 +1609,9 @@ app.post("/sales/ask-ai-raw", async (req, res) => {
       });
     }
 
-    const rawData = r.rows.map(row => ({
-      sheet_name: row.sheet_name,
-      base_month: row.base_month,
-      agency_name: row.agency_name,
-      store_code: row.store_code,
-      store_name: row.store_name,
-      raw_json: row.raw_json
-    }));
+    const contextText = r.rows
+      .map(row => row.searchable_text)
+      .join("\n");
 
     const prompt = `
 너는 H.O.S 실적 분석 AI다.
@@ -1625,11 +1619,9 @@ app.post("/sales/ask-ai-raw", async (req, res) => {
 반드시 아래 규칙을 지켜라.
 - 아래 데이터 안에서만 답해라.
 - 데이터에 없는 내용은 절대 추측하지 마라.
-- 질문과 관련 없는 내용은 말하지 마라.
-- 답변은 한국어로 해라.
-- 표처럼 정리할 수 있으면 깔끔하게 요약해라.
-- M&S 여부, 센터, 판매점, 상품, 모델, 주소, 코드 등 엑셀에 있는 내용이면 모두 답변 가능하다.
-- 질문이 거칠어도 무시하고 데이터 기준으로만 답해라.
+- 질문과 관련 없는 말은 하지 마라.
+- 한국어로 간단명료하게 답해라.
+- 숫자, 센터, 판매점, 코드, 주소, 상품, 모델 등은 데이터 기준으로만 말해라.
 
 [사용자 질문]
 ${question}
@@ -1638,7 +1630,7 @@ ${question}
 ${JSON.stringify(keywords)}
 
 [엑셀 검색 결과]
-${JSON.stringify(rawData, null, 2)}
+${contextText}
 
 위 데이터만 근거로 답변해라.
 `;
