@@ -1151,24 +1151,23 @@ async function loadTodayLoginInfo() {
 // =========================
 // 실적조회 화면 초기화
 // =========================
-function loadPerformanceDashboard() {
+async function loadPerformanceDashboard() {
   const cardWrap = document.getElementById("performanceDashCards");
   const chartWrap = document.getElementById("perfChartArea");
+  const chartTitle = document.getElementById("perfChartTitle");
   const resultWrap = document.getElementById("performanceSearchResult");
   const statusWrap = document.getElementById("performanceSearchStatus");
 
   if (cardWrap) {
-    cardWrap.innerHTML = `
-      <div class="statCard"><div class="statLabel">후불</div><div class="statValue">-</div></div>
-      <div class="statCard"><div class="statLabel">순신규</div><div class="statValue">-</div></div>
-      <div class="statCard"><div class="statLabel">약정갱신</div><div class="statValue">-</div></div>
-      <div class="statCard"><div class="statLabel">후불 실적점</div><div class="statValue">-</div></div>
-      <div class="statCard"><div class="statLabel">MIT 당월 실적</div><div class="statValue">-</div></div>
-    `;
+    cardWrap.innerHTML = "불러오는 중...";
   }
 
   if (chartWrap) {
     chartWrap.innerHTML = "카드를 클릭하면 그래프가 표시됩니다.";
+  }
+
+  if (chartTitle) {
+    chartTitle.textContent = "📈 최근 6개월 추이";
   }
 
   if (resultWrap) {
@@ -1178,14 +1177,129 @@ function loadPerformanceDashboard() {
   if (statusWrap) {
     statusWrap.innerText = "";
   }
+
+  try {
+    const resp = await fetch(`${API_URL}/performance/dashboard-summary`);
+    const j = await resp.json();
+
+    if (!resp.ok || !j.ok) {
+      if (cardWrap) cardWrap.innerHTML = `❌ ${j.message || "실적 대시보드 조회 실패"}`;
+      return;
+    }
+
+    const s = j.summary || {};
+    const latestMonth = j.latest_month || "-";
+
+    if (cardWrap) {
+      cardWrap.innerHTML = `
+        <div class="statCard clickable" onclick="loadPerformanceTrend('후불', '후불 최근 6개월 추이')">
+          <div class="statLabel">후불</div>
+          <div class="statValue">${Number(s.postpaid || 0).toLocaleString()}</div>
+          <div class="statSub">기준월 ${latestMonth}</div>
+        </div>
+
+        <div class="statCard clickable" onclick="loadPerformanceTrend('순신규', '순신규 최근 6개월 추이')">
+          <div class="statLabel">순신규</div>
+          <div class="statValue">${Number(s.pure_new || 0).toLocaleString()}</div>
+          <div class="statSub">기준월 ${latestMonth}</div>
+        </div>
+
+        <div class="statCard clickable" onclick="loadPerformanceTrend('약정갱신', '약정갱신 최근 6개월 추이')">
+          <div class="statLabel">약정갱신</div>
+          <div class="statValue">${Number(s.renewal || 0).toLocaleString()}</div>
+          <div class="statSub">기준월 ${latestMonth}</div>
+        </div>
+
+        <div class="statCard clickable" onclick="loadPerformanceTrend('후불실적점', '후불 실적점 최근 6개월 추이')">
+          <div class="statLabel">후불 실적점</div>
+          <div class="statValue">${Number(s.postpaid_store_count || 0).toLocaleString()}</div>
+          <div class="statSub">기준월 ${latestMonth}</div>
+        </div>
+
+        <div class="statCard clickable" onclick="loadPerformanceTrend('MIT', 'MIT 최근 6개월 추이')">
+          <div class="statLabel">MIT 당월 실적</div>
+          <div class="statValue">${Number(s.mit || 0).toLocaleString()}</div>
+          <div class="statSub">기준월 ${latestMonth}</div>
+        </div>
+      `;
+    }
+  } catch (e) {
+    console.error(e);
+    if (cardWrap) cardWrap.innerHTML = "❌ 네트워크 오류";
+  }
+}
+
+async function loadPerformanceTrend(metric, title) {
+  const chartWrap = document.getElementById("perfChartArea");
+  const chartTitle = document.getElementById("perfChartTitle");
+
+  if (!chartWrap) return;
+
+  chartWrap.innerHTML = "불러오는 중...";
+  if (chartTitle) chartTitle.textContent = `📈 ${title}`;
+
+  try {
+    const resp = await fetch(
+      `${API_URL}/performance/dashboard-trend?metric=${encodeURIComponent(metric)}`
+    );
+    const j = await resp.json();
+
+    if (!resp.ok || !j.ok) {
+      chartWrap.innerHTML = `❌ ${j.message || "추이 조회 실패"}`;
+      return;
+    }
+
+    const rows = Array.isArray(j.rows) ? j.rows : [];
+
+    if (!rows.length) {
+      chartWrap.innerHTML = "표시할 데이터가 없습니다.";
+      return;
+    }
+
+    let html = `
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>기준월</th>
+              <th>실적</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    rows.forEach(r => {
+      html += `
+        <tr>
+          <td>${escapeHtml(r.month || "")}</td>
+          <td>${Number(r.value || 0).toLocaleString()}</td>
+        </tr>
+      `;
+    });
+
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    chartWrap.innerHTML = html;
+  } catch (e) {
+    console.error(e);
+    chartWrap.innerHTML = "❌ 네트워크 오류";
+  }
 }
 
 // =========================
 // 실적조회 검색 (백엔드 API 연결 전 임시)
 // =========================
-function searchPerformanceSales() {
+async function searchPerformanceSales() {
   const startMonth = document.getElementById("salesStartMonth")?.value.trim();
   const endMonth = document.getElementById("salesEndMonth")?.value.trim();
+  const region = document.getElementById("salesRegion")?.value.trim() || "";
+  const agencyName = document.getElementById("salesAgency")?.value.trim() || "";
+  const storeName = document.getElementById("salesStore")?.value.trim() || "";
+
   const statusWrap = document.getElementById("performanceSearchStatus");
   const resultWrap = document.getElementById("performanceSearchResult");
 
@@ -1197,20 +1311,90 @@ function searchPerformanceSales() {
   }
 
   if (statusWrap) {
-    statusWrap.innerText = "실적 조회 기능 연결 준비 중입니다.";
+    statusWrap.innerText = "조회 중...";
   }
 
   if (resultWrap) {
-    resultWrap.innerHTML = `
-      <div class="panel">
-        <div class="panelHeader">
-          <div class="panelTitle">조회 준비 완료</div>
-          <div class="panelHint">다음 단계에서 백엔드 API와 연결합니다.</div>
-        </div>
-        <div style="padding:8px 0;">
-          선택한 기간: <strong>${escapeHtml(startMonth)}</strong> ~ <strong>${escapeHtml(endMonth)}</strong>
-        </div>
-      </div>
+    resultWrap.innerHTML = "";
+  }
+
+  try {
+    const resp = await fetch(`${API_URL}/performance/search`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        start_month: startMonth,
+        end_month: endMonth,
+        region,
+        agency_name: agencyName,
+        store_name: storeName
+      })
+    });
+
+    const j = await resp.json();
+
+    if (!resp.ok || !j.ok) {
+      if (statusWrap) {
+        statusWrap.innerText = j.message || "실적 조회 실패";
+      }
+      return;
+    }
+
+    const rows = Array.isArray(j.rows) ? j.rows : [];
+    const meta = j.meta || {};
+
+    if (statusWrap) {
+      statusWrap.innerText = `총 ${rows.length}건 조회되었습니다.`;
+    }
+
+    if (!rows.length) {
+      if (resultWrap) resultWrap.innerHTML = "조회 결과가 없습니다.";
+      return;
+    }
+
+    let headers = `<th>기간</th>`;
+    if (meta.has_region) headers += `<th>지역</th>`;
+    if (meta.has_agency_name) headers += `<th>대리점명</th>`;
+    if (meta.has_store_name) headers += `<th>판매점명</th>`;
+    headers += `
+      <th>후불</th>
+      <th>순신규</th>
+      <th>약정갱신</th>
+      <th>MIT</th>
     `;
+
+    let body = "";
+    rows.forEach(r => {
+      body += `<tr>`;
+      body += `<td>${escapeHtml(r.base_month || "")}</td>`;
+      if (meta.has_region) body += `<td>${escapeHtml(r.market || "")}</td>`;
+      if (meta.has_agency_name) body += `<td>${escapeHtml(r.agency_name || "")}</td>`;
+      if (meta.has_store_name) body += `<td>${escapeHtml(r.store_name || "")}</td>`;
+      body += `<td>${Number(r.postpaid || 0).toLocaleString()}</td>`;
+      body += `<td>${Number(r.pure_new || 0).toLocaleString()}</td>`;
+      body += `<td>${Number(r.renewal || 0).toLocaleString()}</td>`;
+      body += `<td>${Number(r.mit || 0).toLocaleString()}</td>`;
+      body += `</tr>`;
+    });
+
+    if (resultWrap) {
+      resultWrap.innerHTML = `
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>${headers}</tr>
+            </thead>
+            <tbody>
+              ${body}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+  } catch (e) {
+    console.error(e);
+    if (statusWrap) {
+      statusWrap.innerText = "네트워크 오류";
+    }
   }
 }

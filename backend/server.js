@@ -1740,6 +1740,306 @@ app.get("/api/performance/summary", async (req, res) => {
   }
 });
 
+/**
+ * =========================
+ * 실적 대시보드 요약
+ * GET /performance/dashboard-summary
+ * =========================
+ */
+app.get("/performance/dashboard-summary", async (req, res) => {
+  try {
+    const monthQ = await pool.query(
+      `
+      SELECT MAX(base_month) AS latest_month
+      FROM sales_records
+      WHERE data_scope = 'daily'
+      `
+    );
+
+    const latestMonth =
+      monthQ.rows[0]?.latest_month ||
+      (
+        await pool.query(
+          `
+          SELECT MAX(base_month) AS latest_month
+          FROM sales_records
+          WHERE data_scope = 'monthly'
+          `
+        )
+      ).rows[0]?.latest_month;
+
+    if (!latestMonth) {
+      return res.json({
+        ok: true,
+        latest_month: null,
+        summary: {
+          postpaid: 0,
+          pure_new: 0,
+          renewal: 0,
+          mit: 0,
+          postpaid_store_count: 0
+        }
+      });
+    }
+
+    const totalQ = await pool.query(
+      `
+      SELECT
+        COALESCE(SUM(CASE WHEN metric_type = '후불' THEN total_score ELSE 0 END), 0)::numeric AS postpaid,
+        COALESCE(SUM(CASE WHEN metric_type = '순신규' THEN total_score ELSE 0 END), 0)::numeric AS pure_new,
+        COALESCE(SUM(CASE WHEN metric_type = '약정갱신' THEN total_score ELSE 0 END), 0)::numeric AS renewal,
+        COALESCE(SUM(CASE WHEN metric_type = 'MIT' THEN total_score ELSE 0 END), 0)::numeric AS mit
+      FROM sales_records
+      WHERE base_month = $1
+        AND is_ms = 'Y'
+      `,
+      [latestMonth]
+    );
+
+    const storeQ = await pool.query(
+      `
+      SELECT COUNT(DISTINCT store_code)::int AS cnt
+      FROM sales_records
+      WHERE base_month = $1
+        AND is_ms = 'Y'
+        AND metric_type = '후불'
+        AND COALESCE(total_score, 0) > 0
+      `,
+      [latestMonth]
+    );
+
+    return res.json({
+      ok: true,
+      latest_month: latestMonth,
+      summary: {
+        postpaid: Number(totalQ.rows[0]?.postpaid || 0),
+        pure_new: Number(totalQ.rows[0]?.pure_new || 0),
+        renewal: Number(totalQ.rows[0]?.renewal || 0),
+        mit: Number(totalQ.rows[0]?.mit || 0),
+        postpaid_store_count: Number(storeQ.rows[0]?.cnt || 0)
+      }
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ ok: false, message: "실적 대시보드 조회 실패" });
+  }
+});
+
+/**
+ * =========================
+ * 최근 6개월 추이
+ * GET /performance/dashboard-trend?metric=후불
+ * metric:
+ * - 후불
+ * - 순신규
+ * - 약정갱신
+ * - MIT
+ * - 후불실적점
+ * =========================
+ */
+app.get("/performance/dashboard-trend", async (req, res) => {
+  try {
+    const metric = toText(req.query.metric);
+
+    if (!metric) {
+      return res.status(400).json({ ok: false, message: "metric이 필요합니다." });
+    }
+
+    const monthQ = await pool.query(
+      `
+      SELECT DISTINCT base_month
+      FROM sales_records
+      WHERE base_month IS NOT NULL
+      ORDER BY base_month DESC
+      LIMIT 6
+      `
+    );
+
+    const months = monthQ.rows.map(r => r.base_month).reverse();
+
+    if (!months.length) {
+      return res.json({ ok: true, rows: [] });
+    }
+
+    let rows = [];
+
+    if (metric === "후불실적점") {
+      const q = await pool.query(
+        `
+        SELECT
+          base_month,
+          COUNT(DISTINCT store_code)::int AS value
+        FROM sales_records
+        WHERE base_month = ANY($1)
+          AND is_ms = 'Y'
+          AND metric_type = '후불'
+          AND COALESCE(total_score, 0) > 0
+        GROUP BY base_month
+        ORDER BY base_month ASC
+        `,
+        [months]
+      );
+
+      const map = {};
+      q.rows.forEach(r => {
+        map[r.base_month] = Number(r.value || 0);
+      });
+
+      rows = months.map(m => ({
+        month: m,
+        value: Number(map[m] || 0)
+      }));
+    } else {
+      const q = await pool.query(
+        `
+        SELECT
+          base_month,
+          COALESCE(SUM(total_score), 0)::numeric AS value
+        FROM sales_records
+        WHERE base_month = ANY($1)
+          AND is_ms = 'Y'
+          AND metric_type = $2
+        GROUP BY base_month
+        ORDER BY base_month ASC
+        `,
+        [months, metric]
+      );
+
+      const map = {};
+      q.rows.forEach(r => {
+        map[r.base_month] = Number(r.value || 0);
+      });
+
+      rows = months.map(m => ({
+        month: m,
+        value: Number(map[m] || 0)
+      }));
+    }
+
+    return res.json({ ok: true, rows });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ ok: false, message: "최근 6개월 추이 조회 실패" });
+  }
+});
+
+/**
+ * =========================
+ * 실적 필터 조회
+ * POST /performance/search
+ * body:
+ * {
+ *   start_month: "2025-02",
+ *   end_month: "2026-02",
+ *   region: "정읍",
+ *   agency_name: "늘품",
+ *   store_name: "명진텔레콤"
+ * }
+ * =========================
+ */
+app.post("/performance/search", async (req, res) => {
+  try {
+    const startMonth = toText(req.body.start_month);
+    const endMonth = toText(req.body.end_month);
+    const region = toText(req.body.region);
+    const agencyName = toText(req.body.agency_name);
+    const storeName = toText(req.body.store_name);
+
+    if (!startMonth || !endMonth) {
+      return res.status(400).json({
+        ok: false,
+        message: "조회 시작월과 종료월은 필수입니다."
+      });
+    }
+
+    const params = [startMonth, endMonth];
+    let idx = 3;
+
+    let where = `
+      WHERE base_month >= $1
+        AND base_month <= $2
+        AND is_ms = 'Y'
+    `;
+
+    if (region) {
+      where += ` AND market ILIKE $${idx}`;
+      params.push(`%${region}%`);
+      idx++;
+    }
+
+    if (agencyName) {
+      where += ` AND agency_name ILIKE $${idx}`;
+      params.push(`%${agencyName}%`);
+      idx++;
+    }
+
+    if (storeName) {
+      where += ` AND store_name ILIKE $${idx}`;
+      params.push(`%${storeName}%`);
+      idx++;
+    }
+
+    const selectParts = [`base_month`];
+    const groupParts = [`base_month`];
+    const resultMeta = [];
+
+    if (region) {
+      selectParts.push(`market`);
+      groupParts.push(`market`);
+      resultMeta.push("region");
+    }
+
+    if (agencyName) {
+      selectParts.push(`agency_name`);
+      groupParts.push(`agency_name`);
+      resultMeta.push("agency_name");
+    }
+
+    if (storeName) {
+      selectParts.push(`store_name`);
+      groupParts.push(`store_name`);
+      resultMeta.push("store_name");
+    }
+
+    const q = `
+      SELECT
+        ${selectParts.join(", ")},
+        COALESCE(SUM(CASE WHEN metric_type = '후불' THEN total_score ELSE 0 END), 0)::numeric AS postpaid,
+        COALESCE(SUM(CASE WHEN metric_type = '순신규' THEN total_score ELSE 0 END), 0)::numeric AS pure_new,
+        COALESCE(SUM(CASE WHEN metric_type = '약정갱신' THEN total_score ELSE 0 END), 0)::numeric AS renewal,
+        COALESCE(SUM(CASE WHEN metric_type = 'MIT' THEN total_score ELSE 0 END), 0)::numeric AS mit
+      FROM sales_records
+      ${where}
+      GROUP BY ${groupParts.join(", ")}
+      ORDER BY base_month ASC
+    `;
+
+    const r = await pool.query(q, params);
+
+    return res.json({
+      ok: true,
+      meta: {
+        has_region: !!region,
+        has_agency_name: !!agencyName,
+        has_store_name: !!storeName
+      },
+      rows: r.rows.map(row => ({
+        base_month: row.base_month,
+        market: row.market || "",
+        agency_name: row.agency_name || "",
+        store_name: row.store_name || "",
+        postpaid: Number(row.postpaid || 0),
+        pure_new: Number(row.pure_new || 0),
+        renewal: Number(row.renewal || 0),
+        mit: Number(row.mit || 0)
+      }))
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ ok: false, message: "실적 조회 실패" });
+  }
+});
+
 app.listen(PORT, () => {
   console.log("🚀 Backend running on port", PORT);
 });
