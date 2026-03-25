@@ -73,15 +73,15 @@ window.addEventListener("load", () => {
     setDisplay("uploadBox", "none");
     setDisplay("searchBox", "none");
     setDisplay("inventoryDash", "none");
+    setDisplay("performanceBox", "none");
 
-        setDisplay("todayLoginInfo", "block");
+    setDisplay("todayLoginInfo", "block");
     loadTodayLoginInfo();
   } catch (e) {
     console.error(e);
     localStorage.removeItem("loginInfo");
   }
 });
-
 
 // =========================
 // 로그인 / 로그아웃
@@ -116,10 +116,12 @@ function login() {
 
   document.querySelector(".hero").style.display = "none";
 
-document.getElementById("menuBox").style.display = "block";
-document.getElementById("uploadBox").style.display = "none";
-document.getElementById("searchBox").style.display = "none";
-document.getElementById("inventoryDash").style.display = "none";
+  document.getElementById("menuBox").style.display = "block";
+  document.getElementById("uploadBox").style.display = "none";
+  document.getElementById("searchBox").style.display = "none";
+  document.getElementById("inventoryDash").style.display = "none";
+  document.getElementById("performanceBox").style.display = "none";
+
   setDisplay("todayLoginInfo", "block");
   saveLoginLog();
   loadTodayLoginInfo();
@@ -205,7 +207,7 @@ async function runSearch() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        agency: currentCenter, // 🔥 핵심: 로그인한 대리점명
+        agency: currentCenter,
         model,
         address,
         owner,
@@ -222,26 +224,24 @@ async function runSearch() {
 
     status.innerText = `총 ${j.total}대 있습니다.`;
 
-    // 기본 정렬: 접점명(판매점/창고)
     const sortKey = document.getElementById("sortKey")?.value || "보유처";
-const sortOrder = document.getElementById("sortOrder")?.value || "asc";
+    const sortOrder = document.getElementById("sortOrder")?.value || "asc";
 
-const keyMap = {
-  "보유처": "store_name",
-  "모델명": "model_name",
-  "색상": "color"
-};
+    const keyMap = {
+      "보유처": "store_name",
+      "모델명": "model_name",
+      "색상": "color"
+    };
 
-const field = keyMap[sortKey] || "store_name";
+    const field = keyMap[sortKey] || "store_name";
 
-j.table.sort((a, b) => {
-  const A = (a[field] || "").toString();
-  const B = (b[field] || "").toString();
+    j.table.sort((a, b) => {
+      const A = (a[field] || "").toString();
+      const B = (b[field] || "").toString();
 
-  const cmp = A.localeCompare(B, "ko");
-
-  return sortOrder === "desc" ? -cmp : cmp;
-});
+      const cmp = A.localeCompare(B, "ko");
+      return sortOrder === "desc" ? -cmp : cmp;
+    });
 
     const detail = document.getElementById("detailToggle")?.checked || false;
 
@@ -314,7 +314,6 @@ function showOnly(ids) {
   all.forEach(id => setDisplay(id, ids.includes(id) ? "block" : "none"));
 }
 
-
 function openInventory() {
   if (currentCenter === "관리자") {
     showOnly(["menuBox", "inventoryDash", "uploadBox", "searchBox"]);
@@ -329,9 +328,7 @@ function openInventory() {
 }
 
 function openPerformance() {
-  document.getElementById("performanceBox").style.display = "block";
-
-  // 🔥 대시보드 로드
+  showOnly(["menuBox", "performanceBox"]);
   loadPerformanceDashboard();
 }
 
@@ -339,12 +336,10 @@ function openPerformance() {
 // 재고 대시보드 로드
 // =========================
 async function loadInventoryDashboard() {
-  // 카드 영역 초기화
   const cards = document.getElementById("invCards");
   if (cards) cards.innerHTML = "불러오는 중...";
 
   try {
-    // 1) 요약
     const sResp = await fetch(`${API_URL}/inventory/summary-extended`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -355,7 +350,6 @@ async function loadInventoryDashboard() {
 
     renderInvCards(s.summary);
 
-    // 2) 모델 TOP
     const mResp = await fetch(`${API_URL}/inventory/by-model`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -369,7 +363,6 @@ async function loadInventoryDashboard() {
       { key: "qty", label: "수량" }
     ]);
 
-    // 3) 판매점 TOP
     const stResp = await fetch(`${API_URL}/inventory/by-store`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -380,17 +373,15 @@ async function loadInventoryDashboard() {
 
     renderStoreTable(st.rows);
 
-    // 4) 추천 이동 모델
-const rResp = await fetch(`${API_URL}/inventory/recommend-move`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ agency: currentCenter })
-});
-const rec = await rResp.json();
-if (rResp.ok && rec.ok) {
-  renderRecommend(rec.rows);
-}
-
+    const rResp = await fetch(`${API_URL}/inventory/recommend-move`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ agency: currentCenter })
+    });
+    const rec = await rResp.json();
+    if (rResp.ok && rec.ok) {
+      renderRecommend(rec.rows);
+    }
   } catch (e) {
     if (cards) cards.innerHTML = `❌ 대시보드 로드 실패: ${e.message}`;
   }
@@ -451,20 +442,7 @@ function renderSimpleTable(targetId, rows, cols) {
     const tr = document.createElement("tr");
     cols.forEach(c => {
       const td = document.createElement("td");
-const val = r[c.key];
-let displayVal =
-  typeof val === "number" ? val.toLocaleString() : (val ?? "").toString();
-
-if (c.key === "qty" && typeof val === "number") {
-  if (val >= 30) {
-    displayVal = "🔥 " + displayVal;
-  } else if (val <= 2) {
-    displayVal = "⚠️ " + displayVal;
-  }
-}
-
-td.textContent = displayVal;
-
+      const val = r[c.key];
       td.textContent =
         typeof val === "number" ? val.toLocaleString() : (val ?? "").toString();
       td.style.borderBottom = "1px solid #f0f0f0";
@@ -513,13 +491,12 @@ function renderStoreTable(rows) {
 
     const td2 = document.createElement("td");
     let qty = Number(r.qty || 0);
-let text = qty.toLocaleString();
+    let text = qty.toLocaleString();
 
-if (qty >= 30) text = "🔥 " + text;
-if (qty <= 3) text = "⚠️ " + text;
+    if (qty >= 30) text = "🔥 " + text;
+    if (qty <= 3) text = "⚠️ " + text;
 
-td2.textContent = text;
-
+    td2.textContent = text;
     td2.style.borderBottom = "1px solid #f0f0f0";
     td2.style.padding = "8px";
 
@@ -545,7 +522,9 @@ td2.textContent = text;
   wrap.appendChild(table);
 }
 
-// 판매점 상세(일단 alert로 보여주고, 다음에 모델로 예쁘게)
+// =========================
+// 판매점 상세
+// =========================
 async function openStoreDetail(storeCode) {
   if (!storeCode) return alert("store_code가 없습니다.");
 
@@ -568,7 +547,6 @@ async function openStoreDetail(storeCode) {
     const storeName = rows[0]?.store_name || "판매점";
     const address = rows[0]?.address || "-";
 
-    // 1. 모델별 집계
     const modelMap = {};
     const colorSet = new Set();
 
@@ -597,11 +575,9 @@ async function openStoreDetail(storeCode) {
     const modelCount = new Set(rows.map(r => (r.model_name || "").trim())).size;
     const totalCount = rows.length;
 
-    // 2. 모달 제목
     document.getElementById("storeModal").style.display = "flex";
     document.getElementById("modalTitle").innerText = `${storeName} 상세 재고`;
 
-    // 3. 상단 요약 카드
     const summaryCards = `
       <div class="storeSummaryGrid">
         <div class="miniStat">
@@ -623,7 +599,6 @@ async function openStoreDetail(storeCode) {
       </div>
     `;
 
-    // 4. 모델별 집계 테이블
     let summaryTable = `
       <div class="modalSectionTitle">모델별 집계</div>
       <div class="tableWrap">
@@ -657,7 +632,6 @@ async function openStoreDetail(storeCode) {
       </div>
     `;
 
-    // 5. 원본 상세 리스트
     let detailTable = `
       <div class="modalSectionTitle" style="margin-top:20px;">원본 상세 리스트</div>
       <div class="tableWrap">
@@ -692,7 +666,6 @@ async function openStoreDetail(storeCode) {
 
     document.getElementById("modalBody").innerHTML =
       summaryCards + summaryTable + detailTable;
-
   } catch (e) {
     console.error(e);
     alert("상세 조회 실패");
@@ -764,6 +737,7 @@ function renderRecommend(rows) {
 
   wrap.innerHTML = html;
 }
+
 function toggleInventoryDetails() {
   const box = document.getElementById("inventoryDetailPanels");
   if (!box) return;
@@ -774,6 +748,7 @@ function toggleInventoryDetails() {
     box.style.display = "none";
   }
 }
+
 async function loadDashboardDetail(type) {
   const section = document.getElementById("dashboardDetailSection");
   const titleEl = document.getElementById("dashboardDetailTitle");
@@ -782,7 +757,6 @@ async function loadDashboardDetail(type) {
 
   if (!section || !titleEl || !hintEl || !tableEl) return;
 
-  // ✅ 같은 카드를 다시 누르면 숨기기
   if (activeDashboardDetailType === type && section.style.display !== "none") {
     section.style.display = "none";
     tableEl.innerHTML = "";
@@ -878,9 +852,9 @@ function renderDashboardWarehouseDetail(rows) {
     );
   }
 
-let html = `
-  <div class="tableWrap compactTable warehouseCompactTable">
-    <table>
+  let html = `
+    <div class="tableWrap compactTable warehouseCompactTable">
+      <table>
         <thead>
           <tr>
             <th class="sortable" onclick="toggleDashboardSort('warehouse','model_name')">
@@ -1045,8 +1019,8 @@ function renderDashboardStoreDetail(rows) {
 }
 
 function highlightActiveDashboardCard(type) {
-  document.querySelectorAll("#invCards .statCard").forEach(card => {
-    card.classList.remove("active");
+  document.querySelectorAll("#invCards .statCard").forEach(cardEl => {
+    cardEl.classList.remove("active");
   });
 
   if (!type) return;
@@ -1119,6 +1093,10 @@ function renderDashboardDetailByType(type) {
     renderDashboardStoreDetail(dashboardDetailRows);
   }
 }
+
+// =========================
+// 접속자 로그
+// =========================
 async function saveLoginLog() {
   if (!currentCenter) return;
 
@@ -1169,339 +1147,70 @@ async function loadTodayLoginInfo() {
     info.textContent = "오늘 접속자 조회 실패";
   }
 }
-async function uploadMonthlySales() {
-  if (currentCenter !== "관리자") {
-    alert("관리자만 업로드할 수 있습니다.");
-    return;
-  }
 
-  const fileInput = document.getElementById("monthlySalesFile");
-  const baseMonth = document.getElementById("monthlyBaseMonth").value.trim();
-  const btn = document.getElementById("monthlyUploadBtn");
-  const status = document.getElementById("monthlyUploadStatus");
+// =========================
+// 실적조회 화면 초기화
+// =========================
+function loadPerformanceDashboard() {
+  const cardWrap = document.getElementById("performanceDashCards");
+  const chartWrap = document.getElementById("perfChartArea");
+  const resultWrap = document.getElementById("performanceSearchResult");
+  const statusWrap = document.getElementById("performanceSearchStatus");
 
-  if (!baseMonth) {
-    status.innerText = "기준월을 입력하세요. 예: 2026-02";
-    return;
-  }
-
-  if (!fileInput.files.length) {
-    status.innerText = "엑셀 파일을 선택해주세요.";
-    return;
-  }
-
-  btn.disabled = true;
-  status.innerText = "누적실적 업로드 중...";
-
-  try {
-    const formData = new FormData();
-    formData.append("file", fileInput.files[0]);
-    formData.append("base_month", baseMonth);
-    formData.append("uploaded_by", currentCenter);
-
-    const resp = await fetch(`${API_URL}/sales/upload-monthly`, {
-      method: "POST",
-      body: formData
-    });
-
-    const rawText = await resp.text();
-    console.log("upload-monthly status:", resp.status);
-    console.log("upload-monthly raw response:", rawText);
-
-    let j = {};
-    try {
-      j = JSON.parse(rawText);
-    } catch (e) {
-      j = {
-        ok: false,
-        message: rawText || `응답 파싱 실패 (HTTP ${resp.status})`
-      };
-    }
-
-    if (!resp.ok || !j.ok) {
-      status.innerText = `❌ 업로드 실패: ${j.message || `HTTP ${resp.status}`}`;
-      return;
-    }
-
-    status.innerText =
-      `✅ 누적실적 업로드 완료! 기준월 ${j.base_month} / 실적 ${Number(j.sales_count || 0).toLocaleString()}건 / 판매점 ${Number(j.store_count || 0).toLocaleString()}건`;
-
-    fileInput.value = "";
-  } catch (e) {
-    console.error("uploadMonthlySales error:", e);
-    status.innerText = `❌ 업로드 실패: ${e.message || "네트워크 오류"}`;
-  } finally {
-    btn.disabled = false;
-  }
-}
-
-async function uploadDailySales() {
-  if (currentCenter !== "관리자") {
-    alert("관리자만 업로드할 수 있습니다.");
-    return;
-  }
-
-  const fileInput = document.getElementById("dailySalesFile");
-  const baseMonth = document.getElementById("dailyBaseMonth").value.trim();
-  const btn = document.getElementById("dailyUploadBtn");
-  const status = document.getElementById("dailyUploadStatus");
-
-  if (!baseMonth) {
-    status.innerText = "기준월을 입력하세요. 예: 2026-03";
-    return;
-  }
-
-  if (!fileInput.files.length) {
-    status.innerText = "엑셀 파일을 선택해주세요.";
-    return;
-  }
-
-  btn.disabled = true;
-  status.innerText = "당월실적 업로드 중...";
-
-  try {
-    const formData = new FormData();
-    formData.append("file", fileInput.files[0]);
-    formData.append("base_month", baseMonth);
-    formData.append("uploaded_by", currentCenter);
-
-    const resp = await fetch(`${API_URL}/sales/upload-daily`, {
-      method: "POST",
-      body: formData
-    });
-
-    const rawText = await resp.text();
-    console.log("upload-daily status:", resp.status);
-    console.log("upload-daily raw response:", rawText);
-
-    let j = {};
-    try {
-      j = JSON.parse(rawText);
-    } catch (e) {
-      j = {
-        ok: false,
-        message: rawText || `응답 파싱 실패 (HTTP ${resp.status})`
-      };
-    }
-
-    if (!resp.ok || !j.ok) {
-      status.innerText = `❌ 업로드 실패: ${j.message || `HTTP ${resp.status}`}`;
-      return;
-    }
-
-    status.innerText =
-      `✅ 당월실적 업로드 완료! 기준월 ${j.base_month} / 실적 ${Number(j.sales_count || 0).toLocaleString()}건 / 판매점 ${Number(j.store_count || 0).toLocaleString()}건`;
-
-    fileInput.value = "";
-  } catch (e) {
-    console.error("uploadDailySales error:", e);
-    status.innerText = `❌ 업로드 실패: ${e.message || "네트워크 오류"}`;
-  } finally {
-    btn.disabled = false;
-  }
-}
-async function loadSalesSummary() {
-  const baseMonth = document.getElementById("salesSummaryMonth")?.value.trim();
-  const cards = document.getElementById("salesSummaryCards");
-  const typeTable = document.getElementById("salesTypeTable");
-  const agencyTable = document.getElementById("salesAgencyTable");
-
-  if (!baseMonth) {
-    alert("조회 기준월을 입력하세요. 예: 2026-02");
-    return;
-  }
-
-  if (cards) cards.innerHTML = "불러오는 중...";
-  if (typeTable) typeTable.innerHTML = "";
-  if (agencyTable) agencyTable.innerHTML = "";
-
-  try {
-    const resp = await fetch(`${API_URL}/sales/summary?base_month=${encodeURIComponent(baseMonth)}`);
-    const j = await resp.json();
-
-    if (!resp.ok || !j.ok) {
-      if (cards) cards.innerHTML = `❌ ${j.message || "조회 실패"}`;
-      return;
-    }
-
-    const s = j.summary || {};
-
-    if (cards) {
-      cards.innerHTML = `
-        ${card("실적 행 수", s.row_count || 0, "건")}
-        ${card("총 실적", s.total_score || 0, "점")}
-        ${card("센터 수", s.agency_count || 0, "개")}
-        ${card("판매점 수", s.store_count || 0, "개")}
-      `;
-    }
-
-    renderSimpleTable("salesTypeTable", j.by_type || [], [
-      { key: "metric_type", label: "유형" },
-      { key: "row_count", label: "건수" },
-      { key: "total_score", label: "총실적" }
-    ]);
-
-    renderSimpleTable("salesAgencyTable", j.by_agency || [], [
-      { key: "agency_name", label: "센터" },
-      { key: "total_score", label: "총실적" }
-    ]);
-  } catch (e) {
-    console.error(e);
-    if (cards) cards.innerHTML = "❌ 네트워크 오류";
-  }
-}
-
-async function loadSalesUploadHistory() {
-  const wrap = document.getElementById("salesUploadHistory");
-  if (!wrap) return;
-
-  wrap.innerHTML = "불러오는 중...";
-
-  try {
-    const resp = await fetch(`${API_URL}/sales/upload-history`);
-    const j = await resp.json();
-
-    if (!resp.ok || !j.ok) {
-      wrap.innerHTML = `❌ ${j.message || "조회 실패"}`;
-      return;
-    }
-
-    if (!j.rows || !j.rows.length) {
-      wrap.innerHTML = "업로드 이력이 없습니다.";
-      return;
-    }
-
-    let html = `
-      <div class="tableWrap">
-        <table>
-          <thead>
-            <tr>
-              <th>업로드구분</th>
-              <th>기준월</th>
-              <th>파일명</th>
-              <th>업로드자</th>
-              <th>업로드시각</th>
-            </tr>
-          </thead>
-          <tbody>
+  if (cardWrap) {
+    cardWrap.innerHTML = `
+      <div class="statCard"><div class="statLabel">후불</div><div class="statValue">-</div></div>
+      <div class="statCard"><div class="statLabel">순신규</div><div class="statValue">-</div></div>
+      <div class="statCard"><div class="statLabel">약정갱신</div><div class="statValue">-</div></div>
+      <div class="statCard"><div class="statLabel">후불 실적점</div><div class="statValue">-</div></div>
+      <div class="statCard"><div class="statLabel">MIT 당월 실적</div><div class="statValue">-</div></div>
     `;
+  }
 
-    j.rows.forEach(r => {
-      html += `
-        <tr>
-          <td>${escapeHtml(r.upload_type || "")}</td>
-          <td>${escapeHtml(r.base_month || "")}</td>
-          <td>${escapeHtml(r.file_name || "")}</td>
-          <td>${escapeHtml(r.uploaded_by || "")}</td>
-          <td>${escapeHtml((r.uploaded_at || "").replace("T", " ").slice(0, 19))}</td>
-        </tr>
-      `;
-    });
+  if (chartWrap) {
+    chartWrap.innerHTML = "카드를 클릭하면 그래프가 표시됩니다.";
+  }
 
-    html += `
-          </tbody>
-        </table>
+  if (resultWrap) {
+    resultWrap.innerHTML = "";
+  }
+
+  if (statusWrap) {
+    statusWrap.innerText = "";
+  }
+}
+
+// =========================
+// 실적조회 검색 (백엔드 API 연결 전 임시)
+// =========================
+function searchPerformanceSales() {
+  const startMonth = document.getElementById("salesStartMonth")?.value.trim();
+  const endMonth = document.getElementById("salesEndMonth")?.value.trim();
+  const statusWrap = document.getElementById("performanceSearchStatus");
+  const resultWrap = document.getElementById("performanceSearchResult");
+
+  if (!startMonth || !endMonth) {
+    if (statusWrap) {
+      statusWrap.innerText = "조회 시작월과 종료월은 필수입니다.";
+    }
+    return;
+  }
+
+  if (statusWrap) {
+    statusWrap.innerText = "실적 조회 기능 연결 준비 중입니다.";
+  }
+
+  if (resultWrap) {
+    resultWrap.innerHTML = `
+      <div class="panel">
+        <div class="panelHeader">
+          <div class="panelTitle">조회 준비 완료</div>
+          <div class="panelHint">다음 단계에서 백엔드 API와 연결합니다.</div>
+        </div>
+        <div style="padding:8px 0;">
+          선택한 기간: <strong>${escapeHtml(startMonth)}</strong> ~ <strong>${escapeHtml(endMonth)}</strong>
+        </div>
       </div>
     `;
-
-    wrap.innerHTML = html;
-  } catch (e) {
-    console.error(e);
-    wrap.innerHTML = "❌ 네트워크 오류";
   }
-}
-
-async function askSalesAI() {
-  const input = document.getElementById("salesQuestion");
-  const chatBox = document.getElementById("salesChatBox");
-
-  if (!input || !chatBox) return;
-
-  const question = input.value.trim();
-  if (!question) {
-    alert("질문을 입력하세요.");
-    return;
-  }
-
-  appendChatBubble("user", question);
-  input.value = "";
-
-  appendChatBubble("ai", "답변 생성 중...");
-
-  try {
-    const resp = await fetch(`${API_URL}/sales/ask-ai-raw`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        question,
-        agency: currentCenter
-      })
-    });
-
-    const j = await resp.json();
-
-    removeLastAiLoadingBubble();
-
-    if (!resp.ok || !j.ok) {
-      appendChatBubble("ai", j.message || "AI 응답 실패");
-      return;
-    }
-
-    appendChatBubble("ai", j.answer || "응답이 없습니다.");
-  } catch (e) {
-    console.error(e);
-    removeLastAiLoadingBubble();
-    appendChatBubble("ai", "네트워크 오류로 AI 답변을 불러오지 못했습니다.");
-  }
-}
-
-function appendChatBubble(role, text) {
-  const chatBox = document.getElementById("salesChatBox");
-  if (!chatBox) return;
-
-  const bubble = document.createElement("div");
-  bubble.className = `chatBubble ${role}`;
-  bubble.innerHTML = escapeHtml(text).replace(/\n/g, "<br>");
-
-  chatBox.appendChild(bubble);
-  chatBox.scrollTop = chatBox.scrollHeight;
-}
-
-function removeLastAiLoadingBubble() {
-  const chatBox = document.getElementById("salesChatBox");
-  if (!chatBox) return;
-
-  const bubbles = chatBox.querySelectorAll(".chatBubble.ai");
-  if (!bubbles.length) return;
-
-  const lastBubble = bubbles[bubbles.length - 1];
-  if (lastBubble.textContent.includes("답변 생성 중")) {
-    lastBubble.remove();
-  }
-}
-
-async function loadPerformanceDashboard() {
-  const baseMonth = prompt("조회할 기준월 입력 (예: 2026-02)");
-
-  if (!baseMonth) return;
-
-  const res = await fetch(`/api/performance/summary?baseMonth=${baseMonth}`);
-  const json = await res.json();
-
-  if (!json.ok) {
-    alert("조회 실패");
-    return;
-  }
-
-  const data = json.data;
-
-  const container = document.getElementById("performanceDashCards");
-
-  container.innerHTML = `
-    <div class="card">후불<br><strong>${data.후불}</strong></div>
-    <div class="card">순신규<br><strong>${data.순신규}</strong></div>
-    <div class="card">약정갱신<br><strong>${data.약정갱신}</strong></div>
-    <div class="card">MIT<br><strong>${data.MIT}</strong></div>
-    <div class="card">실적점<br><strong>${data["실적점"]}</strong></div>
-  `;
 }
