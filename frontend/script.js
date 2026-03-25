@@ -7,6 +7,8 @@ let dashboardDetailSort = {
 };
 
 let dashboardDetailRows = [];
+let performanceSearchCache = [];
+let performanceSortState = { key: "", order: "asc" };
 
 function $(id) {
   return document.getElementById(id);
@@ -685,6 +687,13 @@ function escapeHtml(value) {
     .replace(/'/g, "&#039;");
 }
 
+function escapeJs(value) {
+  return String(value ?? "")
+    .replace(/\\/g, "\\\\")
+    .replace(/'/g, "\\'")
+    .replace(/"/g, '\\"');
+}
+
 function renderRecommend(rows) {
   const wrap = document.getElementById("recommendMove");
   if (!wrap) return;
@@ -1311,57 +1320,182 @@ async function searchPerformanceSales() {
   status.innerText = "조회 중...";
   result.innerHTML = "";
 
-  const resp = await fetch(`${API_URL}/performance/search`, {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({
-      start_month: startMonth,
-      end_month: endMonth,
-      region,
-      agency_name: agencyName,
-      store_name: storeName
-    })
-  });
+  try {
+    const resp = await fetch(`${API_URL}/performance/search`, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({
+        start_month: startMonth,
+        end_month: endMonth,
+        region,
+        agency_name: agencyName,
+        store_name: storeName
+      })
+    });
 
-  const j = await resp.json();
+    const j = await resp.json();
 
-  if (!j.ok) {
-    status.innerText = "조회 실패";
-    return;
+    if (!j.ok) {
+      status.innerText = j.message || "조회 실패";
+      return;
+    }
+
+    performanceSearchCache = Array.isArray(j.rows) ? j.rows : [];
+    performanceSortState = { key: "", order: "asc" };
+
+    renderPerformanceSearchTable();
+    status.innerText = `총 ${performanceSearchCache.length}건`;
+  } catch (e) {
+    console.error(e);
+    status.innerText = "네트워크 오류";
   }
+}
 
-  const rows = j.rows;
+async function loadDetail(baseMonth, market, agency) {
+  const result = document.getElementById("performanceSearchResult");
+
+  try {
+    const resp = await fetch(`${API_URL}/performance/detail`, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({
+        base_month: baseMonth,
+        market,
+        agency_name: agency
+      })
+    });
+
+    const j = await resp.json();
+
+    if (!j.ok) {
+      alert("상세 조회 실패");
+      return;
+    }
+
+    let html = `
+      <div style="margin-bottom:12px;">
+        <button class="btn ghost" type="button" onclick="renderPerformanceSearchTable()">
+          ← 뒤로 가기
+        </button>
+      </div>
+
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>기간</th>
+              <th>지역</th>
+              <th>대리점</th>
+              <th>판매점코드</th>
+              <th>판매점명</th>
+              <th>후불</th>
+              <th>순신규</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    j.rows.forEach(r => {
+      html += `
+        <tr>
+          <td>${escapeHtml(r.base_month || "")}</td>
+          <td>${escapeHtml(r.market || "-")}</td>
+          <td>${escapeHtml(r.agency_name || "")}</td>
+          <td>${escapeHtml(r.store_code || "")}</td>
+          <td>${escapeHtml(r.store_name || "")}</td>
+          <td>${Number(r.postpaid || 0).toLocaleString()}</td>
+          <td>${Number(r.pure_new || 0).toLocaleString()}</td>
+        </tr>
+      `;
+    });
+
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    result.innerHTML = html;
+  } catch (e) {
+    console.error(e);
+    alert("상세 조회 실패");
+  }
+}
+
+function renderPerformanceSearchTable() {
+  const result = document.getElementById("performanceSearchResult");
+  if (!result) return;
+
+  let rows = [...performanceSearchCache];
+
+  if (performanceSortState.key) {
+    rows.sort((a, b) => {
+      const key = performanceSortState.key;
+      let av = a[key];
+      let bv = b[key];
+
+      const numericKeys = ["postpaid", "pure_new", "renewal", "mit"];
+      const isNumeric = numericKeys.includes(key);
+
+      let cmp = 0;
+
+      if (isNumeric) {
+        cmp = Number(av || 0) - Number(bv || 0);
+      } else {
+        cmp = String(av || "").localeCompare(String(bv || ""), "ko");
+      }
+
+      return performanceSortState.order === "desc" ? -cmp : cmp;
+    });
+  }
 
   let html = `
     <div class="tableWrap">
-    <table>
-      <thead>
-        <tr>
-          <th>기간</th>
-          <th>지역</th>
-          <th>대리점</th>
-          <th>후불</th>
-          <th>순신규</th>
-          <th>약정갱신</th>
-          <th>MIT</th>
-          <th>상세</th>
-        </tr>
-      </thead>
-      <tbody>
+      <table>
+        <thead>
+          <tr>
+            <th class="sortable" onclick="togglePerformanceSort('base_month')">
+              기간${getPerformanceSortIndicator("base_month")}
+            </th>
+            <th class="sortable" onclick="togglePerformanceSort('market')">
+              지역${getPerformanceSortIndicator("market")}
+            </th>
+            <th class="sortable" onclick="togglePerformanceSort('agency_name')">
+              대리점${getPerformanceSortIndicator("agency_name")}
+            </th>
+            <th class="sortable" onclick="togglePerformanceSort('postpaid')">
+              후불${getPerformanceSortIndicator("postpaid")}
+            </th>
+            <th class="sortable" onclick="togglePerformanceSort('pure_new')">
+              순신규${getPerformanceSortIndicator("pure_new")}
+            </th>
+            <th class="sortable" onclick="togglePerformanceSort('renewal')">
+              약정갱신${getPerformanceSortIndicator("renewal")}
+            </th>
+            <th class="sortable" onclick="togglePerformanceSort('mit')">
+              MIT${getPerformanceSortIndicator("mit")}
+            </th>
+            <th>상세</th>
+          </tr>
+        </thead>
+        <tbody>
   `;
 
-  rows.forEach(r=>{
+  rows.forEach(r => {
+    const market = r.market || "";
+    const agency = r.agency_name || "";
+
     html += `
       <tr>
-        <td>${r.base_month}</td>
-        <td>${r.market || "-"}</td>
-        <td>${r.agency_name}</td>
-        <td>${Number(r.postpaid).toLocaleString()}</td>
-        <td>${Number(r.pure_new).toLocaleString()}</td>
-        <td>${Number(r.renewal).toLocaleString()}</td>
-        <td>${Number(r.mit).toLocaleString()}</td>
+        <td>${escapeHtml(r.base_month || "")}</td>
+        <td>${escapeHtml(market || "-")}</td>
+        <td>${escapeHtml(agency)}</td>
+        <td>${Number(r.postpaid || 0).toLocaleString()}</td>
+        <td>${Number(r.pure_new || 0).toLocaleString()}</td>
+        <td>${Number(r.renewal || 0).toLocaleString()}</td>
+        <td>${Number(r.mit || 0).toLocaleString()}</td>
         <td>
-          <button onclick="loadDetail('${r.base_month}','${r.market}','${r.agency_name}')">
+          <button onclick="loadDetail('${escapeJs(r.base_month || "")}','${escapeJs(market)}','${escapeJs(agency)}')">
             보기
           </button>
         </td>
@@ -1369,64 +1503,28 @@ async function searchPerformanceSales() {
     `;
   });
 
-  html += "</tbody></table></div>";
-
-  result.innerHTML = html;
-  status.innerText = `총 ${rows.length}건`;
-}
-
-async function loadDetail(baseMonth, market, agency) {
-  const result = document.getElementById("performanceSearchResult");
-
-  const resp = await fetch(`${API_URL}/performance/detail`, {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({
-      base_month: baseMonth,
-      market,
-      agency_name: agency
-    })
-  });
-
-  const j = await resp.json();
-
-  if (!j.ok) {
-    alert("상세 조회 실패");
-    return;
-  }
-
-  let html = `
-    <div class="tableWrap">
-    <table>
-      <thead>
-        <tr>
-          <th>기간</th>
-          <th>지역</th>
-          <th>대리점</th>
-          <th>판매점코드</th>
-          <th>판매점명</th>
-          <th>후불</th>
-          <th>순신규</th>
-        </tr>
-      </thead>
-      <tbody>
+  html += `
+        </tbody>
+      </table>
+    </div>
   `;
 
-  j.rows.forEach(r=>{
-    html += `
-      <tr>
-        <td>${r.base_month}</td>
-        <td>${r.market || "-"}</td>
-        <td>${r.agency_name}</td>
-        <td>${r.store_code}</td>
-        <td>${r.store_name}</td>
-        <td>${Number(r.postpaid).toLocaleString()}</td>
-        <td>${Number(r.pure_new).toLocaleString()}</td>
-      </tr>
-    `;
-  });
-
-  html += "</tbody></table></div>";
-
   result.innerHTML = html;
+}
+
+function togglePerformanceSort(key) {
+  if (performanceSortState.key === key) {
+    performanceSortState.order =
+      performanceSortState.order === "asc" ? "desc" : "asc";
+  } else {
+    performanceSortState.key = key;
+    performanceSortState.order = "asc";
+  }
+
+  renderPerformanceSearchTable();
+}
+
+function getPerformanceSortIndicator(key) {
+  if (performanceSortState.key !== key) return "";
+  return performanceSortState.order === "asc" ? " ▲" : " ▼";
 }
