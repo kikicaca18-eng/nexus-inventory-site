@@ -345,6 +345,38 @@
 
           <div id="performanceSearchResult" style="margin-top:16px;"></div>
         </div>
+        <!-- ================= 판매점 찾기 ================= -->
+<div class="panel" style="margin-bottom:16px;">
+  <div class="panelHeader">
+    <div class="panelTitle">🏪 판매점 찾기</div>
+    <div class="panelHint">판매점코드 / 판매점명 / 주소로 검색</div>
+  </div>
+
+  <div class="dashGrid2">
+    <div>
+      <label class="label">검색어</label>
+      <input
+        type="text"
+        id="storeFinderKeyword"
+        class="input"
+        placeholder="예: 명진 / PZE0000469 / 군산"
+      />
+    </div>
+
+    <div style="display:flex; align-items:flex-end;">
+      <button
+        class="btn primary"
+        type="button"
+        onclick="searchStoreFinder()"
+      >
+        판매점 찾기
+      </button>
+    </div>
+  </div>
+
+  <div class="status" id="storeFinderStatus" style="margin-top:12px;"></div>
+  <div id="storeFinderResult" style="margin-top:16px;"></div>
+</div>
       </section>
     </div>
   </main>

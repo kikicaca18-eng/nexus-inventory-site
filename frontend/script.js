@@ -1524,3 +1524,77 @@ function getPerformanceSortIndicator(key) {
   if (performanceSortState.key !== key) return "";
   return performanceSortState.order === "asc" ? " ▲" : " ▼";
 }
+
+async function searchStoreFinder() {
+  const keyword = document.getElementById("storeFinderKeyword")?.value.trim();
+  const status = document.getElementById("storeFinderStatus");
+  const result = document.getElementById("storeFinderResult");
+
+  if (!keyword) {
+    if (status) status.innerText = "검색어를 입력하세요.";
+    return;
+  }
+
+  if (status) status.innerText = "검색 중...";
+  if (result) result.innerHTML = "";
+
+  try {
+    const resp = await fetch(`${API_URL}/store-master/search`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ keyword })
+    });
+
+    const j = await resp.json();
+
+    if (!resp.ok || !j.ok) {
+      if (status) status.innerText = j.message || "판매점 찾기 실패";
+      return;
+    }
+
+    const rows = Array.isArray(j.rows) ? j.rows : [];
+
+    if (status) status.innerText = `총 ${rows.length}건`;
+
+    if (!rows.length) {
+      if (result) result.innerHTML = "검색 결과가 없습니다.";
+      return;
+    }
+
+    let html = `
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>판매점코드</th>
+              <th>판매점명</th>
+              <th>판매점주소</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    rows.forEach(r => {
+      html += `
+        <tr>
+          <td>${escapeHtml(r.store_code || "")}</td>
+          <td>${escapeHtml(r.store_name || "")}</td>
+          <td>${escapeHtml(r.address || "")}</td>
+        </tr>
+      `;
+    });
+
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    if (result) result.innerHTML = html;
+  } catch (e) {
+    console.error(e);
+    if (status) status.innerText = "네트워크 오류";
+  }
+}

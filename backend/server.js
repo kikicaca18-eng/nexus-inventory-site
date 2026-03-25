@@ -2055,6 +2055,57 @@ app.post("/performance/detail", async (req, res) => {
   }
 });
 
+/**
+ * =========================
+ * 판매점 찾기
+ * POST /store-master/search
+ * body:
+ * {
+ *   keyword: "명진"
+ * }
+ * =========================
+ */
+app.post("/store-master/search", async (req, res) => {
+  try {
+    const keyword = toText(req.body.keyword);
+
+    if (!keyword) {
+      return res.status(400).json({
+        ok: false,
+        message: "검색어를 입력하세요."
+      });
+    }
+
+    const r = await pool.query(
+      `
+      SELECT
+        store_code,
+        store_name,
+        address
+      FROM sales_store_master
+      WHERE
+        store_code ILIKE $1
+        OR store_name ILIKE $1
+        OR address ILIKE $1
+      ORDER BY store_name ASC
+      LIMIT 200
+      `,
+      [`%${keyword}%`]
+    );
+
+    return res.json({
+      ok: true,
+      rows: r.rows
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({
+      ok: false,
+      message: "판매점 찾기 실패"
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log("🚀 Backend running on port", PORT);
 });
