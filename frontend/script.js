@@ -1265,32 +1265,28 @@ async function loadPerformanceTrend(metric, title) {
       return;
     }
 
+    const maxValue = Math.max(...rows.map(r => Number(r.value || 0)), 1);
+
     let html = `
-      <div class="tableWrap">
-        <table>
-          <thead>
-            <tr>
-              <th>기준월</th>
-              <th>실적</th>
-            </tr>
-          </thead>
-          <tbody>
+      <div class="perfChartList">
     `;
 
     rows.forEach(r => {
+      const value = Number(r.value || 0);
+      const width = Math.max((value / maxValue) * 100, 2);
+
       html += `
-        <tr>
-          <td>${escapeHtml(r.month || "")}</td>
-          <td>${Number(r.value || 0).toLocaleString()}</td>
-        </tr>
+        <div class="perfChartRow">
+          <div class="perfChartMonth">${escapeHtml(r.month || "")}</div>
+          <div class="perfChartBarWrap">
+            <div class="perfChartBar" style="width:${width}%"></div>
+          </div>
+          <div class="perfChartValue">${value.toLocaleString()}</div>
+        </div>
       `;
     });
 
-    html += `
-          </tbody>
-        </table>
-      </div>
-    `;
+    html += `</div>`;
 
     chartWrap.innerHTML = html;
   } catch (e) {

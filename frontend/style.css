@@ -969,3 +969,68 @@ tr:hover td{background:#fafafa}
     font-size:13px;
   }
 }
+
+/* =========================
+   실적 그래프
+========================= */
+.perfChartList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.perfChartRow {
+  display: grid;
+  grid-template-columns: 72px 1fr 70px;
+  gap: 10px;
+  align-items: center;
+}
+
+.perfChartMonth {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+
+.perfChartBarWrap {
+  width: 100%;
+  height: 18px;
+  background: #eef2f7;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.perfChartBar {
+  height: 100%;
+  background: linear-gradient(90deg, #5b8def, #7aa7ff);
+  border-radius: 999px;
+}
+
+.perfChartValue {
+  text-align: right;
+  font-size: 13px;
+  font-weight: 700;
+  color: #222;
+}
+
+.statSub {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #777;
+}
+
+@media (max-width: 768px) {
+  .perfChartRow {
+    grid-template-columns: 60px 1fr 56px;
+    gap: 8px;
+  }
+
+  .perfChartMonth,
+  .perfChartValue {
+    font-size: 12px;
+  }
+
+  .perfChartBarWrap {
+    height: 16px;
+  }
+}
