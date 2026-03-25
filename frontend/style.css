@@ -1130,3 +1130,182 @@ tr:hover td{background:#fafafa}
     width: 180px;
   }
 }
+
+/* =========================
+   실적 조회 테이블 모바일 최적화
+========================= */
+#performanceSearchResult .tableWrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+#performanceSearchResult table {
+  width: 100%;
+  min-width: 920px; /* 기본 조회표 가로 스크롤 기준 */
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+#performanceSearchResult th,
+#performanceSearchResult td {
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 1.4;
+  vertical-align: middle;
+  border-bottom: 1px solid #e9edf3;
+  word-break: keep-all;
+}
+
+#performanceSearchResult th {
+  white-space: nowrap;
+  font-weight: 700;
+  color: #5f6b7a;
+  background: #fafbfc;
+}
+
+/* 기본 조회표 열 폭 */
+#performanceSearchResult table th:nth-child(1),
+#performanceSearchResult table td:nth-child(1) {
+  width: 90px;   /* 기간 */
+  white-space: nowrap;
+}
+
+#performanceSearchResult table th:nth-child(2),
+#performanceSearchResult table td:nth-child(2) {
+  width: 140px;  /* 지역 */
+}
+
+#performanceSearchResult table th:nth-child(3),
+#performanceSearchResult table td:nth-child(3) {
+  width: 120px;  /* 대리점 */
+  white-space: nowrap;
+}
+
+#performanceSearchResult table th:nth-child(4),
+#performanceSearchResult table td:nth-child(4),
+#performanceSearchResult table th:nth-child(5),
+#performanceSearchResult table td:nth-child(5),
+#performanceSearchResult table th:nth-child(6),
+#performanceSearchResult table td:nth-child(6),
+#performanceSearchResult table th:nth-child(7),
+#performanceSearchResult table td:nth-child(7) {
+  width: 70px;   /* 후불/순신규/약정갱신/MIT */
+  text-align: center;
+  white-space: nowrap;
+}
+
+#performanceSearchResult table th:nth-child(8),
+#performanceSearchResult table td:nth-child(8) {
+  width: 80px;   /* 상세 */
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* 상세보기 테이블 */
+.performanceDetailTableWrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.performanceDetailTable {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.performanceDetailTable th,
+.performanceDetailTable td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e9edf3;
+  vertical-align: middle;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.performanceDetailTable th {
+  white-space: nowrap;
+  text-align: left;
+  color: #5f6b7a;
+  font-weight: 700;
+  background: #fafbfc;
+}
+
+.performanceDetailTable td {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.performanceDetailTable th:nth-child(1),
+.performanceDetailTable td:nth-child(1) {
+  width: 90px;   /* 기간 */
+  white-space: nowrap;
+}
+
+.performanceDetailTable th:nth-child(2),
+.performanceDetailTable td:nth-child(2) {
+  width: 150px;  /* 지역 */
+}
+
+.performanceDetailTable th:nth-child(3),
+.performanceDetailTable td:nth-child(3) {
+  width: 90px;   /* 대리점 */
+  white-space: nowrap;
+}
+
+.performanceDetailTable th:nth-child(4),
+.performanceDetailTable td:nth-child(4) {
+  width: 140px;  /* 판매점코드 */
+  white-space: nowrap;
+}
+
+.performanceDetailTable th:nth-child(5),
+.performanceDetailTable td:nth-child(5) {
+  width: 220px;  /* 판매점명 */
+}
+
+.performanceDetailTable th:nth-child(6),
+.performanceDetailTable td:nth-child(6),
+.performanceDetailTable th:nth-child(7),
+.performanceDetailTable td:nth-child(7) {
+  width: 70px;   /* 후불/순신규 */
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* 모바일 */
+@media (max-width: 768px) {
+  #performanceSearchResult table {
+    min-width: 780px;
+  }
+
+  #performanceSearchResult th,
+  #performanceSearchResult td,
+  .performanceDetailTable th,
+  .performanceDetailTable td {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .performanceDetailTable {
+    min-width: 860px;
+  }
+
+  .performanceDetailTable th:nth-child(2),
+  .performanceDetailTable td:nth-child(2) {
+    width: 130px;
+  }
+
+  .performanceDetailTable th:nth-child(5),
+  .performanceDetailTable td:nth-child(5) {
+    width: 180px;
+  }
+}
+
+@media (max-width: 768px) {
+  #performanceSearchResult button,
+  .performanceDetailTableWrap button {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}
