@@ -1375,8 +1375,8 @@ async function loadDetail(baseMonth, market, agency) {
         </button>
       </div>
 
-      <div class="tableWrap">
-        <table>
+      <div class="tableWrap performanceDetailTableWrap">
+  <table class="performanceDetailTable">
           <thead>
             <tr>
               <th>기간</th>

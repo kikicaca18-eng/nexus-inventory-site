@@ -1034,3 +1034,99 @@ tr:hover td{background:#fafafa}
     height: 16px;
   }
 }
+
+/* =========================
+   실적 상세보기 테이블 UI 개선
+========================= */
+.performanceDetailTableWrap {
+  overflow-x: auto;
+}
+
+.performanceDetailTable {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.performanceDetailTable th,
+.performanceDetailTable td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e9edf3;
+  vertical-align: middle;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.performanceDetailTable th {
+  white-space: nowrap;
+  text-align: left;
+  color: #5f6b7a;
+  font-weight: 700;
+}
+
+.performanceDetailTable td {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+/* 열 너비 조정 */
+.performanceDetailTable th:nth-child(1),
+.performanceDetailTable td:nth-child(1) {
+  width: 90px;   /* 기간 */
+  white-space: nowrap;
+}
+
+.performanceDetailTable th:nth-child(2),
+.performanceDetailTable td:nth-child(2) {
+  width: 160px;  /* 지역 */
+}
+
+.performanceDetailTable th:nth-child(3),
+.performanceDetailTable td:nth-child(3) {
+  width: 90px;   /* 대리점 */
+  white-space: nowrap;
+}
+
+.performanceDetailTable th:nth-child(4),
+.performanceDetailTable td:nth-child(4) {
+  width: 140px;  /* 판매점코드 */
+  white-space: nowrap;
+}
+
+.performanceDetailTable th:nth-child(5),
+.performanceDetailTable td:nth-child(5) {
+  width: 220px;  /* 판매점명 */
+}
+
+.performanceDetailTable th:nth-child(6),
+.performanceDetailTable td:nth-child(6),
+.performanceDetailTable th:nth-child(7),
+.performanceDetailTable td:nth-child(7) {
+  width: 70px;   /* 후불 / 순신규 */
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* 모바일 대응 */
+@media (max-width: 768px) {
+  .performanceDetailTable {
+    min-width: 860px;
+  }
+
+  .performanceDetailTable th,
+  .performanceDetailTable td {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .performanceDetailTable th:nth-child(2),
+  .performanceDetailTable td:nth-child(2) {
+    width: 140px;
+  }
+
+  .performanceDetailTable th:nth-child(5),
+  .performanceDetailTable td:nth-child(5) {
+    width: 180px;
+  }
+}
