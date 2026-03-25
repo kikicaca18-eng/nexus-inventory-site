@@ -1300,101 +1300,133 @@ async function searchPerformanceSales() {
   const agencyName = document.getElementById("salesAgency")?.value.trim() || "";
   const storeName = document.getElementById("salesStore")?.value.trim() || "";
 
-  const statusWrap = document.getElementById("performanceSearchStatus");
-  const resultWrap = document.getElementById("performanceSearchResult");
+  const status = document.getElementById("performanceSearchStatus");
+  const result = document.getElementById("performanceSearchResult");
 
   if (!startMonth || !endMonth) {
-    if (statusWrap) {
-      statusWrap.innerText = "조회 시작월과 종료월은 필수입니다.";
-    }
+    status.innerText = "조회기간 필수";
     return;
   }
 
-  if (statusWrap) {
-    statusWrap.innerText = "조회 중...";
+  status.innerText = "조회 중...";
+  result.innerHTML = "";
+
+  const resp = await fetch(`${API_URL}/performance/search`, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      start_month: startMonth,
+      end_month: endMonth,
+      region,
+      agency_name: agencyName,
+      store_name: storeName
+    })
+  });
+
+  const j = await resp.json();
+
+  if (!j.ok) {
+    status.innerText = "조회 실패";
+    return;
   }
 
-  if (resultWrap) {
-    resultWrap.innerHTML = "";
-  }
+  const rows = j.rows;
 
-  try {
-    const resp = await fetch(`${API_URL}/performance/search`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        start_month: startMonth,
-        end_month: endMonth,
-        region,
-        agency_name: agencyName,
-        store_name: storeName
-      })
-    });
+  let html = `
+    <div class="tableWrap">
+    <table>
+      <thead>
+        <tr>
+          <th>기간</th>
+          <th>지역</th>
+          <th>대리점</th>
+          <th>후불</th>
+          <th>순신규</th>
+          <th>약정갱신</th>
+          <th>MIT</th>
+          <th>상세</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
 
-    const j = await resp.json();
-
-    if (!resp.ok || !j.ok) {
-      if (statusWrap) {
-        statusWrap.innerText = j.message || "실적 조회 실패";
-      }
-      return;
-    }
-
-    const rows = Array.isArray(j.rows) ? j.rows : [];
-    const meta = j.meta || {};
-
-    if (statusWrap) {
-      statusWrap.innerText = `총 ${rows.length}건 조회되었습니다.`;
-    }
-
-    if (!rows.length) {
-      if (resultWrap) resultWrap.innerHTML = "조회 결과가 없습니다.";
-      return;
-    }
-
-    let headers = `<th>기간</th>`;
-    if (meta.has_region) headers += `<th>지역</th>`;
-    if (meta.has_agency_name) headers += `<th>대리점명</th>`;
-    if (meta.has_store_name) headers += `<th>판매점명</th>`;
-    headers += `
-      <th>후불</th>
-      <th>순신규</th>
-      <th>약정갱신</th>
-      <th>MIT</th>
+  rows.forEach(r=>{
+    html += `
+      <tr>
+        <td>${r.base_month}</td>
+        <td>${r.market || "-"}</td>
+        <td>${r.agency_name}</td>
+        <td>${Number(r.postpaid).toLocaleString()}</td>
+        <td>${Number(r.pure_new).toLocaleString()}</td>
+        <td>${Number(r.renewal).toLocaleString()}</td>
+        <td>${Number(r.mit).toLocaleString()}</td>
+        <td>
+          <button onclick="loadDetail('${r.base_month}','${r.market}','${r.agency_name}')">
+            보기
+          </button>
+        </td>
+      </tr>
     `;
+  });
 
-    let body = "";
-    rows.forEach(r => {
-      body += `<tr>`;
-      body += `<td>${escapeHtml(r.base_month || "")}</td>`;
-      if (meta.has_region) body += `<td>${escapeHtml(r.market || "")}</td>`;
-      if (meta.has_agency_name) body += `<td>${escapeHtml(r.agency_name || "")}</td>`;
-      if (meta.has_store_name) body += `<td>${escapeHtml(r.store_name || "")}</td>`;
-      body += `<td>${Number(r.postpaid || 0).toLocaleString()}</td>`;
-      body += `<td>${Number(r.pure_new || 0).toLocaleString()}</td>`;
-      body += `<td>${Number(r.renewal || 0).toLocaleString()}</td>`;
-      body += `<td>${Number(r.mit || 0).toLocaleString()}</td>`;
-      body += `</tr>`;
-    });
+  html += "</tbody></table></div>";
 
-    if (resultWrap) {
-      resultWrap.innerHTML = `
-        <div class="tableWrap">
-          <table>
-            <thead>
-              <tr>${headers}</tr>
-            </thead>
-            <tbody>
-              ${body}
-            </tbody>
-          </table>
-        </div>
-      `;
-    }
-  } catch (e) {
-    console.error(e);
-    if (statusWrap) {
-      statusWrap.innerText = "네트워크 오류";
-    }
+  result.innerHTML = html;
+  status.innerText = `총 ${rows.length}건`;
+}
+
+async function loadDetail(baseMonth, market, agency) {
+  const result = document.getElementById("performanceSearchResult");
+
+  const resp = await fetch(`${API_URL}/performance/detail`, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      base_month: baseMonth,
+      market,
+      agency_name: agency
+    })
+  });
+
+  const j = await resp.json();
+
+  if (!j.ok) {
+    alert("상세 조회 실패");
+    return;
   }
+
+  let html = `
+    <div class="tableWrap">
+    <table>
+      <thead>
+        <tr>
+          <th>기간</th>
+          <th>지역</th>
+          <th>대리점</th>
+          <th>판매점코드</th>
+          <th>판매점명</th>
+          <th>후불</th>
+          <th>순신규</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  j.rows.forEach(r=>{
+    html += `
+      <tr>
+        <td>${r.base_month}</td>
+        <td>${r.market || "-"}</td>
+        <td>${r.agency_name}</td>
+        <td>${r.store_code}</td>
+        <td>${r.store_name}</td>
+        <td>${Number(r.postpaid).toLocaleString()}</td>
+        <td>${Number(r.pure_new).toLocaleString()}</td>
+      </tr>
+    `;
+  });
+
+  html += "</tbody></table></div>";
+
+  result.innerHTML = html;
 }

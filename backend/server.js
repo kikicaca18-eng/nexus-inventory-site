@@ -1925,16 +1925,7 @@ app.get("/performance/dashboard-trend", async (req, res) => {
 
 /**
  * =========================
- * 실적 필터 조회
- * POST /performance/search
- * body:
- * {
- *   start_month: "2025-02",
- *   end_month: "2026-02",
- *   region: "정읍",
- *   agency_name: "늘품",
- *   store_name: "명진텔레콤"
- * }
+ * 실적 필터 조회 (대리점 기준)
  * =========================
  */
 app.post("/performance/search", async (req, res) => {
@@ -1958,8 +1949,10 @@ app.post("/performance/search", async (req, res) => {
     let where = `
       WHERE base_month >= $1
         AND base_month <= $2
-        AND is_ms = 'Y'
     `;
+
+    // 🔥 M&S 제한 제거 (핵심!)
+    // 기존 is_ms = 'Y' 삭제
 
     if (region) {
       where += ` AND market ILIKE $${idx}`;
@@ -1979,38 +1972,18 @@ app.post("/performance/search", async (req, res) => {
       idx++;
     }
 
-    const selectParts = [`base_month`];
-    const groupParts = [`base_month`];
-    const resultMeta = [];
-
-    if (region) {
-      selectParts.push(`market`);
-      groupParts.push(`market`);
-      resultMeta.push("region");
-    }
-
-    if (agencyName) {
-      selectParts.push(`agency_name`);
-      groupParts.push(`agency_name`);
-      resultMeta.push("agency_name");
-    }
-
-    if (storeName) {
-      selectParts.push(`store_name`);
-      groupParts.push(`store_name`);
-      resultMeta.push("store_name");
-    }
-
     const q = `
       SELECT
-        ${selectParts.join(", ")},
-        COALESCE(SUM(CASE WHEN metric_type = '후불' THEN total_score ELSE 0 END), 0)::numeric AS postpaid,
-        COALESCE(SUM(CASE WHEN metric_type = '순신규' THEN total_score ELSE 0 END), 0)::numeric AS pure_new,
-        COALESCE(SUM(CASE WHEN metric_type = '약정갱신' THEN total_score ELSE 0 END), 0)::numeric AS renewal,
-        COALESCE(SUM(CASE WHEN metric_type = 'MIT' THEN total_score ELSE 0 END), 0)::numeric AS mit
+        base_month,
+        market,
+        agency_name,
+        COALESCE(SUM(CASE WHEN metric_type = '후불' THEN total_score ELSE 0 END), 0) AS postpaid,
+        COALESCE(SUM(CASE WHEN metric_type = '순신규' THEN total_score ELSE 0 END), 0) AS pure_new,
+        COALESCE(SUM(CASE WHEN metric_type = '약정갱신' THEN total_score ELSE 0 END), 0) AS renewal,
+        COALESCE(SUM(CASE WHEN metric_type = 'MIT' THEN total_score ELSE 0 END), 0) AS mit
       FROM sales_records
       ${where}
-      GROUP BY ${groupParts.join(", ")}
+      GROUP BY base_month, market, agency_name
       ORDER BY base_month ASC
     `;
 
@@ -2018,25 +1991,67 @@ app.post("/performance/search", async (req, res) => {
 
     return res.json({
       ok: true,
-      meta: {
-        has_region: !!region,
-        has_agency_name: !!agencyName,
-        has_store_name: !!storeName
-      },
-      rows: r.rows.map(row => ({
-        base_month: row.base_month,
-        market: row.market || "",
-        agency_name: row.agency_name || "",
-        store_name: row.store_name || "",
-        postpaid: Number(row.postpaid || 0),
-        pure_new: Number(row.pure_new || 0),
-        renewal: Number(row.renewal || 0),
-        mit: Number(row.mit || 0)
-      }))
+      rows: r.rows
     });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ ok: false, message: "실적 조회 실패" });
+  }
+});
+
+/**
+ * =========================
+ * 판매점 상세 조회
+ * =========================
+ */
+app.post("/performance/detail", async (req, res) => {
+  try {
+    const { base_month, market, agency_name } = req.body;
+
+    if (!base_month || !agency_name) {
+      return res.status(400).json({
+        ok: false,
+        message: "기준월, 대리점 필수"
+      });
+    }
+
+    const params = [base_month, agency_name];
+    let idx = 3;
+
+    let where = `
+      WHERE base_month = $1
+        AND agency_name = $2
+    `;
+
+    if (market) {
+      where += ` AND market = $${idx}`;
+      params.push(market);
+    }
+
+    const q = `
+      SELECT
+        base_month,
+        market,
+        agency_name,
+        store_code,
+        store_name,
+        COALESCE(SUM(CASE WHEN metric_type = '후불' THEN total_score ELSE 0 END), 0) AS postpaid,
+        COALESCE(SUM(CASE WHEN metric_type = '순신규' THEN total_score ELSE 0 END), 0) AS pure_new
+      FROM sales_records
+      ${where}
+      GROUP BY base_month, market, agency_name, store_code, store_name
+      ORDER BY postpaid DESC
+    `;
+
+    const r = await pool.query(q, params);
+
+    return res.json({
+      ok: true,
+      rows: r.rows
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ ok: false });
   }
 });
 
