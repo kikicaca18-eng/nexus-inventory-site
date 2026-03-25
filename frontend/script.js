@@ -329,14 +329,10 @@ function openInventory() {
 }
 
 function openPerformance() {
-  showOnly(["menuBox", "performanceBox"]);
+  document.getElementById("performanceBox").style.display = "block";
 
-  const uploadSection = document.getElementById("performanceUploadSection");
-  if (uploadSection) {
-    uploadSection.style.display = currentCenter === "관리자" ? "block" : "none";
-  }
-
-  loadSalesUploadHistory();
+  // 🔥 대시보드 로드
+  loadPerformanceDashboard();
 }
 
 // =========================
@@ -1482,4 +1478,30 @@ function removeLastAiLoadingBubble() {
   if (lastBubble.textContent.includes("답변 생성 중")) {
     lastBubble.remove();
   }
+}
+
+async function loadPerformanceDashboard() {
+  const baseMonth = prompt("조회할 기준월 입력 (예: 2026-02)");
+
+  if (!baseMonth) return;
+
+  const res = await fetch(`/api/performance/summary?baseMonth=${baseMonth}`);
+  const json = await res.json();
+
+  if (!json.ok) {
+    alert("조회 실패");
+    return;
+  }
+
+  const data = json.data;
+
+  const container = document.getElementById("performanceDashCards");
+
+  container.innerHTML = `
+    <div class="card">후불<br><strong>${data.후불}</strong></div>
+    <div class="card">순신규<br><strong>${data.순신규}</strong></div>
+    <div class="card">약정갱신<br><strong>${data.약정갱신}</strong></div>
+    <div class="card">MIT<br><strong>${data.MIT}</strong></div>
+    <div class="card">실적점<br><strong>${data["실적점"]}</strong></div>
+  `;
 }

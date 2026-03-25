@@ -1691,6 +1691,55 @@ cron.schedule("0 * * * *", async () => {
 
 const PORT = process.env.PORT || 3000;
 
+// ================= 실적 대시보드 =================
+app.get("/api/performance/summary", async (req, res) => {
+  try {
+    const { baseMonth } = req.query;
+
+    if (!baseMonth) {
+      return res.status(400).json({ error: "baseMonth 필요" });
+    }
+
+    // 유형별 합계
+    const result = await pool.query(`
+      SELECT 
+        metric_type,
+        SUM(total_score) as total
+      FROM sales_records
+      WHERE base_month = $1
+      GROUP BY metric_type
+    `, [baseMonth]);
+
+    // 결과 정리
+    const data = {
+      후불: 0,
+      순신규: 0,
+      약정갱신: 0,
+      MIT: 0
+    };
+
+    result.rows.forEach(r => {
+      data[r.metric_type] = Number(r.total);
+    });
+
+    // 실적점 (후불 기준 판매점 수)
+    const storeCount = await pool.query(`
+      SELECT COUNT(DISTINCT store_code)
+      FROM sales_records
+      WHERE base_month = $1
+        AND metric_type = '후불'
+    `, [baseMonth]);
+
+    data["실적점"] = Number(storeCount.rows[0].count);
+
+    res.json({ ok: true, data });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "서버 오류" });
+  }
+});
+
 app.listen(PORT, () => {
   console.log("🚀 Backend running on port", PORT);
 });
