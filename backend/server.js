@@ -1795,7 +1795,12 @@ app.get("/performance/dashboard-summary", async (req, res) => {
           pure_new: 0,
           renewal: 0,
           mit: 0,
-          postpaid_store_count: 0
+          postpaid_store_count: 0,
+          postpaid_rate: 0,
+          pure_new_rate: 0,
+          renewal_rate: 0,
+          mit_rate: 0,
+          postpaid_store_rate: 0
         }
       });
     }
@@ -1839,15 +1844,71 @@ app.get("/performance/dashboard-summary", async (req, res) => {
       params
     );
 
+    // -------------------------
+    // 목표 조회
+    // -------------------------
+    let targetQ;
+
+    if (agency && agency !== "관리자") {
+      // 센터 로그인: 해당 센터 목표
+      targetQ = await pool.query(
+        `
+        SELECT
+          metric_type,
+          COALESCE(SUM(target_value), 0)::numeric AS target_value
+        FROM sales_targets
+        WHERE base_month = $1
+          AND agency_name = $2
+        GROUP BY metric_type
+        `,
+        [latestMonth, agency]
+      );
+    } else {
+      // 관리자 로그인: 전체 센터 합산 목표
+      targetQ = await pool.query(
+        `
+        SELECT
+          metric_type,
+          COALESCE(SUM(target_value), 0)::numeric AS target_value
+        FROM sales_targets
+        WHERE base_month = $1
+        GROUP BY metric_type
+        `,
+        [latestMonth]
+      );
+    }
+
+    const targetMap = {};
+    (targetQ.rows || []).forEach(r => {
+      targetMap[r.metric_type] = Number(r.target_value || 0);
+    });
+
+    const postpaid = Number(totalQ.rows[0]?.postpaid || 0);
+    const pureNew = Number(totalQ.rows[0]?.pure_new || 0);
+    const renewal = Number(totalQ.rows[0]?.renewal || 0);
+    const mit = Number(totalQ.rows[0]?.mit || 0);
+    const postpaidStoreCount = Number(storeQ.rows[0]?.cnt || 0);
+
+    function calcRate(actual, target) {
+      if (!target || Number(target) === 0) return 0;
+      return Math.round((Number(actual) / Number(target)) * 100);
+    }
+
     return res.json({
       ok: true,
       latest_month: latestMonth,
       summary: {
-        postpaid: Number(totalQ.rows[0]?.postpaid || 0),
-        pure_new: Number(totalQ.rows[0]?.pure_new || 0),
-        renewal: Number(totalQ.rows[0]?.renewal || 0),
-        mit: Number(totalQ.rows[0]?.mit || 0),
-        postpaid_store_count: Number(storeQ.rows[0]?.cnt || 0)
+        postpaid,
+        pure_new: pureNew,
+        renewal,
+        mit,
+        postpaid_store_count: postpaidStoreCount,
+
+        postpaid_rate: calcRate(postpaid, targetMap["후불"]),
+        pure_new_rate: calcRate(pureNew, targetMap["순신규"]),
+        renewal_rate: calcRate(renewal, targetMap["약정갱신"]),
+        mit_rate: calcRate(mit, targetMap["MIT"]),
+        postpaid_store_rate: calcRate(postpaidStoreCount, targetMap["후불실적점"])
       }
     });
   } catch (e) {

@@ -1214,33 +1214,48 @@ async function loadPerformanceDashboard() {
     }
 
     if (cardWrap) {
-      cardWrap.innerHTML = `
-        <div class="statCard clickable performanceDashCard" onclick="loadPerformanceTrend('후불', '후불 최근 6개월 추이')">
-          <div class="statLabel">후불</div>
-          <div class="statValue">${Number(s.postpaid || 0).toLocaleString()}</div>
-        </div>
+  cardWrap.innerHTML = `
+    <div class="statCard clickable performanceDashCard" onclick="loadPerformanceTrend('후불', '후불 최근 6개월 추이')">
+      <div class="statLabel">후불</div>
+      <div class="statValue">
+        ${Number(s.postpaid || 0).toLocaleString()}
+        <span class="rateText">(${Number(s.postpaid_rate || 0)}%)</span>
+      </div>
+    </div>
 
-        <div class="statCard clickable performanceDashCard" onclick="loadPerformanceTrend('순신규', '순신규 최근 6개월 추이')">
-          <div class="statLabel">순신규</div>
-          <div class="statValue">${Number(s.pure_new || 0).toLocaleString()}</div>
-        </div>
+    <div class="statCard clickable performanceDashCard" onclick="loadPerformanceTrend('순신규', '순신규 최근 6개월 추이')">
+      <div class="statLabel">순신규</div>
+      <div class="statValue">
+        ${Number(s.pure_new || 0).toLocaleString()}
+        <span class="rateText">(${Number(s.pure_new_rate || 0)}%)</span>
+      </div>
+    </div>
 
-        <div class="statCard clickable performanceDashCard" onclick="loadPerformanceTrend('약정갱신', '약정갱신 최근 6개월 추이')">
-          <div class="statLabel">약정갱신</div>
-          <div class="statValue">${Number(s.renewal || 0).toLocaleString()}</div>
-        </div>
+    <div class="statCard clickable performanceDashCard" onclick="loadPerformanceTrend('약정갱신', '약정갱신 최근 6개월 추이')">
+      <div class="statLabel">약정갱신</div>
+      <div class="statValue">
+        ${Number(s.renewal || 0).toLocaleString()}
+        <span class="rateText">(${Number(s.renewal_rate || 0)}%)</span>
+      </div>
+    </div>
 
-        <div class="statCard clickable performanceDashCard" onclick="loadPerformanceTrend('후불실적점', '후불 실적점 최근 6개월 추이')">
-          <div class="statLabel">후불 실적점</div>
-          <div class="statValue">${Number(s.postpaid_store_count || 0).toLocaleString()}</div>
-        </div>
+    <div class="statCard clickable performanceDashCard" onclick="loadPerformanceTrend('후불실적점', '후불 실적점 최근 6개월 추이')">
+      <div class="statLabel">후불 실적점</div>
+      <div class="statValue">
+        ${Number(s.postpaid_store_count || 0).toLocaleString()}
+        <span class="rateText">(${Number(s.postpaid_store_rate || 0)}%)</span>
+      </div>
+    </div>
 
-        <div class="statCard clickable performanceDashCard" onclick="loadPerformanceTrend('MIT', 'MIT 최근 6개월 추이')">
-          <div class="statLabel">MIT 당월 실적</div>
-          <div class="statValue">${Number(s.mit || 0).toLocaleString()}</div>
-        </div>
-      `;
-    }
+    <div class="statCard clickable performanceDashCard" onclick="loadPerformanceTrend('MIT', 'MIT 최근 6개월 추이')">
+      <div class="statLabel">MIT 당월 실적</div>
+      <div class="statValue">
+        ${Number(s.mit || 0).toLocaleString()}
+        <span class="rateText">(${Number(s.mit_rate || 0)}%)</span>
+      </div>
+    </div>
+  `;
+}
   } catch (e) {
     console.error(e);
     if (cardWrap) cardWrap.innerHTML = "❌ 네트워크 오류";

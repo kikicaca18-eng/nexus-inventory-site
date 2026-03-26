@@ -1563,3 +1563,23 @@ tr:hover td{background:#fafafa}
     line-height: 1.65;
   }
 }
+
+/* =========================
+   실적 대시보드 달성률
+========================= */
+.rateText {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+@media (max-width: 768px) {
+  .rateText {
+    display: block;
+    margin-left: 0;
+    margin-top: 4px;
+    font-size: 12px;
+  }
+}
