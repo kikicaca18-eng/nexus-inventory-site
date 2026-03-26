@@ -1640,16 +1640,31 @@ async function searchStoreFinder() {
 
     const rows = Array.isArray(j.rows) ? j.rows : [];
 
-    if (status) status.innerText = `총 ${rows.length}건`;
+    if (status) {
+      status.innerText = `총 ${rows.length}건`;
+    }
 
     if (!rows.length) {
-      if (result) result.innerHTML = "검색 결과가 없습니다.";
+      if (result) {
+        result.innerHTML = `
+          <div class="panel">
+            <div class="panelHeader">
+              <div class="panelTitle">검색 결과 없음</div>
+              <div class="panelHint">판매점코드 / 판매점명 / 주소로 다시 검색해보세요.</div>
+            </div>
+          </div>
+        `;
+      }
       return;
     }
 
     let html = `
-      <div class="tableWrap">
-        <table>
+      <div class="storeFinderGuide">
+        판매점코드를 누르면 복사됩니다.
+      </div>
+
+      <div class="tableWrap storeFinderTableWrap">
+        <table class="storeFinderTable">
           <thead>
             <tr>
               <th>판매점코드</th>
@@ -1661,11 +1676,23 @@ async function searchStoreFinder() {
     `;
 
     rows.forEach(r => {
+      const code = r.store_code || "";
+      const name = r.store_name || "";
+      const address = r.address || "";
+
       html += `
         <tr>
-          <td>${escapeHtml(r.store_code || "")}</td>
-          <td>${escapeHtml(r.store_name || "")}</td>
-          <td>${escapeHtml(r.address || "")}</td>
+          <td>
+            <button
+              class="copyCodeBtn"
+              type="button"
+              onclick="copyStoreCode('${escapeJs(code)}')"
+            >
+              ${escapeHtml(code)}
+            </button>
+          </td>
+          <td>${escapeHtml(name)}</td>
+          <td>${escapeHtml(address)}</td>
         </tr>
       `;
     });
@@ -1680,5 +1707,15 @@ async function searchStoreFinder() {
   } catch (e) {
     console.error(e);
     if (status) status.innerText = "네트워크 오류";
+  }
+}
+
+async function copyStoreCode(code) {
+  try {
+    await navigator.clipboard.writeText(code);
+    alert(`판매점코드 복사됨: ${code}`);
+  } catch (e) {
+    console.error(e);
+    alert("복사 실패");
   }
 }

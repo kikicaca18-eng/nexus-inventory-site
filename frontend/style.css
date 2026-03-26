@@ -1324,3 +1324,94 @@ tr:hover td{background:#fafafa}
     height: 260px;
   }
 }
+
+/* =========================
+   판매점 찾기 UI
+========================= */
+.storeFinderGuide {
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.storeFinderTableWrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.storeFinderTable {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.storeFinderTable th,
+.storeFinderTable td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e9edf3;
+  vertical-align: middle;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.storeFinderTable th {
+  text-align: left;
+  font-weight: 700;
+  color: #5f6b7a;
+  background: #fafbfc;
+  white-space: nowrap;
+}
+
+.storeFinderTable td {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.storeFinderTable th:nth-child(1),
+.storeFinderTable td:nth-child(1) {
+  width: 150px;
+  white-space: nowrap;
+}
+
+.storeFinderTable th:nth-child(2),
+.storeFinderTable td:nth-child(2) {
+  width: 200px;
+}
+
+.storeFinderTable th:nth-child(3),
+.storeFinderTable td:nth-child(3) {
+  width: 340px;
+}
+
+.copyCodeBtn {
+  border: 1px solid #d7deea;
+  background: #fff;
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.copyCodeBtn:hover {
+  background: #f7faff;
+}
+
+@media (max-width: 768px) {
+  .storeFinderTable {
+    min-width: 680px;
+  }
+
+  .storeFinderTable th,
+  .storeFinderTable td {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .copyCodeBtn {
+    font-size: 12px;
+    padding: 5px 8px;
+  }
+}
