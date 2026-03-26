@@ -1167,6 +1167,7 @@ async function loadPerformanceDashboard() {
   const chartTitle = document.getElementById("perfChartTitle");
   const resultWrap = document.getElementById("performanceSearchResult");
   const statusWrap = document.getElementById("performanceSearchStatus");
+  const monthWrap = document.getElementById("performanceDashMonth");
 
   if (cardWrap) {
     cardWrap.innerHTML = "불러오는 중...";
@@ -1188,10 +1189,14 @@ async function loadPerformanceDashboard() {
     statusWrap.innerText = "";
   }
 
+  if (monthWrap) {
+    monthWrap.textContent = "기준월: -";
+  }
+
   try {
     const resp = await fetch(
-  `${API_URL}/performance/dashboard-summary?agency=${encodeURIComponent(currentCenter)}`
-);
+      `${API_URL}/performance/dashboard-summary?agency=${encodeURIComponent(currentCenter)}`
+    );
     const j = await resp.json();
 
     if (!resp.ok || !j.ok) {
@@ -1202,36 +1207,35 @@ async function loadPerformanceDashboard() {
     const s = j.summary || {};
     const latestMonth = j.latest_month || "-";
 
+    if (monthWrap) {
+      monthWrap.textContent = `기준월: ${latestMonth}`;
+    }
+
     if (cardWrap) {
       cardWrap.innerHTML = `
-        <div class="statCard clickable" onclick="loadPerformanceTrend('후불', '후불 최근 6개월 추이')">
+        <div class="statCard clickable performanceDashCard" onclick="loadPerformanceTrend('후불', '후불 최근 6개월 추이')">
           <div class="statLabel">후불</div>
           <div class="statValue">${Number(s.postpaid || 0).toLocaleString()}</div>
-          <div class="statSub">기준월 ${latestMonth}</div>
         </div>
 
-        <div class="statCard clickable" onclick="loadPerformanceTrend('순신규', '순신규 최근 6개월 추이')">
+        <div class="statCard clickable performanceDashCard" onclick="loadPerformanceTrend('순신규', '순신규 최근 6개월 추이')">
           <div class="statLabel">순신규</div>
           <div class="statValue">${Number(s.pure_new || 0).toLocaleString()}</div>
-          <div class="statSub">기준월 ${latestMonth}</div>
         </div>
 
-        <div class="statCard clickable" onclick="loadPerformanceTrend('약정갱신', '약정갱신 최근 6개월 추이')">
+        <div class="statCard clickable performanceDashCard" onclick="loadPerformanceTrend('약정갱신', '약정갱신 최근 6개월 추이')">
           <div class="statLabel">약정갱신</div>
           <div class="statValue">${Number(s.renewal || 0).toLocaleString()}</div>
-          <div class="statSub">기준월 ${latestMonth}</div>
         </div>
 
-        <div class="statCard clickable" onclick="loadPerformanceTrend('후불실적점', '후불 실적점 최근 6개월 추이')">
+        <div class="statCard clickable performanceDashCard" onclick="loadPerformanceTrend('후불실적점', '후불 실적점 최근 6개월 추이')">
           <div class="statLabel">후불 실적점</div>
           <div class="statValue">${Number(s.postpaid_store_count || 0).toLocaleString()}</div>
-          <div class="statSub">기준월 ${latestMonth}</div>
         </div>
 
-        <div class="statCard clickable" onclick="loadPerformanceTrend('MIT', 'MIT 최근 6개월 추이')">
+        <div class="statCard clickable performanceDashCard" onclick="loadPerformanceTrend('MIT', 'MIT 최근 6개월 추이')">
           <div class="statLabel">MIT 당월 실적</div>
           <div class="statValue">${Number(s.mit || 0).toLocaleString()}</div>
-          <div class="statSub">기준월 ${latestMonth}</div>
         </div>
       `;
     }

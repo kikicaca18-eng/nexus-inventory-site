@@ -1415,3 +1415,53 @@ tr:hover td{background:#fafafa}
     padding: 5px 8px;
   }
 }
+
+/* =========================
+   실적 대시보드 카드 레이아웃
+========================= */
+#performanceDashCards {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.performanceDashCard {
+  min-height: 120px;
+}
+
+#performanceDashMonth {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+/* 태블릿 */
+@media (max-width: 1024px) {
+  #performanceDashCards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* 모바일 */
+@media (max-width: 768px) {
+  #performanceDashCards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .performanceDashCard {
+    min-height: 108px;
+  }
+
+  .performanceDashCard .statLabel {
+    font-size: 14px;
+  }
+
+  .performanceDashCard .statValue {
+    font-size: 22px;
+  }
+
+  #performanceDashMonth {
+    font-size: 13px;
+  }
+}
