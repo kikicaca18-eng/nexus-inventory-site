@@ -7,6 +7,7 @@ let dashboardDetailSort = {
 };
 
 let dashboardDetailRows = [];
+let performanceTrendChart = null;
 let performanceSearchCache = [];
 let performanceSortState = { key: "", order: "asc" };
 
@@ -1265,30 +1266,91 @@ async function loadPerformanceTrend(metric, title) {
       return;
     }
 
-    const maxValue = Math.max(...rows.map(r => Number(r.value || 0)), 1);
+    // 기존 차트 제거
+    if (performanceTrendChart) {
+      performanceTrendChart.destroy();
+      performanceTrendChart = null;
+    }
 
-    let html = `
-      <div class="perfChartList">
+    // 차트 캔버스 생성
+    chartWrap.innerHTML = `
+      <div class="perfChartCanvasWrap">
+        <canvas id="performanceTrendCanvas"></canvas>
+      </div>
     `;
 
-    rows.forEach(r => {
-      const value = Number(r.value || 0);
-      const width = Math.max((value / maxValue) * 100, 2);
+    const canvas = document.getElementById("performanceTrendCanvas");
+    if (!canvas) {
+      chartWrap.innerHTML = "차트 영역 생성 실패";
+      return;
+    }
 
-      html += `
-        <div class="perfChartRow">
-          <div class="perfChartMonth">${escapeHtml(r.month || "")}</div>
-          <div class="perfChartBarWrap">
-            <div class="perfChartBar" style="width:${width}%"></div>
-          </div>
-          <div class="perfChartValue">${value.toLocaleString()}</div>
-        </div>
-      `;
+    const labels = rows.map(r => r.month || "");
+    const values = rows.map(r => Number(r.value || 0));
+
+    const ctx = canvas.getContext("2d");
+
+    performanceTrendChart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: title,
+            data: values,
+            borderWidth: 1,
+            borderRadius: 6,
+            barThickness: 28,
+            maxBarThickness: 36
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: {
+          duration: 400
+        },
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return `${Number(context.raw || 0).toLocaleString()}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: {
+              maxRotation: 0,
+              minRotation: 0,
+              autoSkip: false,
+              font: {
+                size: 12
+              }
+            },
+            grid: {
+              display: false
+            }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) {
+                return Number(value).toLocaleString();
+              },
+              font: {
+                size: 12
+              }
+            }
+          }
+        }
+      }
     });
-
-    html += `</div>`;
-
-    chartWrap.innerHTML = html;
   } catch (e) {
     console.error(e);
     chartWrap.innerHTML = "❌ 네트워크 오류";
