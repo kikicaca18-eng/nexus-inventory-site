@@ -73,10 +73,11 @@ window.addEventListener("load", () => {
 
     // ✅ 로그인 후에는 메뉴 화면으로
     setDisplay("menuBox", "block");
-    setDisplay("uploadBox", "none");
-    setDisplay("searchBox", "none");
-    setDisplay("inventoryDash", "none");
-    setDisplay("performanceBox", "none");
+setDisplay("securityNoticeBox", "block");
+setDisplay("uploadBox", "none");
+setDisplay("searchBox", "none");
+setDisplay("inventoryDash", "none");
+setDisplay("performanceBox", "none");
 
     setDisplay("todayLoginInfo", "block");
     loadTodayLoginInfo();
@@ -120,10 +121,11 @@ function login() {
   document.querySelector(".hero").style.display = "none";
 
   document.getElementById("menuBox").style.display = "block";
-  document.getElementById("uploadBox").style.display = "none";
-  document.getElementById("searchBox").style.display = "none";
-  document.getElementById("inventoryDash").style.display = "none";
-  document.getElementById("performanceBox").style.display = "none";
+document.getElementById("securityNoticeBox").style.display = "block";
+document.getElementById("uploadBox").style.display = "none";
+document.getElementById("searchBox").style.display = "none";
+document.getElementById("inventoryDash").style.display = "none";
+document.getElementById("performanceBox").style.display = "none";
 
   setDisplay("todayLoginInfo", "block");
   saveLoginLog();
@@ -313,7 +315,7 @@ function renderTable(rows, cols) {
 // 화면 전환
 // =========================
 function showOnly(ids) {
-  const all = ["menuBox", "inventoryDash", "searchBox", "uploadBox", "performanceBox"];
+  const all = ["menuBox", "securityNoticeBox", "inventoryDash", "searchBox", "uploadBox", "performanceBox"];
   all.forEach(id => setDisplay(id, ids.includes(id) ? "block" : "none"));
 }
 
