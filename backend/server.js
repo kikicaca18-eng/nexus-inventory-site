@@ -42,6 +42,22 @@ function toText(v) {
   return String(v).trim();
 }
 
+function mapCenterToSalesAgency(center) {
+  const name = toText(center);
+
+  if (!name || name === "관리자") return "";
+
+  const mapping = {
+    "광주": "M&S광주",
+    "목포": "M&S목포",
+    "순천": "M&S순천",
+    "전북": "M&S전북",
+    "제주": "M&S제주"
+  };
+
+  return mapping[name] || name;
+}
+
 function toNumber(v) {
   if (v === null || v === undefined || v === "") return 0;
   const n = Number(String(v).replace(/,/g, "").trim());
@@ -1748,7 +1764,7 @@ app.get("/api/performance/summary", async (req, res) => {
  */
 app.get("/performance/dashboard-summary", async (req, res) => {
   try {
-    const agency = toText(req.query.agency);
+    const agency = mapCenterToSalesAgency(req.query.agency);
 
     const monthQ = await pool.query(
       `
@@ -1855,7 +1871,7 @@ app.get("/performance/dashboard-summary", async (req, res) => {
 app.get("/performance/dashboard-trend", async (req, res) => {
   try {
     const metric = toText(req.query.metric);
-    const agency = toText(req.query.agency);
+    const agency = mapCenterToSalesAgency(req.query.agency);
 
     if (!metric) {
       return res.status(400).json({ ok: false, message: "metric이 필요합니다." });
