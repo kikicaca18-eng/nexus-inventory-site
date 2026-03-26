@@ -1743,11 +1743,13 @@ app.get("/api/performance/summary", async (req, res) => {
 /**
  * =========================
  * 실적 대시보드 요약
- * GET /performance/dashboard-summary
+ * GET /performance/dashboard-summary?agency=광주
  * =========================
  */
 app.get("/performance/dashboard-summary", async (req, res) => {
   try {
+    const agency = toText(req.query.agency);
+
     const monthQ = await pool.query(
       `
       SELECT MAX(base_month) AS latest_month
@@ -1782,6 +1784,21 @@ app.get("/performance/dashboard-summary", async (req, res) => {
       });
     }
 
+    const params = [latestMonth];
+    let idx = 2;
+
+    let where = `
+      WHERE base_month = $1
+        AND is_ms = 'Y'
+    `;
+
+    // 관리자 아니면 해당 센터만
+    if (agency && agency !== "관리자") {
+      where += ` AND agency_name = $${idx}`;
+      params.push(agency);
+      idx++;
+    }
+
     const totalQ = await pool.query(
       `
       SELECT
@@ -1790,22 +1807,20 @@ app.get("/performance/dashboard-summary", async (req, res) => {
         COALESCE(SUM(CASE WHEN metric_type = '약정갱신' THEN total_score ELSE 0 END), 0)::numeric AS renewal,
         COALESCE(SUM(CASE WHEN metric_type = 'MIT' THEN total_score ELSE 0 END), 0)::numeric AS mit
       FROM sales_records
-      WHERE base_month = $1
-        AND is_ms = 'Y'
+      ${where}
       `,
-      [latestMonth]
+      params
     );
 
     const storeQ = await pool.query(
       `
       SELECT COUNT(DISTINCT store_code)::int AS cnt
       FROM sales_records
-      WHERE base_month = $1
-        AND is_ms = 'Y'
+      ${where}
         AND metric_type = '후불'
         AND COALESCE(total_score, 0) > 0
       `,
-      [latestMonth]
+      params
     );
 
     return res.json({
@@ -1828,7 +1843,7 @@ app.get("/performance/dashboard-summary", async (req, res) => {
 /**
  * =========================
  * 최근 6개월 추이
- * GET /performance/dashboard-trend?metric=후불
+ * GET /performance/dashboard-trend?metric=후불&agency=광주
  * metric:
  * - 후불
  * - 순신규
@@ -1840,6 +1855,7 @@ app.get("/performance/dashboard-summary", async (req, res) => {
 app.get("/performance/dashboard-trend", async (req, res) => {
   try {
     const metric = toText(req.query.metric);
+    const agency = toText(req.query.agency);
 
     if (!metric) {
       return res.status(400).json({ ok: false, message: "metric이 필요합니다." });
@@ -1861,6 +1877,21 @@ app.get("/performance/dashboard-trend", async (req, res) => {
       return res.json({ ok: true, rows: [] });
     }
 
+    const params = [months];
+    let idx = 2;
+
+    let commonWhere = `
+      WHERE base_month = ANY($1)
+        AND is_ms = 'Y'
+    `;
+
+    // 관리자 아니면 해당 센터만
+    if (agency && agency !== "관리자") {
+      commonWhere += ` AND agency_name = $${idx}`;
+      params.push(agency);
+      idx++;
+    }
+
     let rows = [];
 
     if (metric === "후불실적점") {
@@ -1870,14 +1901,13 @@ app.get("/performance/dashboard-trend", async (req, res) => {
           base_month,
           COUNT(DISTINCT store_code)::int AS value
         FROM sales_records
-        WHERE base_month = ANY($1)
-          AND is_ms = 'Y'
+        ${commonWhere}
           AND metric_type = '후불'
           AND COALESCE(total_score, 0) > 0
         GROUP BY base_month
         ORDER BY base_month ASC
         `,
-        [months]
+        params
       );
 
       const map = {};
@@ -1890,19 +1920,20 @@ app.get("/performance/dashboard-trend", async (req, res) => {
         value: Number(map[m] || 0)
       }));
     } else {
+      const metricParams = [...params, metric];
+
       const q = await pool.query(
         `
         SELECT
           base_month,
           COALESCE(SUM(total_score), 0)::numeric AS value
         FROM sales_records
-        WHERE base_month = ANY($1)
-          AND is_ms = 'Y'
-          AND metric_type = $2
+        ${commonWhere}
+          AND metric_type = $${metricParams.length}
         GROUP BY base_month
         ORDER BY base_month ASC
         `,
-        [months, metric]
+        metricParams
       );
 
       const map = {};

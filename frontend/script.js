@@ -1189,7 +1189,9 @@ async function loadPerformanceDashboard() {
   }
 
   try {
-    const resp = await fetch(`${API_URL}/performance/dashboard-summary`);
+    const resp = await fetch(
+  `${API_URL}/performance/dashboard-summary?agency=${encodeURIComponent(currentCenter)}`
+);
     const j = await resp.json();
 
     if (!resp.ok || !j.ok) {
@@ -1250,8 +1252,8 @@ async function loadPerformanceTrend(metric, title) {
 
   try {
     const resp = await fetch(
-      `${API_URL}/performance/dashboard-trend?metric=${encodeURIComponent(metric)}`
-    );
+  `${API_URL}/performance/dashboard-trend?metric=${encodeURIComponent(metric)}&agency=${encodeURIComponent(currentCenter)}`
+);
     const j = await resp.json();
 
     if (!resp.ok || !j.ok) {
