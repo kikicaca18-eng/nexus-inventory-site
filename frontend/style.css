@@ -1465,3 +1465,44 @@ tr:hover td{background:#fafafa}
     font-size: 13px;
   }
 }
+
+/* =========================
+   실적 대시보드 (강제 override)
+========================= */
+#performanceDashCards {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important; /* 👉 모바일 기본 2칸 */
+  gap: 10px !important;
+}
+
+/* 카드 크기 축소 */
+#performanceDashCards .statCard {
+  padding: 14px 12px !important;
+  border-radius: 14px;
+  min-height: auto !important;
+}
+
+/* 텍스트 줄이기 */
+#performanceDashCards .statLabel {
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+#performanceDashCards .statValue {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+/* 태블릿 */
+@media (min-width: 768px) {
+  #performanceDashCards {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+/* PC */
+@media (min-width: 1024px) {
+  #performanceDashCards {
+    grid-template-columns: repeat(5, 1fr) !important;
+  }
+}
