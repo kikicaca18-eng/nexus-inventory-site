@@ -1266,13 +1266,11 @@ async function loadPerformanceTrend(metric, title) {
       return;
     }
 
-    // 기존 차트 제거
     if (performanceTrendChart) {
       performanceTrendChart.destroy();
       performanceTrendChart = null;
     }
 
-    // 차트 캔버스 생성
     chartWrap.innerHTML = `
       <div class="perfChartCanvasWrap">
         <canvas id="performanceTrendCanvas"></canvas>
@@ -1285,23 +1283,45 @@ async function loadPerformanceTrend(metric, title) {
       return;
     }
 
-    const labels = rows.map(r => r.month || "");
+    // ✅ X축은 월만 표시
+    const labels = rows.map(r => {
+      const monthText = String(r.month || "");
+      const mm = monthText.slice(5, 7);
+      return `${mm}월`;
+    });
+
     const values = rows.map(r => Number(r.value || 0));
 
     const ctx = canvas.getContext("2d");
 
     performanceTrendChart = new Chart(ctx, {
-      type: "bar",
       data: {
         labels,
         datasets: [
           {
+            type: "bar",
             label: title,
             data: values,
             borderWidth: 1,
             borderRadius: 6,
             barThickness: 28,
-            maxBarThickness: 36
+            maxBarThickness: 36,
+            backgroundColor: "rgba(91, 141, 239, 0.55)",
+            borderColor: "rgba(91, 141, 239, 0.95)"
+          },
+          {
+            type: "line",
+            label: "추세",
+            data: values,
+            borderColor: "rgba(91, 141, 239, 0.35)",
+            backgroundColor: "rgba(91, 141, 239, 0.12)",
+            borderWidth: 2,
+            pointRadius: 3,
+            pointHoverRadius: 4,
+            pointBackgroundColor: "rgba(91, 141, 239, 0.45)",
+            pointBorderColor: "rgba(91, 141, 239, 0.45)",
+            tension: 0.35,
+            fill: false
           }
         ]
       },
