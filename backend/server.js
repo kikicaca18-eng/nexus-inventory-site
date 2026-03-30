@@ -2275,8 +2275,14 @@ app.post("/store-master/search", async (req, res) => {
  * =========================
  */
 app.post("/inventory/by-model-turnover", async (req, res) => {
+  const snapshotDate = todayKST();
+  const { agency } = req.body;
+
+  if (!agency) {
+    return res.status(400).json({ ok: false, message: "agency 정보가 없습니다." });
+  }
+
   try {
-    const agency = toText(req.body.agency);
     const salesAgency = mapCenterToSalesAgency(agency);
 
     // -------------------------
@@ -2304,6 +2310,9 @@ app.post("/inventory/by-model-turnover", async (req, res) => {
 
     const latestDate = dateQ.rows[0]?.latest_date || null;
 
+    // -------------------------
+    // 기준일까지의 영업일 수 (일요일 제외)
+    // -------------------------
     let businessDays = 0;
 
     if (latestDate) {
@@ -2315,6 +2324,7 @@ app.post("/inventory/by-model-turnover", async (req, res) => {
       for (let d = 1; d <= day; d++) {
         const current = new Date(Date.UTC(year, month - 1, d));
         const weekday = current.getUTCDay(); // 0=일요일
+
         if (weekday !== 0) {
           businessDays++;
         }
@@ -2323,13 +2333,14 @@ app.post("/inventory/by-model-turnover", async (req, res) => {
 
     // -------------------------
     // 재고 모델별 집계
-    // inventory_items 테이블 기준
+    // summary-extended와 동일하게
+    // snapshot_date = todayKST() 기준 사용
     // -------------------------
-    const inventoryParams = [];
-    let inventoryWhere = ``;
+    const inventoryParams = [snapshotDate];
+    let inventoryWhere = `WHERE snapshot_date = $1`;
 
-    if (agency && agency !== "관리자") {
-      inventoryWhere = `WHERE agency_name = $1`;
+    if (agency !== "관리자") {
+      inventoryWhere += ` AND agency_name = $2`;
       inventoryParams.push(agency);
     }
 
@@ -2348,7 +2359,6 @@ app.post("/inventory/by-model-turnover", async (req, res) => {
 
     // -------------------------
     // 당월 후불판매(모델별)
-    // sales_records 기준
     // -------------------------
     let salesRows = [];
 
@@ -2361,7 +2371,7 @@ app.post("/inventory/by-model-turnover", async (req, res) => {
           AND is_ms = 'Y'
       `;
 
-      if (agency && agency !== "관리자") {
+      if (agency !== "관리자") {
         salesWhere += ` AND agency_name = $2`;
         salesParams.push(salesAgency);
       }
@@ -2403,12 +2413,14 @@ app.post("/inventory/by-model-turnover", async (req, res) => {
         monthly_sales: salesQty,
         turnover_days: turnoverDays,
         base_month: latestMonth,
-        business_days: businessDays
+        business_days: businessDays,
+        snapshot_date: snapshotDate
       };
     });
 
     return res.json({
       ok: true,
+      snapshot_date: snapshotDate,
       latest_month: latestMonth,
       business_days: businessDays,
       rows
