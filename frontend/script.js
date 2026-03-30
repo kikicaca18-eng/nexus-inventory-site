@@ -1209,12 +1209,13 @@ async function loadPerformanceDashboard() {
     const s = j.summary || {};
 const latestMonth = j.latest_month || "-";
 const latestDate = j.latest_date || "";
+const progressRate = Number(j.progress_rate || 0);
 
     if (monthWrap) {
   const displayDate = latestDate ? String(latestDate).slice(0, 10) : "";
   monthWrap.textContent = displayDate
-    ? `기준일: ${displayDate}`
-    : "기준일: -";
+    ? `기준일: ${displayDate} · 표준 진척율: ${progressRate}%`
+    : "기준일: - · 표준 진척율: 0%";
 }
 
     if (cardWrap) {

@@ -1797,12 +1797,50 @@ const dateQ = await pool.query(
 );
 
 const latestDate = dateQ.rows[0]?.latest_date || null;
+    // -------------------------
+    // 표준 진척율 계산
+    // 기준: 일요일 제외, 월~토 영업일
+    // -------------------------
+    let progressRate = 0;
+
+    if (latestDate) {
+      const dateText = String(latestDate).slice(0, 10); // YYYY-MM-DD
+      const [yearStr, monthStr, dayStr] = dateText.split("-");
+      const year = Number(yearStr);
+      const month = Number(monthStr);
+      const day = Number(dayStr);
+
+      // 해당 월 마지막 날짜
+      const lastDayOfMonth = new Date(year, month, 0).getDate();
+
+      let totalBusinessDays = 0;
+      let passedBusinessDays = 0;
+
+      for (let d = 1; d <= lastDayOfMonth; d++) {
+        const current = new Date(year, month - 1, d);
+        const weekday = current.getDay(); // 0=일요일
+
+        // 일요일 제외
+        if (weekday !== 0) {
+          totalBusinessDays++;
+
+          if (d <= day) {
+            passedBusinessDays++;
+          }
+        }
+      }
+
+      if (totalBusinessDays > 0) {
+        progressRate = Math.round((passedBusinessDays / totalBusinessDays) * 100);
+      }
+    }
 
     if (!latestMonth) {
       return res.json({
         ok: true,
         latest_month: latestMonth,
         latest_date : latestDate,
+        progress_rate: progressRate,
         summary: {
           postpaid: 0,
           pure_new: 0,
@@ -1911,6 +1949,7 @@ const latestDate = dateQ.rows[0]?.latest_date || null;
       ok: true,
       latest_month: latestMonth,
       latest_date : latestDate,
+      progress_rate: progressRate,
       summary: {
         postpaid,
         pure_new: pureNew,
