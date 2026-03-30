@@ -1775,20 +1775,18 @@ app.get("/performance/dashboard-summary", async (req, res) => {
     );
 
     const latestMonth =
-      monthQ.rows[0]?.latest_month ||
-      (
-        await pool.query(
-          `
-          SELECT MAX(base_month) AS latest_month
-          FROM sales_records
-          WHERE data_scope = 'monthly'
-          `
-        )
-      ).rows[0]?.latest_month;
+  monthQ.rows[0]?.latest_month ||
+  (
+    await pool.query(
+      `
+      SELECT MAX(base_month) AS latest_month
+      FROM sales_records
+      WHERE data_scope = 'monthly'
+      `
+    )
+  ).rows[0]?.latest_month;
 
-      // -------------------------
-// 기준일 (후불 마지막 날짜)
-// -------------------------
+// 기준일 = 당월(후불) 마지막 마감일
 const dateQ = await pool.query(
   `
   SELECT MAX(record_date) AS latest_date
@@ -1804,7 +1802,7 @@ const latestDate = dateQ.rows[0]?.latest_date || null;
       return res.json({
         ok: true,
         latest_month: latestMonth,
-        latest_date : latestDate
+        latest_date : latestDate,
         summary: {
           postpaid: 0,
           pure_new: 0,
