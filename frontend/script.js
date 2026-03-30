@@ -497,8 +497,8 @@ function renderInventoryModelTurnoverTable() {
   });
 
   let html = `
-    <div class="tableWrap">
-      <table>
+  <div class="tableWrap inventoryTurnoverWrap">
+    <table class="inventoryTurnoverTable">
         <thead>
           <tr>
             <th class="sortable" onclick="toggleInventoryModelTurnoverSort('model_name')">
@@ -1032,8 +1032,8 @@ function renderDashboardTotalDetail(rows) {
   }
 
   let html = `
-    <div class="tableWrap">
-      <table>
+  <div class="tableWrap inventoryTotalDetailWrap">
+    <table class="inventoryTotalDetailTable">
         <thead>
           <tr>
             <th class="sortable" onclick="toggleDashboardSort('total','model_name')">
@@ -1100,8 +1100,8 @@ function renderDashboardStoreDetail(rows) {
   }
 
   let html = `
-    <div class="tableWrap">
-      <table>
+  <div class="tableWrap inventoryStoreDetailWrap">
+    <table class="inventoryStoreDetailTable">
         <thead>
           <tr>
             <th class="sortable" onclick="toggleDashboardSort('store','agency_name')">
@@ -1333,8 +1333,8 @@ function renderAgingStockDetailTable() {
   });
 
   let html = `
-    <div class="tableWrap">
-      <table>
+  <div class="tableWrap inventoryAgingWrap">
+    <table class="inventoryAgingTable">
         <thead>
           <tr>
             <th class="sortable" onclick="toggleAgingStockDetailSort('agency_name')">

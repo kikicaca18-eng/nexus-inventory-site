@@ -1616,3 +1616,270 @@ tr:hover td{background:#fafafa}
     grid-template-columns: repeat(1, minmax(0, 1fr));
   }
 }
+
+/* =========================
+   재고조회 모바일 최적화
+========================= */
+
+/* 1) 재고 대시보드 카드 - 모바일 2칸 */
+#invCards {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+}
+
+#invCards .statCard {
+  min-height: 120px;
+}
+
+@media (max-width: 1024px) {
+  #invCards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  #invCards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  #invCards .statCard {
+    min-height: 96px;
+    padding: 12px 12px;
+  }
+
+  #invCards .statLabel {
+    font-size: 13px;
+    margin-bottom: 4px;
+  }
+
+  #invCards .statValue {
+    font-size: 20px;
+    line-height: 1.2;
+  }
+}
+
+/* 공통 모바일 테이블 기본 */
+.inventoryTotalDetailWrap,
+.inventoryStoreDetailWrap,
+.inventoryTurnoverWrap,
+.inventoryAgingWrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.inventoryTotalDetailTable,
+.inventoryStoreDetailTable,
+.inventoryTurnoverTable,
+.inventoryAgingTable {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.inventoryTotalDetailTable th,
+.inventoryTotalDetailTable td,
+.inventoryStoreDetailTable th,
+.inventoryStoreDetailTable td,
+.inventoryTurnoverTable th,
+.inventoryTurnoverTable td,
+.inventoryAgingTable th,
+.inventoryAgingTable td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e9edf3;
+  vertical-align: middle;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.inventoryTotalDetailTable th,
+.inventoryStoreDetailTable th,
+.inventoryTurnoverTable th,
+.inventoryAgingTable th {
+  white-space: nowrap;
+  text-align: left;
+  color: #5f6b7a;
+  font-weight: 700;
+  background: #fafbfc;
+}
+
+.inventoryTotalDetailTable td,
+.inventoryStoreDetailTable td,
+.inventoryTurnoverTable td,
+.inventoryAgingTable td {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+/* 2) 총 재고 상세 - 판매점재고/창고비중 겹침 방지 */
+.inventoryTotalDetailTable {
+  min-width: 920px;
+}
+
+.inventoryTotalDetailTable th:nth-child(1),
+.inventoryTotalDetailTable td:nth-child(1) {
+  width: 180px; /* 모델명 */
+}
+
+.inventoryTotalDetailTable th:nth-child(2),
+.inventoryTotalDetailTable td:nth-child(2) {
+  width: 90px; /* 색상 */
+}
+
+.inventoryTotalDetailTable th:nth-child(3),
+.inventoryTotalDetailTable td:nth-child(3),
+.inventoryTotalDetailTable th:nth-child(4),
+.inventoryTotalDetailTable td:nth-child(4),
+.inventoryTotalDetailTable th:nth-child(5),
+.inventoryTotalDetailTable td:nth-child(5) {
+  width: 95px; /* 총재고/창고재고/판매점재고 */
+  text-align: center;
+  white-space: nowrap;
+}
+
+.inventoryTotalDetailTable th:nth-child(6),
+.inventoryTotalDetailTable td:nth-child(6) {
+  width: 110px; /* 창고비중 */
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* 판매점 상세 */
+.inventoryStoreDetailTable {
+  min-width: 760px;
+}
+
+.inventoryStoreDetailTable th:nth-child(1),
+.inventoryStoreDetailTable td:nth-child(1) {
+  width: 110px; /* 대리점명 */
+}
+
+.inventoryStoreDetailTable th:nth-child(2),
+.inventoryStoreDetailTable td:nth-child(2) {
+  width: 160px; /* 판매점명 */
+}
+
+.inventoryStoreDetailTable th:nth-child(3),
+.inventoryStoreDetailTable td:nth-child(3) {
+  width: 170px; /* 모델명 */
+}
+
+.inventoryStoreDetailTable th:nth-child(4),
+.inventoryStoreDetailTable td:nth-child(4) {
+  width: 70px; /* 수량 */
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* 3) 모델별 회전일 - 컴팩트하게 */
+.inventoryTurnoverTable {
+  min-width: 560px;
+}
+
+.inventoryTurnoverTable th:nth-child(1),
+.inventoryTurnoverTable td:nth-child(1) {
+  width: 200px; /* 모델명 */
+}
+
+.inventoryTurnoverTable th:nth-child(2),
+.inventoryTurnoverTable td:nth-child(2),
+.inventoryTurnoverTable th:nth-child(3),
+.inventoryTurnoverTable td:nth-child(3),
+.inventoryTurnoverTable th:nth-child(4),
+.inventoryTurnoverTable td:nth-child(4) {
+  width: 90px; /* 수량/당월판매/회전일 */
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* 4) 장기재고 상세 - 센터 포함 컴팩트 */
+.inventoryAgingTable {
+  min-width: 760px;
+}
+
+.inventoryAgingTable th:nth-child(1),
+.inventoryAgingTable td:nth-child(1) {
+  width: 90px; /* 센터 */
+  white-space: nowrap;
+}
+
+.inventoryAgingTable th:nth-child(2),
+.inventoryAgingTable td:nth-child(2) {
+  width: 170px; /* 모델 */
+}
+
+.inventoryAgingTable th:nth-child(3),
+.inventoryAgingTable td:nth-child(3) {
+  width: 90px; /* 색상 */
+  white-space: nowrap;
+}
+
+.inventoryAgingTable th:nth-child(4),
+.inventoryAgingTable td:nth-child(4) {
+  width: 180px; /* 일련번호 */
+  white-space: nowrap;
+}
+
+.inventoryAgingTable th:nth-child(5),
+.inventoryAgingTable td:nth-child(5) {
+  width: 90px; /* 입고경과일 */
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* 모바일에서 더 조밀하게 */
+@media (max-width: 768px) {
+  .inventoryTotalDetailTable th,
+  .inventoryTotalDetailTable td,
+  .inventoryStoreDetailTable th,
+  .inventoryStoreDetailTable td,
+  .inventoryTurnoverTable th,
+  .inventoryTurnoverTable td,
+  .inventoryAgingTable th,
+  .inventoryAgingTable td {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .inventoryTotalDetailTable {
+    min-width: 820px;
+  }
+
+  .inventoryStoreDetailTable {
+    min-width: 700px;
+  }
+
+  .inventoryTurnoverTable {
+    min-width: 500px;
+  }
+
+  .inventoryTurnoverTable th:nth-child(1),
+  .inventoryTurnoverTable td:nth-child(1) {
+    width: 170px;
+  }
+
+  .inventoryTurnoverTable th:nth-child(2),
+  .inventoryTurnoverTable td:nth-child(2),
+  .inventoryTurnoverTable th:nth-child(3),
+  .inventoryTurnoverTable td:nth-child(3),
+  .inventoryTurnoverTable th:nth-child(4),
+  .inventoryTurnoverTable td:nth-child(4) {
+    width: 80px;
+  }
+
+  .inventoryAgingTable {
+    min-width: 700px;
+  }
+
+  .inventoryAgingTable th:nth-child(2),
+  .inventoryAgingTable td:nth-child(2) {
+    width: 150px;
+  }
+
+  .inventoryAgingTable th:nth-child(4),
+  .inventoryAgingTable td:nth-child(4) {
+    width: 160px;
+  }
+}
