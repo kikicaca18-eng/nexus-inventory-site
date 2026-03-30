@@ -1211,8 +1211,9 @@ const latestMonth = j.latest_month || "-";
 const latestDate = j.latest_date || "";
 
     if (monthWrap) {
-  monthWrap.textContent = latestDate
-    ? `기준일: ${latestDate}`
+  const displayDate = latestDate ? String(latestDate).slice(0, 10) : "";
+  monthWrap.textContent = displayDate
+    ? `기준일: ${displayDate}`
     : "기준일: -";
 }
 
