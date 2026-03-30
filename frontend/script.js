@@ -13,6 +13,11 @@ let inventoryModelTurnoverSort = {
   order: "asc"
 };
 let activeAgingThreshold = 0;
+let agingStockDetailRows = [];
+let agingStockDetailSort = {
+  key: "aging_days",
+  order: "desc"
+};
 let performanceTrendChart = null;
 let performanceSearchCache = [];
 let performanceSortState = { key: "", order: "asc" };
@@ -1277,52 +1282,117 @@ async function toggleAgingStockDetail(threshold) {
       return;
     }
 
-    const rows = Array.isArray(j.rows) ? j.rows : [];
+        const rows = Array.isArray(j.rows) ? j.rows : [];
 
     if (!rows.length) {
       detailTable.innerHTML = "조건에 해당하는 재고가 없습니다.";
       activeAgingThreshold = threshold;
+      agingStockDetailRows = [];
       return;
     }
 
-    let html = `
-      <div class="tableWrap">
-        <table>
-          <thead>
-            <tr>
-              <th>모델</th>
-              <th>색상</th>
-              <th>일련번호</th>
-              <th>입고경과일</th>
-            </tr>
-          </thead>
-          <tbody>
-    `;
+    agingStockDetailRows = rows;
+    agingStockDetailSort = {
+      key: "aging_days",
+      order: "desc"
+    };
 
-    rows.forEach(r => {
-      html += `
-        <tr>
-          <td>${escapeHtml(r.model_name || "")}</td>
-          <td>${escapeHtml(r.color || "")}</td>
-          <td>${escapeHtml(r.serial_no || "")}</td>
-          <td>${Number(r.aging_days || 0).toLocaleString()}일</td>
-        </tr>
-      `;
-    });
-
-    html += `
-          </tbody>
-        </table>
-      </div>
-    `;
-
-    detailTable.innerHTML = html;
+    renderAgingStockDetailTable();
     activeAgingThreshold = threshold;
   } catch (e) {
     console.error(e);
     detailTable.innerHTML = "❌ 네트워크 오류";
     activeAgingThreshold = 0;
   }
+}
+
+function renderAgingStockDetailTable() {
+  const detailTable = document.getElementById("agingStockDetailTable");
+  if (!detailTable) return;
+
+  let rows = [...agingStockDetailRows];
+  const key = agingStockDetailSort.key;
+  const order = agingStockDetailSort.order;
+
+  rows.sort((a, b) => {
+    let av = a[key];
+    let bv = b[key];
+
+    const numericKeys = ["aging_days"];
+    const isNumeric = numericKeys.includes(key);
+
+    let cmp = 0;
+
+    if (isNumeric) {
+      cmp = Number(av || 0) - Number(bv || 0);
+    } else {
+      cmp = String(av || "").localeCompare(String(bv || ""), "ko");
+    }
+
+    return order === "asc" ? cmp : -cmp;
+  });
+
+  let html = `
+    <div class="tableWrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="sortable" onclick="toggleAgingStockDetailSort('agency_name')">
+              센터${getAgingStockDetailSortIndicator('agency_name')}
+            </th>
+            <th class="sortable" onclick="toggleAgingStockDetailSort('model_name')">
+              모델${getAgingStockDetailSortIndicator('model_name')}
+            </th>
+            <th class="sortable" onclick="toggleAgingStockDetailSort('color')">
+              색상${getAgingStockDetailSortIndicator('color')}
+            </th>
+            <th class="sortable" onclick="toggleAgingStockDetailSort('serial_no')">
+              일련번호${getAgingStockDetailSortIndicator('serial_no')}
+            </th>
+            <th class="sortable" onclick="toggleAgingStockDetailSort('aging_days')">
+              입고경과일${getAgingStockDetailSortIndicator('aging_days')}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  rows.forEach(r => {
+    html += `
+      <tr>
+        <td>${escapeHtml(r.agency_name || "")}</td>
+        <td>${escapeHtml(r.model_name || "")}</td>
+        <td>${escapeHtml(r.color || "")}</td>
+        <td>${escapeHtml(r.serial_no || "")}</td>
+        <td>${Number(r.aging_days || 0).toLocaleString()}일</td>
+      </tr>
+    `;
+  });
+
+  html += `
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  detailTable.innerHTML = html;
+}
+
+function toggleAgingStockDetailSort(key) {
+  if (agingStockDetailSort.key === key) {
+    agingStockDetailSort.order =
+      agingStockDetailSort.order === "asc" ? "desc" : "asc";
+  } else {
+    agingStockDetailSort.key = key;
+    agingStockDetailSort.order = "asc";
+  }
+
+  renderAgingStockDetailTable();
+}
+
+function getAgingStockDetailSortIndicator(key) {
+  if (agingStockDetailSort.key !== key) return "";
+  return agingStockDetailSort.order === "asc" ? " ▲" : " ▼";
 }
 
 // =========================

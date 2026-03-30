@@ -2508,15 +2508,16 @@ app.post("/inventory/aging-detail", async (req, res) => {
     }
 
     const q = `
-      SELECT
-        model_name,
-        color,
-        serial_no,
-        aging_days
-      FROM inventory_items
-      ${where}
-      ORDER BY aging_days DESC, model_name ASC
-    `;
+  SELECT
+    agency_name,
+    model_name,
+    color,
+    serial_no,
+    aging_days
+  FROM inventory_items
+  ${where}
+  ORDER BY aging_days DESC, model_name ASC
+`;
 
     const r = await pool.query(q, params);
 
