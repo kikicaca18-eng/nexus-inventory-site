@@ -2439,6 +2439,99 @@ app.post("/inventory/by-model-turnover", async (req, res) => {
   }
 });
 
+app.post("/inventory/aging-summary", async (req, res) => {
+  const snapshotDate = todayKST();
+  const { agency } = req.body;
+
+  if (!agency) {
+    return res.status(400).json({ ok: false, message: "agency 정보가 없습니다." });
+  }
+
+  try {
+    const params = [snapshotDate];
+    let idx = 2;
+    let where = `WHERE snapshot_date = $1`;
+
+    if (agency !== "관리자") {
+      where += ` AND agency_name = $${idx}`;
+      params.push(agency);
+      idx++;
+    }
+
+    const q = `
+      SELECT
+        SUM(CASE WHEN aging_days > 360 THEN 1 ELSE 0 END)::int AS over_360,
+        SUM(CASE WHEN aging_days > 500 THEN 1 ELSE 0 END)::int AS over_500,
+        SUM(CASE WHEN aging_days > 720 THEN 1 ELSE 0 END)::int AS over_720
+      FROM inventory_items
+      ${where}
+    `;
+
+    const r = await pool.query(q, params);
+
+    return res.json({
+      ok: true,
+      snapshot_date: snapshotDate,
+      summary: r.rows[0]
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ ok: false, message: "장기재고 요약 실패" });
+  }
+});
+
+app.post("/inventory/aging-detail", async (req, res) => {
+  const snapshotDate = todayKST();
+  const { agency, threshold } = req.body;
+
+  if (!agency) {
+    return res.status(400).json({ ok: false, message: "agency 정보가 없습니다." });
+  }
+
+  const limitDays = Number(threshold);
+  if (![360, 500, 720].includes(limitDays)) {
+    return res.status(400).json({ ok: false, message: "threshold 값이 올바르지 않습니다." });
+  }
+
+  try {
+    const params = [snapshotDate, limitDays];
+    let idx = 3;
+    let where = `
+      WHERE snapshot_date = $1
+        AND aging_days > $2
+    `;
+
+    if (agency !== "관리자") {
+      where += ` AND agency_name = $${idx}`;
+      params.push(agency);
+      idx++;
+    }
+
+    const q = `
+      SELECT
+        model_name,
+        color,
+        serial_no,
+        aging_days
+      FROM inventory_items
+      ${where}
+      ORDER BY aging_days DESC, model_name ASC
+    `;
+
+    const r = await pool.query(q, params);
+
+    return res.json({
+      ok: true,
+      snapshot_date: snapshotDate,
+      threshold: limitDays,
+      rows: r.rows
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ ok: false, message: "장기재고 상세 조회 실패" });
+  }
+});
+
 app.listen(PORT, () => {
   console.log("🚀 Backend running on port", PORT);
 });

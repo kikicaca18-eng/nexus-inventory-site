@@ -12,6 +12,7 @@ let inventoryModelTurnoverSort = {
   key: "turnover_days",
   order: "asc"
 };
+let activeAgingThreshold = 0;
 let performanceTrendChart = null;
 let performanceSearchCache = [];
 let performanceSortState = { key: "", order: "asc" };
@@ -320,16 +321,16 @@ function renderTable(rows, cols) {
 // 화면 전환
 // =========================
 function showOnly(ids) {
-  const all = ["menuBox", "securityNoticeBox", "inventoryDash", "searchBox", "uploadBox", "performanceBox"];
+  const all = ["menuBox", "securityNoticeBox", "inventoryDash", "agingStockBox", "searchBox", "uploadBox", "performanceBox"];
   all.forEach(id => setDisplay(id, ids.includes(id) ? "block" : "none"));
 }
 
 function openInventory() {
   if (currentCenter === "관리자") {
-    showOnly(["menuBox", "inventoryDash", "uploadBox", "searchBox"]);
-  } else {
-    showOnly(["menuBox", "inventoryDash", "searchBox"]);
-  }
+  showOnly(["menuBox", "inventoryDash", "agingStockBox", "uploadBox", "searchBox"]);
+} else {
+  showOnly(["menuBox", "inventoryDash", "agingStockBox", "searchBox"]);
+}
 
   const detailBox = document.getElementById("inventoryDetailPanels");
   if (detailBox) detailBox.style.display = "none";
@@ -376,6 +377,17 @@ async function loadInventoryDashboard() {
     };
 
     renderInventoryModelTurnoverTable();
+
+        // 3) 장기 입고 미소진 재고 요약
+    const aResp = await fetch(`${API_URL}/inventory/aging-summary`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ agency: currentCenter })
+    });
+    const a = await aResp.json();
+    if (!aResp.ok || !a.ok) throw new Error(a.message || "장기재고 요약 실패");
+
+    renderAgingStockCards(a.summary || {});
   } catch (e) {
     if (cards) cards.innerHTML = `❌ 대시보드 로드 실패: ${e.message}`;
   }
@@ -1197,6 +1209,119 @@ function renderDashboardDetailByType(type) {
     renderDashboardTotalDetail(dashboardDetailRows);
   } else if (type === "store") {
     renderDashboardStoreDetail(dashboardDetailRows);
+  }
+}
+
+function renderAgingStockCards(summary) {
+  const wrap = document.getElementById("agingStockCards");
+  const detailSection = document.getElementById("agingStockDetailSection");
+  const detailTable = document.getElementById("agingStockDetailTable");
+
+  if (!wrap) return;
+
+  wrap.innerHTML = `
+    <div class="statCard clickable" onclick="toggleAgingStockDetail(360)">
+      <div class="statLabel">360일 초과</div>
+      <div class="statValue">${Number(summary.over_360 || 0).toLocaleString()}대</div>
+    </div>
+
+    <div class="statCard clickable" onclick="toggleAgingStockDetail(500)">
+      <div class="statLabel">500일 초과</div>
+      <div class="statValue">${Number(summary.over_500 || 0).toLocaleString()}대</div>
+    </div>
+
+    <div class="statCard clickable" onclick="toggleAgingStockDetail(720)">
+      <div class="statLabel">720일 초과</div>
+      <div class="statValue">${Number(summary.over_720 || 0).toLocaleString()}대</div>
+    </div>
+  `;
+
+  if (detailSection) detailSection.style.display = "none";
+  if (detailTable) detailTable.innerHTML = "";
+  activeAgingThreshold = 0;
+}
+
+async function toggleAgingStockDetail(threshold) {
+  const detailSection = document.getElementById("agingStockDetailSection");
+  const detailTitle = document.getElementById("agingStockDetailTitle");
+  const detailTable = document.getElementById("agingStockDetailTable");
+
+  if (!detailSection || !detailTitle || !detailTable) return;
+
+  if (activeAgingThreshold === threshold && detailSection.style.display !== "none") {
+    detailSection.style.display = "none";
+    detailTable.innerHTML = "";
+    activeAgingThreshold = 0;
+    return;
+  }
+
+  detailSection.style.display = "block";
+  detailTitle.textContent = `${threshold}일 초과 장기 입고 미소진 재고`;
+  detailTable.innerHTML = "불러오는 중...";
+
+  try {
+    const resp = await fetch(`${API_URL}/inventory/aging-detail`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        agency: currentCenter,
+        threshold
+      })
+    });
+
+    const j = await resp.json();
+
+    if (!resp.ok || !j.ok) {
+      detailTable.innerHTML = `❌ ${j.message || "상세 조회 실패"}`;
+      activeAgingThreshold = 0;
+      return;
+    }
+
+    const rows = Array.isArray(j.rows) ? j.rows : [];
+
+    if (!rows.length) {
+      detailTable.innerHTML = "조건에 해당하는 재고가 없습니다.";
+      activeAgingThreshold = threshold;
+      return;
+    }
+
+    let html = `
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>모델</th>
+              <th>색상</th>
+              <th>일련번호</th>
+              <th>입고경과일</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    rows.forEach(r => {
+      html += `
+        <tr>
+          <td>${escapeHtml(r.model_name || "")}</td>
+          <td>${escapeHtml(r.color || "")}</td>
+          <td>${escapeHtml(r.serial_no || "")}</td>
+          <td>${Number(r.aging_days || 0).toLocaleString()}일</td>
+        </tr>
+      `;
+    });
+
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    detailTable.innerHTML = html;
+    activeAgingThreshold = threshold;
+  } catch (e) {
+    console.error(e);
+    detailTable.innerHTML = "❌ 네트워크 오류";
+    activeAgingThreshold = 0;
   }
 }
 
