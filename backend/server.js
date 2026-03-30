@@ -1801,24 +1801,24 @@ const latestDate = dateQ.rows[0]?.latest_date || null;
     // 표준 진척율 계산
     // 기준: 일요일 제외, 월~토 영업일
     // -------------------------
-    let progressRate = 0;
+        let progressRate = 0;
 
     if (latestDate) {
-      const dateText = String(latestDate).slice(0, 10); // YYYY-MM-DD
-      const [yearStr, monthStr, dayStr] = dateText.split("-");
-      const year = Number(yearStr);
-      const month = Number(monthStr);
-      const day = Number(dayStr);
+      const dateObj = new Date(latestDate);
+
+      const year = dateObj.getUTCFullYear();
+      const month = dateObj.getUTCMonth() + 1; // 1~12
+      const day = dateObj.getUTCDate();
 
       // 해당 월 마지막 날짜
-      const lastDayOfMonth = new Date(year, month, 0).getDate();
+      const lastDayOfMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
 
       let totalBusinessDays = 0;
       let passedBusinessDays = 0;
 
       for (let d = 1; d <= lastDayOfMonth; d++) {
-        const current = new Date(year, month - 1, d);
-        const weekday = current.getDay(); // 0=일요일
+        const current = new Date(Date.UTC(year, month - 1, d));
+        const weekday = current.getUTCDay(); // 0=일요일
 
         // 일요일 제외
         if (weekday !== 0) {
