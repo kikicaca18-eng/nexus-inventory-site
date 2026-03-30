@@ -2267,6 +2267,161 @@ app.post("/store-master/search", async (req, res) => {
   }
 });
 
+/**
+ * =========================
+ * 모델별 회전일
+ * POST /inventory/by-model-turnover
+ * body: { agency: "광주" }
+ * =========================
+ */
+app.post("/inventory/by-model-turnover", async (req, res) => {
+  try {
+    const agency = toText(req.body.agency);
+    const salesAgency = mapCenterToSalesAgency(agency);
+
+    // -------------------------
+    // 당월 기준월 / 기준일
+    // -------------------------
+    const monthQ = await pool.query(
+      `
+      SELECT MAX(base_month) AS latest_month
+      FROM sales_records
+      WHERE data_scope = 'daily'
+        AND metric_type = '후불'
+      `
+    );
+
+    const latestMonth = monthQ.rows[0]?.latest_month || null;
+
+    const dateQ = await pool.query(
+      `
+      SELECT MAX(record_date) AS latest_date
+      FROM sales_records
+      WHERE data_scope = 'daily'
+        AND metric_type = '후불'
+      `
+    );
+
+    const latestDate = dateQ.rows[0]?.latest_date || null;
+
+    let businessDays = 0;
+
+    if (latestDate) {
+      const dateObj = new Date(latestDate);
+      const year = dateObj.getUTCFullYear();
+      const month = dateObj.getUTCMonth() + 1;
+      const day = dateObj.getUTCDate();
+
+      for (let d = 1; d <= day; d++) {
+        const current = new Date(Date.UTC(year, month - 1, d));
+        const weekday = current.getUTCDay(); // 0=일요일
+        if (weekday !== 0) {
+          businessDays++;
+        }
+      }
+    }
+
+    // -------------------------
+    // 재고 모델별 집계
+    // inventory_items 테이블 기준
+    // -------------------------
+    const inventoryParams = [];
+    let inventoryWhere = ``;
+
+    if (agency && agency !== "관리자") {
+      inventoryWhere = `WHERE agency_name = $1`;
+      inventoryParams.push(agency);
+    }
+
+    const inventoryQ = await pool.query(
+      `
+      SELECT
+        model_name,
+        COUNT(*)::int AS qty
+      FROM inventory_items
+      ${inventoryWhere}
+      GROUP BY model_name
+      ORDER BY model_name ASC
+      `,
+      inventoryParams
+    );
+
+    // -------------------------
+    // 당월 후불판매(모델별)
+    // sales_records 기준
+    // -------------------------
+    let salesRows = [];
+
+    if (latestMonth) {
+      const salesParams = [latestMonth];
+      let salesWhere = `
+        WHERE base_month = $1
+          AND data_scope = 'daily'
+          AND metric_type = '후불'
+          AND is_ms = 'Y'
+      `;
+
+      if (agency && agency !== "관리자") {
+        salesWhere += ` AND agency_name = $2`;
+        salesParams.push(salesAgency);
+      }
+
+      const salesQ = await pool.query(
+        `
+        SELECT
+          model_name,
+          COALESCE(SUM(total_score), 0)::numeric AS sales_qty
+        FROM sales_records
+        ${salesWhere}
+        GROUP BY model_name
+        `,
+        salesParams
+      );
+
+      salesRows = salesQ.rows || [];
+    }
+
+    const salesMap = {};
+    salesRows.forEach(r => {
+      salesMap[r.model_name] = Number(r.sales_qty || 0);
+    });
+
+    const rows = (inventoryQ.rows || []).map(r => {
+      const qty = Number(r.qty || 0);
+      const salesQty = Number(salesMap[r.model_name] || 0);
+
+      let turnoverDays = null;
+
+      if (salesQty > 0 && businessDays > 0) {
+        const avgPerDay = salesQty / businessDays;
+        turnoverDays = Number((qty / avgPerDay).toFixed(1));
+      }
+
+      return {
+        model_name: r.model_name || "",
+        qty,
+        monthly_sales: salesQty,
+        turnover_days: turnoverDays,
+        base_month: latestMonth,
+        business_days: businessDays
+      };
+    });
+
+    return res.json({
+      ok: true,
+      latest_month: latestMonth,
+      business_days: businessDays,
+      rows
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({
+      ok: false,
+      message: "모델별 회전일 조회 실패"
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log("🚀 Backend running on port", PORT);
 });

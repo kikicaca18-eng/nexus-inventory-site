@@ -7,6 +7,11 @@ let dashboardDetailSort = {
 };
 
 let dashboardDetailRows = [];
+let inventoryModelTurnoverRows = [];
+let inventoryModelTurnoverSort = {
+  key: "turnover_days",
+  order: "asc"
+};
 let performanceTrendChart = null;
 let performanceSearchCache = [];
 let performanceSortState = { key: "", order: "asc" };
@@ -355,38 +360,22 @@ async function loadInventoryDashboard() {
 
     renderInvCards(s.summary);
 
-    const mResp = await fetch(`${API_URL}/inventory/by-model`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ agency: currentCenter, limit: 20 })
-    });
-    const m = await mResp.json();
-    if (!mResp.ok || !m.ok) throw new Error(m.message || "모델 TOP 실패");
-
-    renderSimpleTable("byModelTable", m.rows, [
-      { key: "model_name", label: "모델명" },
-      { key: "qty", label: "수량" }
-    ]);
-
-    const stResp = await fetch(`${API_URL}/inventory/by-store`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ agency: currentCenter, limit: 30 })
-    });
-    const st = await stResp.json();
-    if (!stResp.ok || !st.ok) throw new Error(st.message || "판매점 TOP 실패");
-
-    renderStoreTable(st.rows);
-
-    const rResp = await fetch(`${API_URL}/inventory/recommend-move`, {
+        // 2) 모델별 회전일
+    const mResp = await fetch(`${API_URL}/inventory/by-model-turnover`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ agency: currentCenter })
     });
-    const rec = await rResp.json();
-    if (rResp.ok && rec.ok) {
-      renderRecommend(rec.rows);
-    }
+    const m = await mResp.json();
+    if (!mResp.ok || !m.ok) throw new Error(m.message || "모델별 회전일 실패");
+
+    inventoryModelTurnoverRows = Array.isArray(m.rows) ? m.rows : [];
+    inventoryModelTurnoverSort = {
+      key: "turnover_days",
+      order: "asc"
+    };
+
+    renderInventoryModelTurnoverTable();
   } catch (e) {
     if (cards) cards.innerHTML = `❌ 대시보드 로드 실패: ${e.message}`;
   }
@@ -462,6 +451,91 @@ function renderSimpleTable(targetId, rows, cols) {
 
   wrap.innerHTML = "";
   wrap.appendChild(table);
+}
+
+function renderInventoryModelTurnoverTable() {
+  const wrap = document.getElementById("byModelTurnoverTable");
+  if (!wrap) return;
+
+  let rows = [...inventoryModelTurnoverRows];
+
+  const key = inventoryModelTurnoverSort.key;
+  const order = inventoryModelTurnoverSort.order;
+
+  rows.sort((a, b) => {
+    let av = a[key];
+    let bv = b[key];
+
+    const numericKeys = ["qty", "monthly_sales", "turnover_days"];
+    const isNumeric = numericKeys.includes(key);
+
+    if (isNumeric) {
+      av = av === null || av === undefined ? -1 : Number(av);
+      bv = bv === null || bv === undefined ? -1 : Number(bv);
+      return order === "asc" ? av - bv : bv - av;
+    } else {
+      const cmp = String(av || "").localeCompare(String(bv || ""), "ko");
+      return order === "asc" ? cmp : -cmp;
+    }
+  });
+
+  let html = `
+    <div class="tableWrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="sortable" onclick="toggleInventoryModelTurnoverSort('model_name')">
+              모델명${getInventoryModelTurnoverSortIndicator('model_name')}
+            </th>
+            <th class="sortable" onclick="toggleInventoryModelTurnoverSort('qty')">
+              수량${getInventoryModelTurnoverSortIndicator('qty')}
+            </th>
+            <th class="sortable" onclick="toggleInventoryModelTurnoverSort('monthly_sales')">
+              당월판매${getInventoryModelTurnoverSortIndicator('monthly_sales')}
+            </th>
+            <th class="sortable" onclick="toggleInventoryModelTurnoverSort('turnover_days')">
+              회전일${getInventoryModelTurnoverSortIndicator('turnover_days')}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  rows.forEach(r => {
+    html += `
+      <tr>
+        <td>${escapeHtml(r.model_name || "")}</td>
+        <td>${Number(r.qty || 0).toLocaleString()}</td>
+        <td>${Number(r.monthly_sales || 0).toLocaleString()}</td>
+        <td>${r.turnover_days === null || r.turnover_days === undefined ? "-" : `${Number(r.turnover_days).toLocaleString()}일`}</td>
+      </tr>
+    `;
+  });
+
+  html += `
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  wrap.innerHTML = html;
+}
+
+function toggleInventoryModelTurnoverSort(key) {
+  if (inventoryModelTurnoverSort.key === key) {
+    inventoryModelTurnoverSort.order =
+      inventoryModelTurnoverSort.order === "asc" ? "desc" : "asc";
+  } else {
+    inventoryModelTurnoverSort.key = key;
+    inventoryModelTurnoverSort.order = "asc";
+  }
+
+  renderInventoryModelTurnoverTable();
+}
+
+function getInventoryModelTurnoverSortIndicator(key) {
+  if (inventoryModelTurnoverSort.key !== key) return "";
+  return inventoryModelTurnoverSort.order === "asc" ? " ▲" : " ▼";
 }
 
 function renderStoreTable(rows) {
