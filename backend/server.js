@@ -1910,6 +1910,7 @@ const latestDate = dateQ.rows[0]?.latest_date || null;
     return res.json({
       ok: true,
       latest_month: latestMonth,
+      latest_date : latestDate,
       summary: {
         postpaid,
         pure_new: pureNew,
