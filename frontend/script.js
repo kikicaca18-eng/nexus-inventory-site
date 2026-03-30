@@ -1207,11 +1207,14 @@ async function loadPerformanceDashboard() {
     }
 
     const s = j.summary || {};
-    const latestMonth = j.latest_month || "-";
+const latestMonth = j.latest_month || "-";
+const latestDate = j.latest_date || "";
 
     if (monthWrap) {
-      monthWrap.textContent = `기준월: ${latestMonth}`;
-    }
+  monthWrap.textContent = latestDate
+    ? `기준일: ${latestDate}`
+    : "기준일: -";
+}
 
     if (cardWrap) {
   cardWrap.innerHTML = `

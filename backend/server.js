@@ -1786,10 +1786,25 @@ app.get("/performance/dashboard-summary", async (req, res) => {
         )
       ).rows[0]?.latest_month;
 
+      // -------------------------
+// 기준일 (후불 마지막 날짜)
+// -------------------------
+const dateQ = await pool.query(
+  `
+  SELECT MAX(record_date) AS latest_date
+  FROM sales_records
+  WHERE data_scope = 'daily'
+    AND metric_type = '후불'
+  `
+);
+
+const latestDate = dateQ.rows[0]?.latest_date || null;
+
     if (!latestMonth) {
       return res.json({
         ok: true,
-        latest_month: null,
+        latest_month: latestMonth,
+        latest_date : latestDate
         summary: {
           postpaid: 0,
           pure_new: 0,
