@@ -490,7 +490,8 @@ app.post("/upload", upload.single("file"), async (req, res) => {
       "모델명",
       "색상",
       "일련번호",
-      "애칭"
+      "애칭",
+      "입고경과일"
     ];
 
     for (const c of expected) {
@@ -515,7 +516,8 @@ app.post("/upload", upload.single("file"), async (req, res) => {
         model_name: toText(r["모델명"]),
         color: toText(r["색상"]),
         serial_no: toText(r["일련번호"]),
-        nickname: toText(r["애칭"])
+        nickname: toText(r["애칭"]),
+        aging_days: Number(toText(r["입고경과일"]).replace(/,/g, "")) || 0
       }));
 
     const client = await pool.connect();
@@ -533,7 +535,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
         const values = [];
 
         const placeholders = chunk.map((row, idx) => {
-          const b = idx * 12;
+          const b = idx * 13;
           values.push(
             snapshotDate,
             row.agency_code,
@@ -546,12 +548,14 @@ app.post("/upload", upload.single("file"), async (req, res) => {
             row.model_name,
             row.color,
             row.serial_no,
-            row.nickname
+            row.nickname,
+            row.aging_days
           );
 
           return `(
             $${b + 1}, $${b + 2}, $${b + 3}, $${b + 4}, $${b + 5}, $${b + 6},
-            $${b + 7}, $${b + 8}, $${b + 9}, $${b + 10}, $${b + 11}, $${b + 12}
+            $${b + 7}, $${b + 8}, $${b + 9}, $${b + 10}, $${b + 11}, $${b + 12},
+            $${b + 13}
           )`;
         });
 
@@ -560,7 +564,8 @@ app.post("/upload", upload.single("file"), async (req, res) => {
           INSERT INTO inventory_items
           (
             snapshot_date, agency_code, agency_name, sub_market, address,
-            store_code, store_name, pet_name, model_name, color, serial_no, nickname
+            store_code, store_name, pet_name, model_name, color, serial_no, nickname,
+            aging_days
           )
           VALUES ${placeholders.join(",")}
           `,
