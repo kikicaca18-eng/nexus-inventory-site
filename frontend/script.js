@@ -502,15 +502,35 @@ function renderInventoryModelTurnoverTable() {
   `;
 
   rows.forEach(r => {
-    html += `
-      <tr>
-        <td>${escapeHtml(r.model_name || "")}</td>
-        <td>${Number(r.qty || 0).toLocaleString()}</td>
-        <td>${Number(r.monthly_sales || 0).toLocaleString()}</td>
-        <td>${r.turnover_days === null || r.turnover_days === undefined ? "-" : `${Number(r.turnover_days).toLocaleString()}일`}</td>
-      </tr>
-    `;
-  });
+  const turnover = r.turnover_days === null || r.turnover_days === undefined
+    ? null
+    : Number(r.turnover_days);
+
+  const isSlow = turnover !== null && turnover >= 100;   // 부진재고
+  const isShort = turnover !== null && turnover < 40;    // 부족재고
+
+  let turnoverText = "-";
+  if (turnover !== null) {
+    if (isSlow) {
+      turnoverText = `⚠️ ${turnover.toLocaleString()}일`;
+    } else if (isShort) {
+      turnoverText = `부족 ${turnover.toLocaleString()}일`;
+    } else {
+      turnoverText = `${turnover.toLocaleString()}일`;
+    }
+  }
+
+  html += `
+    <tr class="${isSlow ? "slowStockRow" : isShort ? "shortStockRow" : ""}">
+      <td>${escapeHtml(r.model_name || "")}</td>
+      <td>${Number(r.qty || 0).toLocaleString()}</td>
+      <td>${Number(r.monthly_sales || 0).toLocaleString()}</td>
+      <td class="${isSlow ? "slowStockText" : isShort ? "shortStockText" : ""}">
+        ${turnoverText}
+      </td>
+    </tr>
+  `;
+});
 
   html += `
         </tbody>

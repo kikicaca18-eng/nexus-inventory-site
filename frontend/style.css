@@ -1583,3 +1583,24 @@ tr:hover td{background:#fafafa}
     font-size: 12px;
   }
 }
+
+/* =========================
+   모델별 회전일 상태 표시
+========================= */
+.slowStockRow {
+  background: #fff8f1;
+}
+
+.slowStockText {
+  color: #b45309;
+  font-weight: 700;
+}
+
+.shortStockRow {
+  background: #f3f8ff;
+}
+
+.shortStockText {
+  color: #1d4ed8;
+  font-weight: 700;
+}
