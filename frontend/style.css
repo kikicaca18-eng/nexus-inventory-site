@@ -1079,31 +1079,31 @@ tr:hover td{background:#fafafa}
 
 .performanceDetailTable th:nth-child(2),
 .performanceDetailTable td:nth-child(2) {
-  width: 160px;  /* 지역 */
+  width: 140px;  /* 지역 */
 }
 
 .performanceDetailTable th:nth-child(3),
 .performanceDetailTable td:nth-child(3) {
-  width: 90px;   /* 대리점 */
+  width: 75px;   /* 대리점 - 기존보다 축소 */
   white-space: nowrap;
 }
 
 .performanceDetailTable th:nth-child(4),
 .performanceDetailTable td:nth-child(4) {
-  width: 140px;  /* 판매점코드 */
+  width: 130px;  /* 판매점코드 */
   white-space: nowrap;
 }
 
 .performanceDetailTable th:nth-child(5),
 .performanceDetailTable td:nth-child(5) {
-  width: 220px;  /* 판매점명 */
+  width: 260px;  /* 판매점명 - 기존보다 확대 */
 }
 
 .performanceDetailTable th:nth-child(6),
 .performanceDetailTable td:nth-child(6),
 .performanceDetailTable th:nth-child(7),
 .performanceDetailTable td:nth-child(7) {
-  width: 70px;   /* 후불 / 순신규 */
+  width: 65px;   /* 후불 / 순신규 */
   text-align: center;
   white-space: nowrap;
 }
