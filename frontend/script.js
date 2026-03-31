@@ -37,11 +37,11 @@ let activeDashboardDetailType = "";
 // 비밀번호
 // =========================
 const passwords = {
-  "광주": "20405",
-  "목포": "20001",
-  "순천": "20404",
-  "전북": "20407",
-  "제주": "20403",
+  "광주": "kimchizzang1219",
+  "목포": "jindotgae00",
+  "순천": "yeosuexpo8787",
+  "전북": "saemangeum2233",
+  "제주": "halubang9987",
   "관리자": "8673"
 };
 
