@@ -1044,7 +1044,7 @@ tr:hover td{background:#fafafa}
 
 .performanceDetailTable {
   width: 100%;
-  min-width: 980px;
+  min-width: 900px;
   border-collapse: collapse;
   table-layout: fixed;
 }
@@ -1070,42 +1070,89 @@ tr:hover td{background:#fafafa}
   overflow-wrap: anywhere;
 }
 
-/* 열 너비 조정 */
+/* 기간 */
 .performanceDetailTable th:nth-child(1),
 .performanceDetailTable td:nth-child(1) {
-  width: 90px;   /* 기간 */
+  width: 85px;
   white-space: nowrap;
 }
 
+/* 지역 - 더 줄임 */
 .performanceDetailTable th:nth-child(2),
 .performanceDetailTable td:nth-child(2) {
-  width: 110px;  /* 지역 */
+  width: 140px;
 }
 
+/* 대리점 - 많이 줄임 */
 .performanceDetailTable th:nth-child(3),
 .performanceDetailTable td:nth-child(3) {
-  width: 40px;   /* 대리점 - 기존보다 축소 */
+  width: 65px;
   white-space: nowrap;
 }
 
+/* 판매점코드 - 약간 줄임 */
 .performanceDetailTable th:nth-child(4),
 .performanceDetailTable td:nth-child(4) {
-  width: 130px;  /* 판매점코드 */
+  width: 120px;
   white-space: nowrap;
 }
 
+/* 판매점명 - 크게 확대 */
 .performanceDetailTable th:nth-child(5),
 .performanceDetailTable td:nth-child(5) {
-  width: 260px;  /* 판매점명 - 기존보다 확대 */
+  width: 300px;
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
+/* 후불 / 순신규 */
 .performanceDetailTable th:nth-child(6),
 .performanceDetailTable td:nth-child(6),
 .performanceDetailTable th:nth-child(7),
 .performanceDetailTable td:nth-child(7) {
-  width: 65px;   /* 후불 / 순신규 */
+  width: 55px;
   text-align: center;
   white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .performanceDetailTable {
+    min-width: 820px;
+  }
+
+  .performanceDetailTable th,
+  .performanceDetailTable td {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .performanceDetailTable th:nth-child(2),
+  .performanceDetailTable td:nth-child(2) {
+    width: 110px;
+  }
+
+  .performanceDetailTable th:nth-child(3),
+  .performanceDetailTable td:nth-child(3) {
+    width: 60px;
+  }
+
+  .performanceDetailTable th:nth-child(4),
+  .performanceDetailTable td:nth-child(4) {
+    width: 110px;
+  }
+
+  .performanceDetailTable th:nth-child(5),
+  .performanceDetailTable td:nth-child(5) {
+    width: 240px;
+  }
+
+  .performanceDetailTable th:nth-child(6),
+  .performanceDetailTable td:nth-child(6),
+  .performanceDetailTable th:nth-child(7),
+  .performanceDetailTable td:nth-child(7) {
+    width: 50px;
+  }
 }
 
 /* 모바일 대응 */
@@ -1291,15 +1338,20 @@ tr:hover td{background:#fafafa}
     min-width: 860px;
   }
 
-  .performanceDetailTable th:nth-child(2),
-  .performanceDetailTable td:nth-child(2) {
-    width: 130px;
-  }
+.performanceDetailTable th:nth-child(2),
+.performanceDetailTable td:nth-child(2) {
+  width: 120px;  /* 지역 */
+}
 
-  .performanceDetailTable th:nth-child(5),
-  .performanceDetailTable td:nth-child(5) {
-    width: 180px;
-  }
+.performanceDetailTable th:nth-child(3),
+.performanceDetailTable td:nth-child(3) {
+  width: 70px;   /* 대리점 */
+}
+
+.performanceDetailTable th:nth-child(5),
+.performanceDetailTable td:nth-child(5) {
+  width: 220px;  /* 판매점명 */
+}
 }
 
 @media (max-width: 768px) {
