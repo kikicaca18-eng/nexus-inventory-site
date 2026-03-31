@@ -2018,3 +2018,127 @@ tr:hover td{background:#fafafa}
     font-size: 17px !important;
   }
 }
+
+/* =========================
+   실적 상세보기 최종 강제 보정
+   맨 아래에 둘 것
+========================= */
+.performanceDetailTableWrap {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+.performanceDetailTable {
+  width: 100% !important;
+  min-width: 900px !important;
+  border-collapse: collapse !important;
+  table-layout: fixed !important;
+}
+
+.performanceDetailTable th,
+.performanceDetailTable td {
+  padding: 10px 12px !important;
+  border-bottom: 1px solid #e9edf3 !important;
+  vertical-align: middle !important;
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+}
+
+.performanceDetailTable th {
+  white-space: nowrap !important;
+  text-align: left !important;
+  color: #5f6b7a !important;
+  font-weight: 700 !important;
+  background: #fafbfc !important;
+}
+
+.performanceDetailTable td {
+  word-break: keep-all !important;
+  overflow-wrap: anywhere !important;
+}
+
+/* 기간 */
+.performanceDetailTable th:nth-child(1),
+.performanceDetailTable td:nth-child(1) {
+  width: 85px !important;
+  white-space: nowrap !important;
+}
+
+/* 지역 */
+.performanceDetailTable th:nth-child(2),
+.performanceDetailTable td:nth-child(2) {
+  width: 140px !important;
+}
+
+/* 대리점 - 확 줄임 */
+.performanceDetailTable th:nth-child(3),
+.performanceDetailTable td:nth-child(3) {
+  width: 65px !important;
+  white-space: nowrap !important;
+}
+
+/* 판매점코드 */
+.performanceDetailTable th:nth-child(4),
+.performanceDetailTable td:nth-child(4) {
+  width: 120px !important;
+  white-space: nowrap !important;
+}
+
+/* 판매점명 - 확 늘림 */
+.performanceDetailTable th:nth-child(5),
+.performanceDetailTable td:nth-child(5) {
+  width: 300px !important;
+  white-space: normal !important;
+  word-break: keep-all !important;
+  overflow-wrap: anywhere !important;
+}
+
+/* 후불 / 순신규 */
+.performanceDetailTable th:nth-child(6),
+.performanceDetailTable td:nth-child(6),
+.performanceDetailTable th:nth-child(7),
+.performanceDetailTable td:nth-child(7) {
+  width: 55px !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+/* 모바일 */
+@media (max-width: 768px) {
+  .performanceDetailTable {
+    min-width: 820px !important;
+  }
+
+  .performanceDetailTable th,
+  .performanceDetailTable td {
+    padding: 8px 10px !important;
+    font-size: 13px !important;
+  }
+
+  .performanceDetailTable th:nth-child(2),
+  .performanceDetailTable td:nth-child(2) {
+    width: 110px !important;
+  }
+
+  .performanceDetailTable th:nth-child(3),
+  .performanceDetailTable td:nth-child(3) {
+    width: 60px !important;
+  }
+
+  .performanceDetailTable th:nth-child(4),
+  .performanceDetailTable td:nth-child(4) {
+    width: 110px !important;
+  }
+
+  .performanceDetailTable th:nth-child(5),
+  .performanceDetailTable td:nth-child(5) {
+    width: 240px !important;
+  }
+
+  .performanceDetailTable th:nth-child(6),
+  .performanceDetailTable td:nth-child(6),
+  .performanceDetailTable th:nth-child(7),
+  .performanceDetailTable td:nth-child(7) {
+    width: 50px !important;
+  }
+}
