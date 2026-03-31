@@ -1079,12 +1079,12 @@ tr:hover td{background:#fafafa}
 
 .performanceDetailTable th:nth-child(2),
 .performanceDetailTable td:nth-child(2) {
-  width: 140px;  /* 지역 */
+  width: 110px;  /* 지역 */
 }
 
 .performanceDetailTable th:nth-child(3),
 .performanceDetailTable td:nth-child(3) {
-  width: 75px;   /* 대리점 - 기존보다 축소 */
+  width: 40px;   /* 대리점 - 기존보다 축소 */
   white-space: nowrap;
 }
 
