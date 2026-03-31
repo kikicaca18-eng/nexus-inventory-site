@@ -2046,10 +2046,14 @@ tr:hover td{background:#fafafa}
 
 .performanceDetailTable th {
   white-space: nowrap !important;
-  text-align: left !important;
+  text-align: center !important;
   color: #5f6b7a !important;
   font-weight: 700 !important;
   background: #fafbfc !important;
+}
+
+.performanceDetailTable td {
+  text-align: center !important;
 }
 
 .performanceDetailTable td {
