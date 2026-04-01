@@ -42,7 +42,7 @@ const passwords = {
   "순천": "yeosuexpo8787",
   "전북": "saemangeum2233",
   "제주": "halubang9987",
-  "관리자": "8673"
+  "관리자": "86731152020"
 };
 
 const MASTER_PASSWORD = "1252002"; // ⭐ 반드시 문자열
