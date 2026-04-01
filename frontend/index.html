@@ -266,9 +266,23 @@
 
         <!-- ================= 실적 대시보드 ================= -->
         <div class="panel" style="margin-bottom:16px;">
-          <div class="panelHeader">
+          <div class="panelHeader performanceDashHeader">
   <div class="panelTitle">📊 실적 조회 대시보드</div>
-  <div class="panelHint" id="performanceDashMonth">기준월: -</div>
+
+  <div class="performanceDashHeaderRight">
+    <div id="performanceAdminFilterWrap" style="display:none;">
+      <select id="performanceAdminCenterFilter" class="input small" onchange="onPerformanceAdminFilterChange()">
+        <option value="관리자">호남</option>
+        <option value="광주">광주</option>
+        <option value="목포">목포</option>
+        <option value="순천">순천</option>
+        <option value="전북">전북</option>
+        <option value="제주">제주</option>
+      </select>
+    </div>
+
+    <div class="panelHint" id="performanceDashMonth">기준일: -</div>
+  </div>
 </div>
 
           <div id="performanceDashCards" class="cardGrid"></div>

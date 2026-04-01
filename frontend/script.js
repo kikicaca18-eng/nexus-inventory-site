@@ -1,4 +1,5 @@
 let currentCenter = ""; // 👉 실제 의미: 대리점명
+let performanceViewCenter = "관리자";
 
 let dashboardDetailSort = {
   key: "",
@@ -24,6 +25,13 @@ let performanceSortState = { key: "", order: "asc" };
 
 function $(id) {
   return document.getElementById(id);
+}
+
+function getPerformanceQueryCenter() {
+  if (currentCenter === "관리자") {
+    return performanceViewCenter || "관리자";
+  }
+  return currentCenter;
 }
 
 function setDisplay(id, display) {
@@ -345,6 +353,27 @@ function openInventory() {
 
 function openPerformance() {
   showOnly(["menuBox", "performanceBox"]);
+
+  const filterWrap = document.getElementById("performanceAdminFilterWrap");
+  const filterSelect = document.getElementById("performanceAdminCenterFilter");
+
+  if (currentCenter === "관리자") {
+    if (filterWrap) filterWrap.style.display = "block";
+    if (filterSelect) {
+      filterSelect.value = performanceViewCenter || "관리자";
+    }
+  } else {
+    if (filterWrap) filterWrap.style.display = "none";
+  }
+
+  loadPerformanceDashboard();
+}
+
+function onPerformanceAdminFilterChange() {
+  const select = document.getElementById("performanceAdminCenterFilter");
+  if (!select) return;
+
+  performanceViewCenter = select.value || "관리자";
   loadPerformanceDashboard();
 }
 
@@ -1485,9 +1514,11 @@ async function loadPerformanceDashboard() {
   }
 
   try {
-    const resp = await fetch(
-      `${API_URL}/performance/dashboard-summary?agency=${encodeURIComponent(currentCenter)}`
-    );
+    const queryCenter = getPerformanceQueryCenter();
+
+const resp = await fetch(
+  `${API_URL}/performance/dashboard-summary?agency=${encodeURIComponent(queryCenter)}`
+);
     const j = await resp.json();
 
     if (!resp.ok || !j.ok) {
@@ -1566,8 +1597,10 @@ async function loadPerformanceTrend(metric, title) {
   if (chartTitle) chartTitle.textContent = `📈 ${title}`;
 
   try {
-    const resp = await fetch(
-  `${API_URL}/performance/dashboard-trend?metric=${encodeURIComponent(metric)}&agency=${encodeURIComponent(currentCenter)}`
+    const queryCenter = getPerformanceQueryCenter();
+
+const resp = await fetch(
+  `${API_URL}/performance/dashboard-trend?metric=${encodeURIComponent(metric)}&agency=${encodeURIComponent(queryCenter)}`
 );
     const j = await resp.json();
 

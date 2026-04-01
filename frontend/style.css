@@ -2146,3 +2146,46 @@ tr:hover td{background:#fafafa}
     width: 50px !important;
   }
 }
+
+.performanceDashHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.performanceDashHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+#performanceAdminFilterWrap {
+  min-width: 120px;
+}
+
+#performanceAdminCenterFilter {
+  min-width: 120px;
+}
+
+@media (max-width: 768px) {
+  .performanceDashHeader {
+    align-items: flex-start;
+  }
+
+  .performanceDashHeaderRight {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  #performanceAdminFilterWrap {
+    min-width: 110px;
+  }
+
+  #performanceAdminCenterFilter {
+    min-width: 110px;
+    font-size: 14px;
+  }
+}
