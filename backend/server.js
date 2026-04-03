@@ -2533,6 +2533,45 @@ app.post("/inventory/aging-detail", async (req, res) => {
   }
 });
 
+app.post("/inventory/agency-summary", async (req, res) => {
+  const snapshotDate = todayKST();
+
+  try {
+    const q = `
+      SELECT
+        agency_name,
+        COUNT(*)::int AS total_qty
+      FROM inventory_items
+      WHERE snapshot_date = $1
+        AND agency_name IN ('광주', '목포', '순천', '전북', '제주')
+      GROUP BY agency_name
+      ORDER BY
+        CASE agency_name
+          WHEN '광주' THEN 1
+          WHEN '목포' THEN 2
+          WHEN '순천' THEN 3
+          WHEN '전북' THEN 4
+          WHEN '제주' THEN 5
+          ELSE 99
+        END
+    `;
+
+    const r = await pool.query(q, [snapshotDate]);
+
+    return res.json({
+      ok: true,
+      snapshot_date: snapshotDate,
+      rows: r.rows
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({
+      ok: false,
+      message: "센터별 총 재고 조회 실패"
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log("🚀 Backend running on port", PORT);
 });

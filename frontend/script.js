@@ -334,13 +334,13 @@ function renderTable(rows, cols) {
 // 화면 전환
 // =========================
 function showOnly(ids) {
-  const all = ["menuBox", "securityNoticeBox", "inventoryDash", "agingStockBox", "searchBox", "uploadBox", "performanceBox"];
+  const all = ["menuBox", "securityNoticeBox", "inventoryDash", "adminAgencyStockBox", "agingStockBox", "searchBox", "uploadBox", "performanceBox"];
   all.forEach(id => setDisplay(id, ids.includes(id) ? "block" : "none"));
 }
 
 function openInventory() {
   if (currentCenter === "관리자") {
-  showOnly(["menuBox", "inventoryDash", "agingStockBox", "uploadBox", "searchBox"]);
+  showOnly(["menuBox", "inventoryDash", "adminAgencyStockBox", "agingStockBox", "uploadBox", "searchBox"]);
 } else {
   showOnly(["menuBox", "inventoryDash", "agingStockBox", "searchBox"]);
 }
@@ -394,6 +394,22 @@ async function loadInventoryDashboard() {
     if (!sResp.ok || !s.ok) throw new Error(s.message || "요약 실패");
 
     renderInvCards(s.summary);
+
+        // 관리자 모드: 센터별 총 재고 현황
+    if (currentCenter === "관리자") {
+      const agencyResp = await fetch(`${API_URL}/inventory/agency-summary`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({})
+      });
+      const agencyJson = await agencyResp.json();
+
+      if (!agencyResp.ok || !agencyJson.ok) {
+        throw new Error(agencyJson.message || "센터별 총 재고 실패");
+      }
+
+      renderAdminAgencyStockCards(agencyJson.rows || []);
+    }
 
         // 2) 모델별 회전일
     const mResp = await fetch(`${API_URL}/inventory/by-model-turnover`, {
@@ -1422,6 +1438,25 @@ function toggleAgingStockDetailSort(key) {
 function getAgingStockDetailSortIndicator(key) {
   if (agingStockDetailSort.key !== key) return "";
   return agingStockDetailSort.order === "asc" ? " ▲" : " ▼";
+}
+
+function renderAdminAgencyStockCards(rows) {
+  const wrap = document.getElementById("adminAgencyStockCards");
+  if (!wrap) return;
+
+  const order = ["광주", "목포", "순천", "전북", "제주"];
+  const map = {};
+
+  rows.forEach(r => {
+    map[r.agency_name] = Number(r.total_qty || 0);
+  });
+
+  wrap.innerHTML = order.map(name => `
+    <div class="statCard">
+      <div class="statLabel">${name}</div>
+      <div class="statValue">${Number(map[name] || 0).toLocaleString()}대</div>
+    </div>
+  `).join("");
 }
 
 // =========================
