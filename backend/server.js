@@ -2619,6 +2619,174 @@ app.post("/inventory/agency-detail", async (req, res) => {
   }
 });
 
+app.post("/inventory/model-turnover-detail", async (req, res) => {
+  const snapshotDate = todayKST();
+  const { model_name } = req.body;
+
+  if (!model_name) {
+    return res.status(400).json({ ok: false, message: "model_name 정보가 없습니다." });
+  }
+
+  try {
+    // 당월 기준월 / 기준일
+    const monthQ = await pool.query(
+      `
+      SELECT MAX(base_month) AS latest_month
+      FROM sales_records
+      WHERE data_scope = 'daily'
+        AND metric_type = '후불'
+      `
+    );
+
+    const latestMonth = monthQ.rows[0]?.latest_month || null;
+
+    const dateQ = await pool.query(
+      `
+      SELECT MAX(record_date) AS latest_date
+      FROM sales_records
+      WHERE data_scope = 'daily'
+        AND metric_type = '후불'
+      `
+    );
+
+    const latestDate = dateQ.rows[0]?.latest_date || null;
+
+    let businessDays = 0;
+
+    if (latestDate) {
+      const dateObj = new Date(latestDate);
+      const year = dateObj.getUTCFullYear();
+      const month = dateObj.getUTCMonth() + 1;
+      const day = dateObj.getUTCDate();
+
+      for (let d = 1; d <= day; d++) {
+        const current = new Date(Date.UTC(year, month - 1, d));
+        const weekday = current.getUTCDay(); // 0=일요일
+        if (weekday !== 0) {
+          businessDays++;
+        }
+      }
+    }
+
+    // 센터별 재고 수량
+    const inventoryQ = await pool.query(
+      `
+      SELECT
+        agency_name,
+        COUNT(*)::int AS qty
+      FROM inventory_items
+      WHERE snapshot_date = $1
+        AND model_name = $2
+        AND agency_name IN ('광주', '목포', '순천', '전북', '제주')
+      GROUP BY agency_name
+      ORDER BY
+        CASE agency_name
+          WHEN '광주' THEN 1
+          WHEN '목포' THEN 2
+          WHEN '순천' THEN 3
+          WHEN '전북' THEN 4
+          WHEN '제주' THEN 5
+          ELSE 99
+        END
+      `,
+      [snapshotDate, model_name]
+    );
+
+    // 센터별 당월판매
+    let salesRows = [];
+    if (latestMonth) {
+      const salesQ = await pool.query(
+        `
+        SELECT
+          agency_name,
+          COALESCE(SUM(total_score), 0)::numeric AS sales_qty
+        FROM sales_records
+        WHERE base_month = $1
+          AND data_scope = 'daily'
+          AND metric_type = '후불'
+          AND is_ms = 'Y'
+          AND model_name = $2
+        GROUP BY agency_name
+        ORDER BY
+          CASE agency_name
+            WHEN 'M&S광주' THEN 1
+            WHEN 'M&S목포' THEN 2
+            WHEN 'M&S순천' THEN 3
+            WHEN 'M&S전북' THEN 4
+            WHEN 'M&S제주' THEN 5
+            ELSE 99
+          END
+        `,
+        [latestMonth, model_name]
+      );
+
+      salesRows = salesQ.rows || [];
+    }
+
+    const salesMap = {
+      "광주": 0,
+      "목포": 0,
+      "순천": 0,
+      "전북": 0,
+      "제주": 0
+    };
+
+    salesRows.forEach(r => {
+      const agency = String(r.agency_name || "");
+      if (agency === "M&S광주") salesMap["광주"] = Number(r.sales_qty || 0);
+      if (agency === "M&S목포") salesMap["목포"] = Number(r.sales_qty || 0);
+      if (agency === "M&S순천") salesMap["순천"] = Number(r.sales_qty || 0);
+      if (agency === "M&S전북") salesMap["전북"] = Number(r.sales_qty || 0);
+      if (agency === "M&S제주") salesMap["제주"] = Number(r.sales_qty || 0);
+    });
+
+    const order = ["광주", "목포", "순천", "전북", "제주"];
+
+    const inventoryMap = {
+      "광주": 0,
+      "목포": 0,
+      "순천": 0,
+      "전북": 0,
+      "제주": 0
+    };
+
+    (inventoryQ.rows || []).forEach(r => {
+      inventoryMap[r.agency_name] = Number(r.qty || 0);
+    });
+
+    const rows = order.map(name => {
+      const qty = Number(inventoryMap[name] || 0);
+      const salesQty = Number(salesMap[name] || 0);
+
+      let turnoverDays = null;
+      if (salesQty > 0 && businessDays > 0) {
+        const avgPerDay = salesQty / businessDays;
+        turnoverDays = Number((qty / avgPerDay).toFixed(1));
+      }
+
+      return {
+        agency_name: name,
+        qty,
+        monthly_sales: salesQty,
+        turnover_days: turnoverDays
+      };
+    });
+
+    return res.json({
+      ok: true,
+      model_name,
+      business_days: businessDays,
+      rows
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({
+      ok: false,
+      message: "모델별 센터 회전일 상세 조회 실패"
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log("🚀 Backend running on port", PORT);
 });

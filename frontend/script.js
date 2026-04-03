@@ -587,7 +587,13 @@ function renderInventoryModelTurnoverTable() {
 
   html += `
     <tr class="${isSlow ? "slowStockRow" : isShort ? "shortStockRow" : ""}">
-      <td>${escapeHtml(r.model_name || "")}</td>
+      <td>
+  ${
+    currentCenter === "관리자"
+      ? `<button type="button" class="linkLikeBtn" onclick='openModelTurnoverModal(${JSON.stringify(r.model_name || "")})'>${escapeHtml(r.model_name || "")}</button>`
+      : `${escapeHtml(r.model_name || "")}`
+  }
+</td>
       <td>${Number(r.qty || 0).toLocaleString()}</td>
       <td>${Number(r.monthly_sales || 0).toLocaleString()}</td>
       <td class="${isSlow ? "slowStockText" : isShort ? "shortStockText" : ""}">
@@ -604,6 +610,83 @@ function renderInventoryModelTurnoverTable() {
   `;
 
   wrap.innerHTML = html;
+}
+
+async function openModelTurnoverModal(modelName) {
+  const modal = document.getElementById("modelTurnoverModal");
+  const titleEl = document.getElementById("modelTurnoverModalTitle");
+  const bodyEl = document.getElementById("modelTurnoverModalBody");
+
+  if (!modal || !titleEl || !bodyEl) return;
+
+  titleEl.textContent = `${modelName} 센터별 회전일 상세`;
+  bodyEl.innerHTML = "불러오는 중...";
+  modal.style.display = "flex";
+
+  try {
+    const resp = await fetch(`${API_URL}/inventory/model-turnover-detail`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model_name: modelName })
+    });
+
+    const j = await resp.json();
+
+    if (!resp.ok || !j.ok) {
+      bodyEl.innerHTML = `❌ ${j.message || "조회 실패"}`;
+      return;
+    }
+
+    const rows = Array.isArray(j.rows) ? j.rows : [];
+
+    let html = `
+      <div class="tableWrap compactTable">
+        <table>
+          <thead>
+            <tr>
+              <th>센터</th>
+              <th>수량</th>
+              <th>당월판매</th>
+              <th>회전일</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    rows.forEach(r => {
+      const turnoverText =
+        r.turnover_days === null || r.turnover_days === undefined
+          ? "-"
+          : `${Number(r.turnover_days).toLocaleString()}일`;
+
+      html += `
+        <tr>
+          <td>${escapeHtml(r.agency_name || "")}</td>
+          <td>${Number(r.qty || 0).toLocaleString()}</td>
+          <td>${Number(r.monthly_sales || 0).toLocaleString()}</td>
+          <td>${turnoverText}</td>
+        </tr>
+      `;
+    });
+
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    bodyEl.innerHTML = html;
+  } catch (e) {
+    console.error(e);
+    bodyEl.innerHTML = "❌ 네트워크 오류";
+  }
+}
+
+function closeModelTurnoverModal() {
+  const modal = document.getElementById("modelTurnoverModal");
+  if (modal) {
+    modal.style.display = "none";
+  }
 }
 
 function toggleInventoryModelTurnoverSort(key) {
