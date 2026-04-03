@@ -2572,6 +2572,53 @@ app.post("/inventory/agency-summary", async (req, res) => {
   }
 });
 
+app.post("/inventory/agency-detail", async (req, res) => {
+  const snapshotDate = todayKST();
+  const { agency_name } = req.body;
+
+  if (!agency_name) {
+    return res.status(400).json({ ok: false, message: "agency_name 정보가 없습니다." });
+  }
+
+  try {
+    const q = `
+      SELECT
+        model_name,
+        color,
+        COUNT(*)::int AS total_qty,
+        SUM(CASE WHEN store_name ILIKE '%창고%' THEN 1 ELSE 0 END)::int AS warehouse_qty,
+        SUM(CASE WHEN store_name NOT ILIKE '%창고%' THEN 1 ELSE 0 END)::int AS store_qty,
+        ROUND(
+          (
+            SUM(CASE WHEN store_name ILIKE '%창고%' THEN 1 ELSE 0 END)::numeric
+            / NULLIF(COUNT(*)::numeric, 0)
+          ) * 100,
+          1
+        ) AS warehouse_ratio
+      FROM inventory_items
+      WHERE snapshot_date = $1
+        AND agency_name = $2
+      GROUP BY model_name, color
+      ORDER BY total_qty DESC, model_name ASC, color ASC
+    `;
+
+    const r = await pool.query(q, [snapshotDate, agency_name]);
+
+    return res.json({
+      ok: true,
+      snapshot_date: snapshotDate,
+      agency_name,
+      rows: r.rows
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({
+      ok: false,
+      message: "센터별 총 재고 상세 조회 실패"
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log("🚀 Backend running on port", PORT);
 });

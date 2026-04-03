@@ -2259,3 +2259,11 @@ tr:hover td{background:#fafafa}
     gap: 8px;
   }
 }
+
+.sortable {
+  cursor: pointer;
+}
+
+.sortable::after {
+  margin-left: 4px;
+}

@@ -14,6 +14,9 @@ let inventoryModelTurnoverSort = {
   order: "asc"
 };
 let activeAgingThreshold = 0;
+let activeAdminAgencyDetail = "";
+let adminAgencySortKey = "total_qty";
+let adminAgencySortDir = "desc";
 let agingStockDetailRows = [];
 let agingStockDetailSort = {
   key: "aging_days",
@@ -1452,11 +1455,164 @@ function renderAdminAgencyStockCards(rows) {
   });
 
   wrap.innerHTML = order.map(name => `
-    <div class="statCard">
+    <div
+      class="statCard clickable ${activeAdminAgencyDetail === name ? "active" : ""}"
+      onclick="toggleAdminAgencyDetail('${name}')"
+    >
       <div class="statLabel">${name}</div>
       <div class="statValue">${Number(map[name] || 0).toLocaleString()}대</div>
     </div>
   `).join("");
+}
+
+async function toggleAdminAgencyDetail(agencyName) {
+  const section = document.getElementById("adminAgencyDetailSection");
+  const titleEl = document.getElementById("adminAgencyDetailTitle");
+  const tableEl = document.getElementById("adminAgencyDetailTable");
+
+  if (!section || !titleEl || !tableEl) return;
+
+  // 같은 카드 다시 누르면 닫기
+  if (activeAdminAgencyDetail === agencyName && section.style.display !== "none") {
+    section.style.display = "none";
+    tableEl.innerHTML = "";
+    activeAdminAgencyDetail = "";
+    reloadAdminAgencyCardHighlight();
+    return;
+  }
+
+  section.style.display = "block";
+  titleEl.textContent = `${agencyName} 총 재고 상세`;
+  tableEl.innerHTML = "불러오는 중...";
+
+  try {
+    const resp = await fetch(`${API_URL}/inventory/agency-detail`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ agency_name: agencyName })
+    });
+
+    const j = await resp.json();
+
+    if (!resp.ok || !j.ok) {
+      tableEl.innerHTML = `❌ ${j.message || "조회 실패"}`;
+      activeAdminAgencyDetail = "";
+      reloadAdminAgencyCardHighlight();
+      return;
+    }
+
+    const rows = Array.isArray(j.rows) ? j.rows : [];
+    sortAdminAgencyRows(rows);
+
+    if (!rows.length) {
+      tableEl.innerHTML = "데이터가 없습니다.";
+      activeAdminAgencyDetail = agencyName;
+      reloadAdminAgencyCardHighlight();
+      return;
+    }
+
+    let html = `
+      <div class="tableWrap inventoryTotalDetailWrap">
+        <table class="inventoryTotalDetailTable">
+          <thead>
+  <th class="sortable" onclick="changeAdminAgencySort('model_name')">
+  모델명 ${getSortArrow('model_name')}
+</th>
+
+<th>색상</th>
+
+<th class="sortable" onclick="changeAdminAgencySort('total_qty')">
+  총재고 ${getSortArrow('total_qty')}
+</th>
+
+<th class="sortable" onclick="changeAdminAgencySort('warehouse_qty')">
+  창고재고 ${getSortArrow('warehouse_qty')}
+</th>
+
+<th class="sortable" onclick="changeAdminAgencySort('store_qty')">
+  판매점재고 ${getSortArrow('store_qty')}
+</th>
+
+<th class="sortable" onclick="changeAdminAgencySort('warehouse_ratio')">
+  창고비중 ${getSortArrow('warehouse_ratio')}
+</th>
+</thead>
+          <tbody>
+    `;
+
+    rows.forEach(r => {
+      html += `
+        <tr>
+          <td>${escapeHtml(r.model_name || "")}</td>
+          <td>${escapeHtml(r.color || "")}</td>
+          <td>${Number(r.total_qty || 0).toLocaleString()}</td>
+          <td>${Number(r.warehouse_qty || 0).toLocaleString()}</td>
+          <td>${Number(r.store_qty || 0).toLocaleString()}</td>
+          <td>${Number(r.warehouse_ratio || 0).toLocaleString()}%</td>
+        </tr>
+      `;
+    });
+
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    tableEl.innerHTML = html;
+    activeAdminAgencyDetail = agencyName;
+    reloadAdminAgencyCardHighlight();
+  } catch (e) {
+    console.error(e);
+    tableEl.innerHTML = "❌ 네트워크 오류";
+    activeAdminAgencyDetail = "";
+    reloadAdminAgencyCardHighlight();
+  }
+}
+
+function sortAdminAgencyRows(rows) {
+  return rows.sort((a, b) => {
+    const key = adminAgencySortKey;
+
+    let av = a[key];
+    let bv = b[key];
+
+    if (typeof av === "string") av = av.toLowerCase();
+    if (typeof bv === "string") bv = bv.toLowerCase();
+
+    if (av < bv) return adminAgencySortDir === "asc" ? -1 : 1;
+    if (av > bv) return adminAgencySortDir === "asc" ? 1 : -1;
+    return 0;
+  });
+}
+
+function changeAdminAgencySort(key) {
+  if (adminAgencySortKey === key) {
+    adminAgencySortDir = adminAgencySortDir === "asc" ? "desc" : "asc";
+  } else {
+    adminAgencySortKey = key;
+    adminAgencySortDir = "desc";
+  }
+
+  // 다시 렌더
+  if (activeAdminAgencyDetail) {
+    toggleAdminAgencyDetail(activeAdminAgencyDetail);
+  }
+}
+
+function reloadAdminAgencyCardHighlight() {
+  const cards = document.querySelectorAll("#adminAgencyStockCards .statCard");
+  cards.forEach(card => card.classList.remove("active"));
+
+  if (!activeAdminAgencyDetail) return;
+
+  const target = document.querySelector(
+    `#adminAgencyStockCards .statCard[onclick="toggleAdminAgencyDetail('${activeAdminAgencyDetail}')"]`
+  );
+
+  if (target) {
+    target.classList.add("active");
+  }
 }
 
 // =========================
@@ -2101,4 +2257,9 @@ async function copyStoreCode(code) {
     console.error(e);
     alert("복사 실패");
   }
+}
+
+function getSortArrow(key) {
+  if (adminAgencySortKey !== key) return "";
+  return adminAgencySortDir === "asc" ? " ▲" : " ▼";
 }
