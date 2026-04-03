@@ -2322,3 +2322,121 @@ tr:hover td{background:#fafafa}
     font-size: 11px !important;
   }
 }
+
+/* =========================
+   관리자 센터별 총 재고 상세 전용
+========================= */
+.adminAgencyDetailWrap {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+.adminAgencyDetailTable {
+  width: 100% !important;
+  min-width: 980px !important;
+  border-collapse: collapse !important;
+  table-layout: fixed !important;
+}
+
+.adminAgencyDetailTable th,
+.adminAgencyDetailTable td {
+  padding: 10px 12px !important;
+  border-bottom: 1px solid #e9edf3 !important;
+  vertical-align: middle !important;
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+}
+
+.adminAgencyDetailTable th {
+  background: #fafbfc !important;
+  color: #5f6b7a !important;
+  font-weight: 700 !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+.adminAgencyDetailTable td {
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+/* 모델명 */
+.adminAgencyDetailTable th:nth-child(1),
+.adminAgencyDetailTable td:nth-child(1) {
+  width: 240px !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* 색상 */
+.adminAgencyDetailTable th:nth-child(2),
+.adminAgencyDetailTable td:nth-child(2) {
+  width: 110px !important;
+  white-space: nowrap !important;
+}
+
+/* 총재고 */
+.adminAgencyDetailTable th:nth-child(3),
+.adminAgencyDetailTable td:nth-child(3) {
+  width: 110px !important;
+}
+
+/* 창고재고 */
+.adminAgencyDetailTable th:nth-child(4),
+.adminAgencyDetailTable td:nth-child(4) {
+  width: 110px !important;
+}
+
+/* 판매점재고 */
+.adminAgencyDetailTable th:nth-child(5),
+.adminAgencyDetailTable td:nth-child(5) {
+  width: 130px !important;
+}
+
+/* 창고비중 */
+.adminAgencyDetailTable th:nth-child(6),
+.adminAgencyDetailTable td:nth-child(6) {
+  width: 120px !important;
+  white-space: nowrap !important;
+}
+
+@media (max-width: 768px) {
+  .adminAgencyDetailTable {
+    min-width: 860px !important;
+  }
+
+  .adminAgencyDetailTable th,
+  .adminAgencyDetailTable td {
+    padding: 8px 10px !important;
+    font-size: 13px !important;
+  }
+
+  .adminAgencyDetailTable th:nth-child(1),
+  .adminAgencyDetailTable td:nth-child(1) {
+    width: 200px !important;
+  }
+
+  .adminAgencyDetailTable th:nth-child(2),
+  .adminAgencyDetailTable td:nth-child(2) {
+    width: 90px !important;
+  }
+
+  .adminAgencyDetailTable th:nth-child(3),
+  .adminAgencyDetailTable td:nth-child(3),
+  .adminAgencyDetailTable th:nth-child(4),
+  .adminAgencyDetailTable td:nth-child(4) {
+    width: 90px !important;
+  }
+
+  .adminAgencyDetailTable th:nth-child(5),
+  .adminAgencyDetailTable td:nth-child(5) {
+    width: 110px !important;
+  }
+
+  .adminAgencyDetailTable th:nth-child(6),
+  .adminAgencyDetailTable td:nth-child(6) {
+    width: 100px !important;
+  }
+}

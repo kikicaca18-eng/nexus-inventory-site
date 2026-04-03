@@ -1080,8 +1080,8 @@ function renderDashboardTotalDetail(rows) {
   }
 
   let html = `
-  <div class="tableWrap inventoryTotalDetailWrap">
-    <table class="inventoryTotalDetailTable">
+  <div class="tableWrap adminAgencyDetailWrap">
+    <table class="adminAgencyDetailTable">
         <thead>
           <tr>
             <th class="sortable" onclick="toggleDashboardSort('total','model_name')">
