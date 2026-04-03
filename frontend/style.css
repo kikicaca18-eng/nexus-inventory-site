@@ -2267,3 +2267,58 @@ tr:hover td{background:#fafafa}
 .sortable::after {
   margin-left: 4px;
 }
+
+/* =========================
+   센터별 총 재고 상세 붙여서 보이게
+========================= */
+#adminAgencyDetailSection {
+  margin-top: 10px !important;
+  padding: 10px 12px !important;
+  border-radius: 14px !important;
+}
+
+#adminAgencyDetailSection .panelHeader {
+  margin-bottom: 6px !important;
+  gap: 6px !important;
+}
+
+#adminAgencyDetailSection .panelTitle {
+  font-size: 16px !important;
+  line-height: 1.25 !important;
+}
+
+#adminAgencyDetailSection .panelHint {
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+}
+
+#adminAgencyDetailTable .tableWrap {
+  margin-top: 6px !important;
+}
+
+#adminAgencyDetailTable table {
+  margin-top: 0 !important;
+}
+
+#adminAgencyStockBox .panel {
+  padding-bottom: 10px !important;
+}
+
+@media (max-width: 768px) {
+  #adminAgencyDetailSection {
+    margin-top: 8px !important;
+    padding: 8px 10px !important;
+  }
+
+  #adminAgencyDetailSection .panelHeader {
+    margin-bottom: 4px !important;
+  }
+
+  #adminAgencyDetailSection .panelTitle {
+    font-size: 15px !important;
+  }
+
+  #adminAgencyDetailSection .panelHint {
+    font-size: 11px !important;
+  }
+}
