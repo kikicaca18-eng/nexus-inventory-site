@@ -10,8 +10,8 @@ let dashboardDetailSort = {
 let dashboardDetailRows = [];
 let inventoryModelTurnoverRows = [];
 let inventoryModelTurnoverSort = {
-  key: "turnover_days",
-  order: "asc"
+  key: "monthly_sales",
+  order: "desc"
 };
 let activeAgingThreshold = 0;
 let activeAdminAgencyDetail = "";
@@ -425,9 +425,9 @@ async function loadInventoryDashboard() {
 
     inventoryModelTurnoverRows = Array.isArray(m.rows) ? m.rows : [];
     inventoryModelTurnoverSort = {
-      key: "turnover_days",
-      order: "asc"
-    };
+  key: "monthly_sales",
+  order: "desc"
+};
 
     renderInventoryModelTurnoverTable();
 
@@ -654,20 +654,35 @@ async function openModelTurnoverModal(modelName) {
     `;
 
     rows.forEach(r => {
-      const turnoverText =
-        r.turnover_days === null || r.turnover_days === undefined
-          ? "-"
-          : `${Number(r.turnover_days).toLocaleString()}일`;
+  const turnover =
+    r.turnover_days === null || r.turnover_days === undefined
+      ? null
+      : Number(r.turnover_days);
 
-      html += `
-        <tr>
-          <td>${escapeHtml(r.agency_name || "")}</td>
-          <td>${Number(r.qty || 0).toLocaleString()}</td>
-          <td>${Number(r.monthly_sales || 0).toLocaleString()}</td>
-          <td>${turnoverText}</td>
-        </tr>
-      `;
-    });
+  let turnoverText = "-";
+  let turnoverClass = "";
+
+  if (turnover !== null) {
+    if (turnover >= 100) {
+      turnoverText = `⚠️ ${turnover.toLocaleString()}일`;
+      turnoverClass = "slowStockText";
+    } else if (turnover < 40) {
+      turnoverText = `부족 ${turnover.toLocaleString()}일`;
+      turnoverClass = "shortStockText";
+    } else {
+      turnoverText = `${turnover.toLocaleString()}일`;
+    }
+  }
+
+  html += `
+    <tr>
+      <td>${escapeHtml(r.agency_name || "")}</td>
+      <td>${Number(r.qty || 0).toLocaleString()}</td>
+      <td>${Number(r.monthly_sales || 0).toLocaleString()}</td>
+      <td class="${turnoverClass}">${turnoverText}</td>
+    </tr>
+  `;
+});
 
     html += `
           </tbody>

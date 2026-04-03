@@ -2151,3 +2151,113 @@ tr:hover td{background:#fafafa}
   outline: none;
   text-decoration: underline;
 }
+
+/* =========================
+   모델별 회전일 모바일 최종 보정
+========================= */
+.inventoryTurnoverWrap {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.inventoryTurnoverTable {
+  width: 100% !important;
+  min-width: 560px !important;
+  table-layout: fixed !important;
+}
+
+.inventoryTurnoverTable th,
+.inventoryTurnoverTable td {
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+.inventoryTurnoverTable th:nth-child(1),
+.inventoryTurnoverTable td:nth-child(1) {
+  width: 180px !important;   /* 모델명 */
+  text-align: left !important;
+}
+
+.inventoryTurnoverTable th:nth-child(2),
+.inventoryTurnoverTable td:nth-child(2) {
+  width: 85px !important;    /* 수량 */
+}
+
+.inventoryTurnoverTable th:nth-child(3),
+.inventoryTurnoverTable td:nth-child(3) {
+  width: 95px !important;    /* 당월판매 */
+}
+
+.inventoryTurnoverTable th:nth-child(4),
+.inventoryTurnoverTable td:nth-child(4) {
+  width: 100px !important;   /* 회전일 */
+}
+
+@media (max-width: 768px) {
+  .inventoryTurnoverTable {
+    min-width: 460px !important;
+  }
+
+  .inventoryTurnoverTable th,
+  .inventoryTurnoverTable td {
+    padding: 8px 8px !important;
+    font-size: 13px !important;
+  }
+
+  .inventoryTurnoverTable th:nth-child(1),
+  .inventoryTurnoverTable td:nth-child(1) {
+    width: 150px !important;  /* 모바일에서 모델명 더 축소 */
+  }
+
+  .inventoryTurnoverTable th:nth-child(2),
+  .inventoryTurnoverTable td:nth-child(2) {
+    width: 70px !important;
+  }
+
+  .inventoryTurnoverTable th:nth-child(3),
+  .inventoryTurnoverTable td:nth-child(3) {
+    width: 78px !important;
+  }
+
+  .inventoryTurnoverTable th:nth-child(4),
+  .inventoryTurnoverTable td:nth-child(4) {
+    width: 88px !important;
+  }
+
+  .inventoryTurnoverTable .linkLikeBtn {
+    font-size: 13px !important;
+    line-height: 1.2 !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .inventoryTurnoverTable {
+    min-width: 420px !important; /* 완전 꽉 차게 */
+  }
+
+  .inventoryTurnoverTable th,
+  .inventoryTurnoverTable td {
+    padding: 7px 6px !important;
+    font-size: 12px !important;
+  }
+
+  .inventoryTurnoverTable th:nth-child(1),
+  .inventoryTurnoverTable td:nth-child(1) {
+    width: 135px !important;
+  }
+
+  .inventoryTurnoverTable th:nth-child(2),
+  .inventoryTurnoverTable td:nth-child(2) {
+    width: 62px !important;
+  }
+
+  .inventoryTurnoverTable th:nth-child(3),
+  .inventoryTurnoverTable td:nth-child(3) {
+    width: 72px !important;
+  }
+
+  .inventoryTurnoverTable th:nth-child(4),
+  .inventoryTurnoverTable td:nth-child(4) {
+    width: 82px !important;
+  }
+}
