@@ -2271,3 +2271,66 @@ tr:hover td{background:#fafafa}
 .inventoryAgingTable td:nth-child(3) {
   width: 140px;   /* 모델 */
 }
+
+/* =========================
+   장기재고 테이블 컬럼 비율 조정 (최종)
+========================= */
+
+/* 센터 */
+.inventoryAgingTable th:nth-child(1),
+.inventoryAgingTable td:nth-child(1) {
+  width: 80px !important;
+}
+
+/* 접점명 */
+.inventoryAgingTable th:nth-child(2),
+.inventoryAgingTable td:nth-child(2) {
+  width: 150px !important;
+}
+
+/* 모델 */
+.inventoryAgingTable th:nth-child(3),
+.inventoryAgingTable td:nth-child(3) {
+  width: 130px !important;
+}
+
+/* 🔥 색상 줄이기 */
+.inventoryAgingTable th:nth-child(4),
+.inventoryAgingTable td:nth-child(4) {
+  width: 70px !important;
+  white-space: nowrap;
+}
+
+/* 🔥 일련번호 크게 */
+.inventoryAgingTable th:nth-child(5),
+.inventoryAgingTable td:nth-child(5) {
+  width: 180px !important;
+  white-space: nowrap;
+}
+
+/* 입고경과일 */
+.inventoryAgingTable th:nth-child(6),
+.inventoryAgingTable td:nth-child(6) {
+  width: 90px !important;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+
+  .inventoryAgingTable {
+    min-width: 600px !important;
+  }
+
+  /* 색상 더 줄이기 */
+  .inventoryAgingTable th:nth-child(4),
+  .inventoryAgingTable td:nth-child(4) {
+    width: 60px !important;
+  }
+
+  /* 일련번호 더 키움 */
+  .inventoryAgingTable th:nth-child(5),
+  .inventoryAgingTable td:nth-child(5) {
+    width: 160px !important;
+    font-size: 12px;
+  }
+}
