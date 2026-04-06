@@ -2788,6 +2788,118 @@ app.post("/inventory/model-turnover-detail", async (req, res) => {
   }
 });
 
+app.post("/inventory/model-turnover-store-detail", async (req, res) => {
+  const snapshotDate = todayKST();
+  const { model_name, agency } = req.body;
+
+  if (!model_name) {
+    return res.status(400).json({ ok: false, message: "model_name 정보가 없습니다." });
+  }
+
+  if (!agency || agency === "관리자") {
+    return res.status(400).json({ ok: false, message: "센터 agency 정보가 없습니다." });
+  }
+
+  try {
+    const salesAgency = mapCenterToSalesAgency(agency);
+
+    // 당월 기준월
+    const monthQ = await pool.query(
+      `
+      SELECT MAX(base_month) AS latest_month
+      FROM sales_records
+      WHERE data_scope = 'daily'
+        AND metric_type = '후불'
+      `
+    );
+
+    const latestMonth = monthQ.rows[0]?.latest_month || null;
+
+    // 판매점별 재고
+    const inventoryQ = await pool.query(
+      `
+      SELECT
+        store_name,
+        COUNT(*)::int AS qty
+      FROM inventory_items
+      WHERE snapshot_date = $1
+        AND agency_name = $2
+        AND model_name = $3
+      GROUP BY store_name
+      ORDER BY qty DESC, store_name ASC
+      `,
+      [snapshotDate, agency, model_name]
+    );
+
+    // 판매점별 당월판매
+    let salesRows = [];
+    if (latestMonth) {
+      const salesQ = await pool.query(
+        `
+        SELECT
+          store_name,
+          COALESCE(SUM(total_score), 0)::numeric AS sales_qty
+        FROM sales_records
+        WHERE base_month = $1
+          AND data_scope = 'daily'
+          AND metric_type = '후불'
+          AND is_ms = 'Y'
+          AND agency_name = $2
+          AND model_name = $3
+        GROUP BY store_name
+        ORDER BY sales_qty DESC, store_name ASC
+        `,
+        [latestMonth, salesAgency, model_name]
+      );
+
+      salesRows = salesQ.rows || [];
+    }
+
+    const salesMap = {};
+    salesRows.forEach(r => {
+      salesMap[r.store_name] = Number(r.sales_qty || 0);
+    });
+
+    const inventoryMap = {};
+    (inventoryQ.rows || []).forEach(r => {
+      inventoryMap[r.store_name] = Number(r.qty || 0);
+    });
+
+    const storeNames = Array.from(
+      new Set([
+        ...Object.keys(inventoryMap),
+        ...Object.keys(salesMap)
+      ])
+    ).sort((a, b) => a.localeCompare(b, "ko"));
+
+    const rows = storeNames.map(name => ({
+      store_name: name,
+      qty: Number(inventoryMap[name] || 0),
+      monthly_sales: Number(salesMap[name] || 0)
+    }));
+
+    // 기본은 재고 많은 순
+    rows.sort((a, b) => {
+      if (b.qty !== a.qty) return b.qty - a.qty;
+      if (b.monthly_sales !== a.monthly_sales) return b.monthly_sales - a.monthly_sales;
+      return String(a.store_name || "").localeCompare(String(b.store_name || ""), "ko");
+    });
+
+    return res.json({
+      ok: true,
+      model_name,
+      agency,
+      rows
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({
+      ok: false,
+      message: "판매점별 모델 상세 조회 실패"
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log("🚀 Backend running on port", PORT);
 });

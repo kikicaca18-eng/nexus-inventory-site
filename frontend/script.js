@@ -588,11 +588,13 @@ function renderInventoryModelTurnoverTable() {
   html += `
     <tr class="${isSlow ? "slowStockRow" : isShort ? "shortStockRow" : ""}">
       <td>
-  ${
-    currentCenter === "관리자"
-      ? `<button type="button" class="linkLikeBtn" onclick='openModelTurnoverModal(${JSON.stringify(r.model_name || "")})'>${escapeHtml(r.model_name || "")}</button>`
-      : `${escapeHtml(r.model_name || "")}`
-  }
+  <button
+    type="button"
+    class="linkLikeBtn"
+    onclick='openModelTurnoverDetail(${JSON.stringify(r.model_name || "")})'
+  >
+    ${escapeHtml(r.model_name || "")}
+  </button>
 </td>
       <td>${Number(r.qty || 0).toLocaleString()}</td>
       <td>${Number(r.monthly_sales || 0).toLocaleString()}</td>
@@ -610,6 +612,15 @@ function renderInventoryModelTurnoverTable() {
   `;
 
   wrap.innerHTML = html;
+}
+
+function openModelTurnoverDetail(modelName) {
+  if (currentCenter === "관리자") {
+    openModelTurnoverModal(modelName); // 기존 관리자용 그대로
+    return;
+  }
+
+  openStoreTurnoverModal(modelName);   // 센터 로그인용 신규
 }
 
 async function openModelTurnoverModal(modelName) {
@@ -683,6 +694,77 @@ async function openModelTurnoverModal(modelName) {
     </tr>
   `;
 });
+
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    bodyEl.innerHTML = html;
+  } catch (e) {
+    console.error(e);
+    bodyEl.innerHTML = "❌ 네트워크 오류";
+  }
+}
+
+async function openStoreTurnoverModal(modelName) {
+  const modal = document.getElementById("modelTurnoverModal");
+  const titleEl = document.getElementById("modelTurnoverModalTitle");
+  const bodyEl = document.getElementById("modelTurnoverModalBody");
+
+  if (!modal || !titleEl || !bodyEl) return;
+
+  titleEl.textContent = `${modelName} 판매점별 상세`;
+  bodyEl.innerHTML = "불러오는 중...";
+  modal.style.display = "flex";
+
+  try {
+    const resp = await fetch(`${API_URL}/inventory/model-turnover-store-detail`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model_name: modelName,
+        agency: currentCenter
+      })
+    });
+
+    const j = await resp.json();
+
+    if (!resp.ok || !j.ok) {
+      bodyEl.innerHTML = `❌ ${j.message || "조회 실패"}`;
+      return;
+    }
+
+    const rows = Array.isArray(j.rows) ? j.rows : [];
+
+    if (!rows.length) {
+      bodyEl.innerHTML = "데이터가 없습니다.";
+      return;
+    }
+
+    let html = `
+      <div class="tableWrap compactTable">
+        <table>
+          <thead>
+            <tr>
+              <th>판매점</th>
+              <th>재고보유</th>
+              <th>판매량</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    rows.forEach(r => {
+      html += `
+        <tr>
+          <td>${escapeHtml(r.store_name || "")}</td>
+          <td>${Number(r.qty || 0).toLocaleString()}</td>
+          <td>${Number(r.monthly_sales || 0).toLocaleString()}</td>
+        </tr>
+      `;
+    });
 
     html += `
           </tbody>
