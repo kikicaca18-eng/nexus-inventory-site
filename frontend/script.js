@@ -49,7 +49,7 @@ let activeDashboardDetailType = "";
 // =========================
 const passwords = {
   "광주": "kimchizzang1219",
-  "목포": "jindotgae00",
+  "목포": "mp4046",
   "순천": "yeosuexpo8787",
   "전북": "saemangeum2233",
   "제주": "halubang9987",
