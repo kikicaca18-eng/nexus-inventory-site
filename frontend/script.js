@@ -22,6 +22,11 @@ let agingStockDetailSort = {
   key: "aging_days",
   order: "desc"
 };
+let storeTurnoverRows = [];
+let storeTurnoverSort = {
+  key: "qty",
+  order: "desc"
+};
 let performanceTrendChart = null;
 let performanceSearchCache = [];
 let performanceSortState = { key: "", order: "asc" };
@@ -738,45 +743,107 @@ async function openStoreTurnoverModal(modelName) {
 
     const rows = Array.isArray(j.rows) ? j.rows : [];
 
-    if (!rows.length) {
-      bodyEl.innerHTML = "데이터가 없습니다.";
-      return;
-    }
+if (!rows.length) {
+  bodyEl.innerHTML = "데이터가 없습니다.";
+  return;
+}
 
-    let html = `
-      <div class="tableWrap compactTable">
-        <table>
-          <thead>
-            <tr>
-              <th>판매점</th>
-              <th>재고보유</th>
-              <th>판매량</th>
-            </tr>
-          </thead>
-          <tbody>
-    `;
+storeTurnoverRows = rows;
+storeTurnoverSort = {
+  key: "qty",
+  order: "desc"
+};
 
-    rows.forEach(r => {
-      html += `
-        <tr>
-          <td>${escapeHtml(r.store_name || "")}</td>
-          <td>${Number(r.qty || 0).toLocaleString()}</td>
-          <td>${Number(r.monthly_sales || 0).toLocaleString()}</td>
-        </tr>
-      `;
-    });
-
-    html += `
-          </tbody>
-        </table>
-      </div>
-    `;
-
-    bodyEl.innerHTML = html;
+renderStoreTurnoverModalTable();
   } catch (e) {
     console.error(e);
     bodyEl.innerHTML = "❌ 네트워크 오류";
   }
+}
+
+function renderStoreTurnoverModalTable() {
+  const bodyEl = document.getElementById("modelTurnoverModalBody");
+  if (!bodyEl) return;
+
+  const rows = [...storeTurnoverRows];
+
+  rows.sort((a, b) => {
+    const key = storeTurnoverSort.key;
+    const order = storeTurnoverSort.order;
+
+    let av = a[key];
+    let bv = b[key];
+
+    const isNumeric = key === "qty" || key === "monthly_sales";
+
+    let cmp = 0;
+
+    if (isNumeric) {
+      cmp = Number(av || 0) - Number(bv || 0);
+    } else {
+      cmp = String(av || "").localeCompare(String(bv || ""), "ko");
+    }
+
+    return order === "asc" ? cmp : -cmp;
+  });
+
+  let html = `
+    <div class="tableWrap compactTable">
+      <table>
+        <thead>
+          <tr>
+            <th class="sortable" onclick="toggleStoreTurnoverSort('store_name')">
+              판매점${getStoreTurnoverSortIndicator("store_name")}
+            </th>
+            <th class="sortable" onclick="toggleStoreTurnoverSort('qty')">
+              재고보유${getStoreTurnoverSortIndicator("qty")}
+            </th>
+            <th class="sortable" onclick="toggleStoreTurnoverSort('monthly_sales')">
+              판매량${getStoreTurnoverSortIndicator("monthly_sales")}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  rows.forEach(r => {
+    const isZeroSales = Number(r.monthly_sales || 0) === 0;
+
+    html += `
+      <tr class="${isZeroSales ? "zeroSalesRow" : ""}">
+        <td>${escapeHtml(r.store_name || "")}</td>
+        <td>${Number(r.qty || 0).toLocaleString()}</td>
+        <td class="${isZeroSales ? "zeroSalesText" : ""}">
+          ${Number(r.monthly_sales || 0).toLocaleString()}
+        </td>
+      </tr>
+    `;
+  });
+
+  html += `
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  bodyEl.innerHTML = html;
+}
+
+function toggleStoreTurnoverSort(key) {
+  if (storeTurnoverSort.key === key) {
+    storeTurnoverSort.order =
+      storeTurnoverSort.order === "asc" ? "desc" : "asc";
+  } else {
+    storeTurnoverSort.key = key;
+    storeTurnoverSort.order = key === "store_name" ? "asc" : "desc";
+  }
+
+  renderStoreTurnoverModalTable();
+}
+
+function getStoreTurnoverSortIndicator(key) {
+  if (storeTurnoverSort.key !== key) return "";
+  return storeTurnoverSort.order === "asc" ? " ▲" : " ▼";
 }
 
 function closeModelTurnoverModal() {
