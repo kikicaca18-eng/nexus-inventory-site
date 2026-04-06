@@ -48,7 +48,7 @@ let activeDashboardDetailType = "";
 // 비밀번호
 // =========================
 const passwords = {
-  "광주": "kimchizzang1219",
+  "광주": "irisout74",
   "목포": "mp4046",
   "순천": "yeosuexpo8787",
   "전북": "saemangeum2233",
