@@ -2261,3 +2261,13 @@ tr:hover td{background:#fafafa}
     width: 82px !important;
   }
 }
+
+.inventoryAgingTable th:nth-child(2),
+.inventoryAgingTable td:nth-child(2) {
+  width: 140px;   /* 접점명 */
+}
+
+.inventoryAgingTable th:nth-child(3),
+.inventoryAgingTable td:nth-child(3) {
+  width: 140px;   /* 모델 */
+}

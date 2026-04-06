@@ -1486,6 +1486,9 @@ function renderAgingStockDetailTable() {
             <th class="sortable" onclick="toggleAgingStockDetailSort('agency_name')">
               센터${getAgingStockDetailSortIndicator('agency_name')}
             </th>
+            <th class="sortable" onclick="toggleAgingStockDetailSort('store_name')">
+              접점명${getAgingStockDetailSortIndicator('store_name')}
+            </th>
             <th class="sortable" onclick="toggleAgingStockDetailSort('model_name')">
               모델${getAgingStockDetailSortIndicator('model_name')}
             </th>
@@ -1507,6 +1510,7 @@ function renderAgingStockDetailTable() {
     html += `
       <tr>
         <td>${escapeHtml(r.agency_name || "")}</td>
+        <td>${escapeHtml(r.store_name || "")}</td>
         <td>${escapeHtml(r.model_name || "")}</td>
         <td>${escapeHtml(r.color || "")}</td>
         <td>${escapeHtml(r.serial_no || "")}</td>

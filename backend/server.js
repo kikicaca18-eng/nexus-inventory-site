@@ -2510,6 +2510,7 @@ app.post("/inventory/aging-detail", async (req, res) => {
     const q = `
   SELECT
     agency_name,
+    store_name,
     model_name,
     color,
     serial_no,
