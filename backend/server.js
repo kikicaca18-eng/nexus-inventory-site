@@ -1780,42 +1780,42 @@ app.get("/performance/dashboard-summary", async (req, res) => {
     );
 
     const latestMonth =
-  monthQ.rows[0]?.latest_month ||
-  (
-    await pool.query(
+      monthQ.rows[0]?.latest_month ||
+      (
+        await pool.query(
+          `
+          SELECT MAX(base_month) AS latest_month
+          FROM sales_records
+          WHERE data_scope = 'monthly'
+          `
+        )
+      ).rows[0]?.latest_month;
+
+    // 기준일 = 당월(후불) 마지막 마감일
+    const dateQ = await pool.query(
       `
-      SELECT MAX(base_month) AS latest_month
+      SELECT MAX(record_date) AS latest_date
       FROM sales_records
-      WHERE data_scope = 'monthly'
+      WHERE data_scope = 'daily'
+        AND metric_type = '후불'
       `
-    )
-  ).rows[0]?.latest_month;
+    );
 
-// 기준일 = 당월(후불) 마지막 마감일
-const dateQ = await pool.query(
-  `
-  SELECT MAX(record_date) AS latest_date
-  FROM sales_records
-  WHERE data_scope = 'daily'
-    AND metric_type = '후불'
-  `
-);
+    const latestDate = dateQ.rows[0]?.latest_date || null;
 
-const latestDate = dateQ.rows[0]?.latest_date || null;
     // -------------------------
     // 표준 진척율 계산
     // 기준: 일요일 제외, 월~토 영업일
     // -------------------------
-        let progressRate = 0;
+    let progressRate = 0;
 
     if (latestDate) {
       const dateObj = new Date(latestDate);
 
       const year = dateObj.getUTCFullYear();
-      const month = dateObj.getUTCMonth() + 1; // 1~12
+      const month = dateObj.getUTCMonth() + 1;
       const day = dateObj.getUTCDate();
 
-      // 해당 월 마지막 날짜
       const lastDayOfMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
 
       let totalBusinessDays = 0;
@@ -1825,10 +1825,8 @@ const latestDate = dateQ.rows[0]?.latest_date || null;
         const current = new Date(Date.UTC(year, month - 1, d));
         const weekday = current.getUTCDay(); // 0=일요일
 
-        // 일요일 제외
         if (weekday !== 0) {
           totalBusinessDays++;
-
           if (d <= day) {
             passedBusinessDays++;
           }
@@ -1844,7 +1842,7 @@ const latestDate = dateQ.rows[0]?.latest_date || null;
       return res.json({
         ok: true,
         latest_month: latestMonth,
-        latest_date : latestDate,
+        latest_date: latestDate,
         progress_rate: progressRate,
         summary: {
           postpaid: 0,
@@ -1858,9 +1856,9 @@ const latestDate = dateQ.rows[0]?.latest_date || null;
           mit_rate: 0,
           postpaid_store_rate: 0,
           postpaid_share: 0,
-pure_new_share: 0,
-renewal_share: 0,
-mit_share: 0
+          pure_new_share: 0,
+          renewal_share: 0,
+          mit_share: 0
         }
       });
     }
@@ -1870,16 +1868,24 @@ mit_share: 0
 
     let where = `
       WHERE base_month = $1
-        AND is_ms = 'Y'
     `;
 
-    // 관리자 아니면 해당 센터만
+    // 분자 조건
+    // 관리자(호남) = is_ms='Y' 전체
+    // 센터선택 = 해당 M&S 센터만
     if (agency && agency !== "관리자") {
       where += ` AND agency_name = $${idx}`;
       params.push(agency);
       idx++;
+    } else {
+      where += ` AND is_ms = 'Y'`;
     }
 
+    // -------------------------
+    // 분자: 선택 기준 실적
+    // 관리자 = M&S 전체
+    // 센터   = 해당 M&S 센터
+    // -------------------------
     const totalQ = await pool.query(
       `
       SELECT
@@ -1893,20 +1899,10 @@ mit_share: 0
       params
     );
 
-        // -------------------------
-    // 전체 KT 실적(비중 계산용 분모)
-    // 관리자=호남 전체 / 센터선택=해당 센터 전체
     // -------------------------
-    const totalKtParams = [latestMonth];
-    let totalKtWhere = `
-      WHERE base_month = $1
-    `;
-
-    if (agency && agency !== "관리자") {
-      totalKtWhere += ` AND agency_name = $2`;
-      totalKtParams.push(agency);
-    }
-
+    // 분모: KT 전체 실적
+    // ※ agency 필터 없음 (항상 전체)
+    // -------------------------
     const totalKtQ = await pool.query(
       `
       SELECT
@@ -1915,11 +1911,12 @@ mit_share: 0
         COALESCE(SUM(CASE WHEN metric_type = '약정갱신' THEN total_score ELSE 0 END), 0)::numeric AS renewal_total,
         COALESCE(SUM(CASE WHEN metric_type = 'MIT' THEN total_score ELSE 0 END), 0)::numeric AS mit_total
       FROM sales_records
-      ${totalKtWhere}
+      WHERE base_month = $1
       `,
-      totalKtParams
+      [latestMonth]
     );
 
+    // 후불 실적점도 분자 기준만 그대로 유지
     const storeQ = await pool.query(
       `
       SELECT COUNT(DISTINCT store_code)::int AS cnt
@@ -1937,7 +1934,7 @@ mit_share: 0
     let targetQ;
 
     if (agency && agency !== "관리자") {
-      // 센터 로그인: 해당 센터 목표
+      // 센터 로그인 / 센터선택: 해당 센터 목표
       targetQ = await pool.query(
         `
         SELECT
@@ -1951,7 +1948,7 @@ mit_share: 0
         [latestMonth, agency]
       );
     } else {
-      // 관리자 로그인: 전체 센터 합산 목표
+      // 관리자(호남): 전체 센터 합산 목표
       targetQ = await pool.query(
         `
         SELECT
@@ -1975,6 +1972,7 @@ mit_share: 0
     const renewal = Number(totalQ.rows[0]?.renewal || 0);
     const mit = Number(totalQ.rows[0]?.mit || 0);
     const postpaidStoreCount = Number(storeQ.rows[0]?.cnt || 0);
+
     const postpaidTotal = Number(totalKtQ.rows[0]?.postpaid_total || 0);
     const pureNewTotal = Number(totalKtQ.rows[0]?.pure_new_total || 0);
     const renewalTotal = Number(totalKtQ.rows[0]?.renewal_total || 0);
@@ -1985,35 +1983,35 @@ mit_share: 0
       return Math.round((Number(actual) / Number(target)) * 100);
     }
 
-        function calcShare(actual, total) {
+    function calcShare(actual, total) {
       if (!total || Number(total) === 0) return 0;
       return Number(((Number(actual) / Number(total)) * 100).toFixed(1));
     }
 
     return res.json({
-  ok: true,
-  latest_month: latestMonth,
-  latest_date: latestDate,
-  progress_rate: progressRate,
-  summary: {
-    postpaid,
-    pure_new: pureNew,
-    renewal,
-    mit,
-    postpaid_store_count: postpaidStoreCount,
+      ok: true,
+      latest_month: latestMonth,
+      latest_date: latestDate,
+      progress_rate: progressRate,
+      summary: {
+        postpaid,
+        pure_new: pureNew,
+        renewal,
+        mit,
+        postpaid_store_count: postpaidStoreCount,
 
-    postpaid_rate: calcRate(postpaid, targetMap["후불"]),
-    pure_new_rate: calcRate(pureNew, targetMap["순신규"]),
-    renewal_rate: calcRate(renewal, targetMap["약정갱신"]),
-    mit_rate: calcRate(mit, targetMap["MIT"]),
-    postpaid_store_rate: calcRate(postpaidStoreCount, targetMap["후불실적점"]),
+        postpaid_rate: calcRate(postpaid, targetMap["후불"]),
+        pure_new_rate: calcRate(pureNew, targetMap["순신규"]),
+        renewal_rate: calcRate(renewal, targetMap["약정갱신"]),
+        mit_rate: calcRate(mit, targetMap["MIT"]),
+        postpaid_store_rate: calcRate(postpaidStoreCount, targetMap["후불실적점"]),
 
-    postpaid_share: calcShare(postpaid, postpaidTotal),
-    pure_new_share: calcShare(pureNew, pureNewTotal),
-    renewal_share: calcShare(renewal, renewalTotal),
-    mit_share: calcShare(mit, mitTotal)
-  }
-});
+        postpaid_share: calcShare(postpaid, postpaidTotal),
+        pure_new_share: calcShare(pureNew, pureNewTotal),
+        renewal_share: calcShare(renewal, renewalTotal),
+        mit_share: calcShare(mit, mitTotal)
+      }
+    });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ ok: false, message: "실적 대시보드 조회 실패" });
@@ -2035,8 +2033,7 @@ mit_share: 0
 app.get("/performance/dashboard-trend", async (req, res) => {
   try {
     const metric = toText(req.query.metric);
-    const rawAgency = toText(req.query.agency);           // 관리자 / 광주 / 목포 / 순천 / 전북 / 제주
-    const agency = mapCenterToSalesAgency(rawAgency);     // 관리자 / M&S광주 / M&S목포 ...
+    const agency = mapCenterToSalesAgency(req.query.agency);
 
     if (!metric) {
       return res.status(400).json({ ok: false, message: "metric이 필요합니다." });
@@ -2063,22 +2060,23 @@ app.get("/performance/dashboard-trend", async (req, res) => {
 
     let commonWhere = `
       WHERE base_month = ANY($1)
-        AND is_ms = 'Y'
     `;
 
-    // 관리자 아니면 해당 M&S 센터만
+    // 분자 조건
+    // 관리자(호남) = is_ms='Y' 전체
+    // 센터선택 = 해당 M&S 센터만
     if (agency && agency !== "관리자") {
       commonWhere += ` AND agency_name = $${idx}`;
       params.push(agency);
       idx++;
+    } else {
+      commonWhere += ` AND is_ms = 'Y'`;
     }
 
     let rows = [];
 
-    // -------------------------
-    // 1) 기존 값 조회 (기존 기능 유지)
-    // -------------------------
     if (metric === "후불실적점") {
+      // 후불 실적점은 기존 기능 유지 (비중 계산 제외)
       const q = await pool.query(
         `
         SELECT
@@ -2105,6 +2103,11 @@ app.get("/performance/dashboard-trend", async (req, res) => {
         share_rate: 0
       }));
     } else {
+      // -------------------------
+      // 분자: 선택 기준 실적
+      // 관리자 = M&S 전체
+      // 센터   = 해당 M&S 센터
+      // -------------------------
       const metricParams = [...params, metric];
 
       const q = await pool.query(
@@ -2127,68 +2130,21 @@ app.get("/performance/dashboard-trend", async (req, res) => {
       });
 
       // -------------------------
-      // 2) 비중 계산용 KT 전체 분모 조회
-      //    - 관리자(호남): 전체 KT
-      //    - 센터선택: 해당 센터 전체 KT
+      // 분모: KT 전체 월별 실적
+      // ※ agency 필터 없음 (항상 전체)
       // -------------------------
-      const totalParams = [months, metric];
-      let totalWhere = `
-        WHERE base_month = ANY($1)
-          AND metric_type = $2
-      `;
-
-      // 센터별 분모 범위
-      // market 컬럼에 센터/권역 정보가 들어있다는 전제
-      if (rawAgency && rawAgency !== "관리자" && rawAgency !== "호남") {
-        if (rawAgency === "광주") {
-          totalWhere += ` AND market ILIKE $3`;
-          totalParams.push(`%광주%`);
-        } else if (rawAgency === "목포") {
-          totalWhere += ` AND market ILIKE $3`;
-          totalParams.push(`%목포%`);
-        } else if (rawAgency === "순천") {
-          totalWhere += ` AND market ILIKE $3`;
-          totalParams.push(`%순천%`);
-        } else if (rawAgency === "제주") {
-          totalWhere += ` AND market ILIKE $3`;
-          totalParams.push(`%제주%`);
-        } else if (rawAgency === "전북") {
-          totalWhere += `
-            AND (
-              market ILIKE $3
-              OR market ILIKE $4
-              OR market ILIKE $5
-              OR market ILIKE $6
-              OR market ILIKE $7
-              OR market ILIKE $8
-              OR market ILIKE $9
-              OR market ILIKE $10
-              OR market ILIKE $11
-            )
-          `;
-          totalParams.push(`%전북%`);
-          totalParams.push(`%전라북도%`);
-          totalParams.push(`%전주%`);
-          totalParams.push(`%군산%`);
-          totalParams.push(`%익산%`);
-          totalParams.push(`%정읍%`);
-          totalParams.push(`%김제%`);
-          totalParams.push(`%남원%`);
-          totalParams.push(`%완주%`);
-        }
-      }
-
       const totalQ = await pool.query(
         `
         SELECT
           base_month,
           COALESCE(SUM(total_score), 0)::numeric AS total_value
         FROM sales_records
-        ${totalWhere}
+        WHERE base_month = ANY($1)
+          AND metric_type = $2
         GROUP BY base_month
         ORDER BY base_month ASC
         `,
-        totalParams
+        [months, metric]
       );
 
       const totalMap = {};
