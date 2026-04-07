@@ -2987,6 +2987,210 @@ app.post("/inventory/model-turnover-store-detail", async (req, res) => {
   }
 });
 
+app.get("/performance/model-share-summary", async (req, res) => {
+  try {
+    const mode = toText(req.query.mode); // cumulative | daily
+
+    if (!["cumulative", "daily"].includes(mode)) {
+      return res.status(400).json({ ok: false, message: "mode가 필요합니다. (cumulative|daily)" });
+    }
+
+    const monthQ = await pool.query(
+      `
+      SELECT MAX(base_month) AS latest_month
+      FROM sales_records
+      WHERE data_scope = 'daily'
+        AND metric_type = '후불'
+      `
+    );
+
+    const latestMonth = monthQ.rows[0]?.latest_month || null;
+
+    const dateQ = await pool.query(
+      `
+      SELECT MAX(record_date) AS latest_date
+      FROM sales_records
+      WHERE data_scope = 'daily'
+        AND metric_type = '후불'
+      `
+    );
+
+    const latestDate = dateQ.rows[0]?.latest_date || null;
+
+    if (!latestMonth) {
+      return res.json({
+        ok: true,
+        latest_month: null,
+        latest_date: null,
+        rows: []
+      });
+    }
+
+    const params = [latestMonth];
+    let where = `
+      WHERE metric_type = '후불'
+        AND base_month = $1
+        AND COALESCE(model_name, '') <> ''
+    `;
+
+    if (mode === "daily") {
+      if (!latestDate) {
+        return res.json({
+          ok: true,
+          latest_month: latestMonth,
+          latest_date: null,
+          rows: []
+        });
+      }
+      where += ` AND data_scope = 'daily' AND record_date = $2`;
+      params.push(latestDate);
+    }
+
+    const q = await pool.query(
+      `
+      SELECT
+        model_name,
+        COALESCE(SUM(CASE WHEN is_ms = 'Y' THEN total_score ELSE 0 END), 0)::numeric AS ms_qty,
+        COALESCE(SUM(CASE WHEN is_ms = 'N' THEN total_score ELSE 0 END), 0)::numeric AS dealer_qty,
+        COALESCE(SUM(total_score), 0)::numeric AS total_qty
+      FROM sales_records
+      ${where}
+      GROUP BY model_name
+      ORDER BY total_qty DESC, model_name ASC
+      LIMIT 12
+      `,
+      params
+    );
+
+    const rows = (q.rows || []).map((r, idx) => {
+      const msQty = Number(r.ms_qty || 0);
+      const dealerQty = Number(r.dealer_qty || 0);
+      const totalQty = Number(r.total_qty || 0);
+      const shareRate = totalQty > 0 ? Number(((msQty / totalQty) * 100).toFixed(1)) : 0;
+
+      return {
+        no: idx + 1,
+        model_name: r.model_name,
+        ms_qty: msQty,
+        dealer_qty: dealerQty,
+        total_qty: totalQty,
+        share_rate: shareRate
+      };
+    });
+
+    return res.json({
+      ok: true,
+      latest_month: latestMonth,
+      latest_date: latestDate,
+      rows
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ ok: false, message: "모델별 비중 요약 조회 실패" });
+  }
+});
+
+app.get("/performance/model-share-detail", async (req, res) => {
+  try {
+    const mode = toText(req.query.mode); // cumulative | daily
+
+    if (!["cumulative", "daily"].includes(mode)) {
+      return res.status(400).json({ ok: false, message: "mode가 필요합니다. (cumulative|daily)" });
+    }
+
+    const monthQ = await pool.query(
+      `
+      SELECT MAX(base_month) AS latest_month
+      FROM sales_records
+      WHERE data_scope = 'daily'
+        AND metric_type = '후불'
+      `
+    );
+
+    const latestMonth = monthQ.rows[0]?.latest_month || null;
+
+    const dateQ = await pool.query(
+      `
+      SELECT MAX(record_date) AS latest_date
+      FROM sales_records
+      WHERE data_scope = 'daily'
+        AND metric_type = '후불'
+      `
+    );
+
+    const latestDate = dateQ.rows[0]?.latest_date || null;
+
+    if (!latestMonth) {
+      return res.json({
+        ok: true,
+        latest_month: null,
+        latest_date: null,
+        rows: []
+      });
+    }
+
+    const params = [latestMonth];
+    let where = `
+      WHERE metric_type = '후불'
+        AND is_ms = 'Y'
+        AND base_month = $1
+        AND COALESCE(model_name, '') <> ''
+    `;
+
+    if (mode === "daily") {
+      if (!latestDate) {
+        return res.json({
+          ok: true,
+          latest_month: latestMonth,
+          latest_date: null,
+          rows: []
+        });
+      }
+      where += ` AND data_scope = 'daily' AND record_date = $2`;
+      params.push(latestDate);
+    }
+
+    const q = await pool.query(
+      `
+      SELECT
+        model_name,
+        COALESCE(SUM(CASE WHEN agency_name = 'M&S광주' THEN total_score ELSE 0 END), 0)::numeric AS gwangju_qty,
+        COALESCE(SUM(CASE WHEN agency_name = 'M&S목포' THEN total_score ELSE 0 END), 0)::numeric AS mokpo_qty,
+        COALESCE(SUM(CASE WHEN agency_name = 'M&S순천' THEN total_score ELSE 0 END), 0)::numeric AS suncheon_qty,
+        COALESCE(SUM(CASE WHEN agency_name = 'M&S전북' THEN total_score ELSE 0 END), 0)::numeric AS jeonbuk_qty,
+        COALESCE(SUM(CASE WHEN agency_name = 'M&S제주' THEN total_score ELSE 0 END), 0)::numeric AS jeju_qty,
+        COALESCE(SUM(total_score), 0)::numeric AS total_qty
+      FROM sales_records
+      ${where}
+      GROUP BY model_name
+      ORDER BY total_qty DESC, model_name ASC
+      LIMIT 12
+      `,
+      params
+    );
+
+    const rows = (q.rows || []).map(r => ({
+      model_name: r.model_name,
+      gwangju_qty: Number(r.gwangju_qty || 0),
+      mokpo_qty: Number(r.mokpo_qty || 0),
+      suncheon_qty: Number(r.suncheon_qty || 0),
+      jeonbuk_qty: Number(r.jeonbuk_qty || 0),
+      jeju_qty: Number(r.jeju_qty || 0),
+      total_qty: Number(r.total_qty || 0)
+    }));
+
+    return res.json({
+      ok: true,
+      latest_month: latestMonth,
+      latest_date: latestDate,
+      rows
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ ok: false, message: "센터별 모델 판매 TOP12 조회 실패" });
+  }
+});
+
 app.listen(PORT, () => {
   console.log("🚀 Backend running on port", PORT);
 });

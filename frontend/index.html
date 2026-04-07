@@ -329,7 +329,47 @@
             카드를 클릭하면 그래프가 표시됩니다.
           </div>
         </div>
+        
+<!-- ================= 모델별 비중 대시보드 ================= -->
+<div id="performanceModelShareBox" class="panel" style="margin-top:16px;">
+  <div class="panelHeader">
+    <div class="panelTitle">📊 모델별 비중 현황</div>
+    <div class="panelHint">누적 / 전일하루 TOP12 · 카드를 클릭하면 센터별 상세 표시</div>
+  </div>
 
+  <div class="modelShareGrid">
+    <div class="panel">
+      <div class="panelHeader">
+        <div class="panelTitle">누적 모델별 비중</div>
+        <button type="button" class="btn ghost" onclick="openModelShareDetail('cumulative')">
+          센터별 TOP12 보기
+        </button>
+      </div>
+      <div id="modelShareCumulativeWrap">불러오는 중...</div>
+    </div>
+
+    <div class="panel">
+      <div class="panelHeader">
+        <div class="panelTitle">전일 하루 모델별 비중</div>
+        <button type="button" class="btn ghost" onclick="openModelShareDetail('daily')">
+          센터별 TOP12 보기
+        </button>
+      </div>
+      <div id="modelShareDailyWrap">불러오는 중...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 모델별 비중 상세 모달 ================= -->
+<div id="modelShareDetailModal" class="modal" style="display:none;">
+  <div class="modalBox">
+    <div class="modalHeader">
+      <span id="modelShareDetailModalTitle">센터별 모델 판매 TOP12</span>
+      <button type="button" onclick="closeModelShareDetailModal()">닫기</button>
+    </div>
+    <div id="modelShareDetailModalBody">불러오는 중...</div>
+  </div>
+</div>
         <!-- ================= 조건 필터 조회 ================= -->
         <div class="panel" style="margin-bottom:16px;">
           <div class="panelHeader">

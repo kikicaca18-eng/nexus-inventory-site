@@ -27,6 +27,10 @@ let storeTurnoverSort = {
   key: "qty",
   order: "desc"
 };
+let modelShareSummaryCache = {
+  cumulative: [],
+  daily: []
+};
 let performanceTrendChart = null;
 let performanceSearchCache = [];
 let performanceSortState = { key: "", order: "asc" };
@@ -2027,6 +2031,8 @@ async function loadPerformanceDashboard() {
         </div>
       `;
     }
+    await loadPerformanceModelShareDashboard();
+
   } catch (e) {
     console.error(e);
     if (cardWrap) cardWrap.innerHTML = "❌ 네트워크 오류";
@@ -2617,4 +2623,169 @@ async function copyStoreCode(code) {
 function getSortArrow(key) {
   if (adminAgencySortKey !== key) return "";
   return adminAgencySortDir === "asc" ? " ▲" : " ▼";
+}
+
+async function loadPerformanceModelShareDashboard() {
+  const cumulativeWrap = document.getElementById("modelShareCumulativeWrap");
+  const dailyWrap = document.getElementById("modelShareDailyWrap");
+
+  if (cumulativeWrap) cumulativeWrap.innerHTML = "불러오는 중...";
+  if (dailyWrap) dailyWrap.innerHTML = "불러오는 중...";
+
+  try {
+    const [cumResp, dayResp] = await Promise.all([
+      fetch(`${API_URL}/performance/model-share-summary?mode=cumulative`),
+      fetch(`${API_URL}/performance/model-share-summary?mode=daily`)
+    ]);
+
+    const cumJson = await cumResp.json();
+    const dayJson = await dayResp.json();
+
+    if (!cumResp.ok || !cumJson.ok) {
+      if (cumulativeWrap) cumulativeWrap.innerHTML = `❌ ${cumJson.message || "조회 실패"}`;
+    } else {
+      modelShareSummaryCache.cumulative = Array.isArray(cumJson.rows) ? cumJson.rows : [];
+      if (cumulativeWrap) {
+        cumulativeWrap.innerHTML = renderModelShareSummaryTable(modelShareSummaryCache.cumulative, "누적");
+      }
+    }
+
+    if (!dayResp.ok || !dayJson.ok) {
+      if (dailyWrap) dailyWrap.innerHTML = `❌ ${dayJson.message || "조회 실패"}`;
+    } else {
+      modelShareSummaryCache.daily = Array.isArray(dayJson.rows) ? dayJson.rows : [];
+      if (dailyWrap) {
+        dailyWrap.innerHTML = renderModelShareSummaryTable(modelShareSummaryCache.daily, "전일");
+      }
+    }
+  } catch (e) {
+    console.error(e);
+    if (cumulativeWrap) cumulativeWrap.innerHTML = "❌ 네트워크 오류";
+    if (dailyWrap) dailyWrap.innerHTML = "❌ 네트워크 오류";
+  }
+}
+
+function renderModelShareSummaryTable(rows, modeLabel) {
+  if (!rows || !rows.length) {
+    return `<div class="muted">${modeLabel} 데이터가 없습니다.</div>`;
+  }
+
+  let html = `
+    <div class="tableWrap modelShareTableWrap">
+      <table class="modelShareTable">
+        <thead>
+          <tr>
+            <th>NO</th>
+            <th>모델</th>
+            <th>M&S</th>
+            <th>대리점</th>
+            <th>총합계</th>
+            <th>M비중</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  rows.forEach(r => {
+    html += `
+      <tr>
+        <td>${Number(r.no || 0)}</td>
+        <td>${escapeHtml(r.model_name || "")}</td>
+        <td>${Number(r.ms_qty || 0).toLocaleString()}</td>
+        <td>${Number(r.dealer_qty || 0).toLocaleString()}</td>
+        <td>${Number(r.total_qty || 0).toLocaleString()}</td>
+        <td>${Number(r.share_rate || 0).toFixed(1)}%</td>
+      </tr>
+    `;
+  });
+
+  html += `
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  return html;
+}
+
+async function openModelShareDetail(mode) {
+  const modal = document.getElementById("modelShareDetailModal");
+  const titleEl = document.getElementById("modelShareDetailModalTitle");
+  const bodyEl = document.getElementById("modelShareDetailModalBody");
+
+  if (!modal || !titleEl || !bodyEl) return;
+
+  titleEl.textContent =
+    mode === "cumulative"
+      ? "누적 센터별 모델 판매 TOP12"
+      : "전일 하루 센터별 모델 판매 TOP12";
+
+  bodyEl.innerHTML = "불러오는 중...";
+  modal.style.display = "flex";
+
+  try {
+    const resp = await fetch(`${API_URL}/performance/model-share-detail?mode=${encodeURIComponent(mode)}`);
+    const j = await resp.json();
+
+    if (!resp.ok || !j.ok) {
+      bodyEl.innerHTML = `❌ ${j.message || "조회 실패"}`;
+      return;
+    }
+
+    const rows = Array.isArray(j.rows) ? j.rows : [];
+
+    if (!rows.length) {
+      bodyEl.innerHTML = "데이터가 없습니다.";
+      return;
+    }
+
+    let html = `
+      <div class="tableWrap modelShareDetailTableWrap">
+        <table class="modelShareDetailTable">
+          <thead>
+            <tr>
+              <th>모델</th>
+              <th>M&S광주</th>
+              <th>M&S목포</th>
+              <th>M&S순천</th>
+              <th>M&S전북</th>
+              <th>M&S제주</th>
+              <th>총합계</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    rows.forEach(r => {
+      html += `
+        <tr>
+          <td>${escapeHtml(r.model_name || "")}</td>
+          <td>${Number(r.gwangju_qty || 0).toLocaleString()}</td>
+          <td>${Number(r.mokpo_qty || 0).toLocaleString()}</td>
+          <td>${Number(r.suncheon_qty || 0).toLocaleString()}</td>
+          <td>${Number(r.jeonbuk_qty || 0).toLocaleString()}</td>
+          <td>${Number(r.jeju_qty || 0).toLocaleString()}</td>
+          <td>${Number(r.total_qty || 0).toLocaleString()}</td>
+        </tr>
+      `;
+    });
+
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    bodyEl.innerHTML = html;
+  } catch (e) {
+    console.error(e);
+    bodyEl.innerHTML = "❌ 네트워크 오류";
+  }
+}
+
+function closeModelShareDetailModal() {
+  const modal = document.getElementById("modelShareDetailModal");
+  if (modal) {
+    modal.style.display = "none";
+  }
 }
