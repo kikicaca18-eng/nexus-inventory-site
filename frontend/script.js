@@ -34,6 +34,7 @@ let modelShareSummaryCache = {
 let performanceTrendChart = null;
 let performanceSearchCache = [];
 let performanceSortState = { key: "", order: "asc" };
+let currentPostpaidShareThreshold = 0;
 
 function $(id) {
   return document.getElementById(id);
@@ -1973,6 +1974,8 @@ async function loadPerformanceDashboard() {
     }
 
     const s = j.summary || {};
+currentPostpaidShareThreshold = Number(s.postpaid_share || 0);
+
     const latestDate = j.latest_date || "";
     const progressRate = Number(j.progress_rate || 0);
 
@@ -2687,6 +2690,9 @@ function renderModelShareSummaryTable(rows, modeLabel) {
   `;
 
   rows.forEach(r => {
+    const shareRate = Number(r.share_rate || 0);
+    const isLowShare = shareRate < Number(currentPostpaidShareThreshold || 0);
+
     html += `
       <tr>
         <td>${Number(r.no || 0)}</td>
@@ -2694,7 +2700,9 @@ function renderModelShareSummaryTable(rows, modeLabel) {
         <td>${Number(r.ms_qty || 0).toLocaleString()}</td>
         <td>${Number(r.dealer_qty || 0).toLocaleString()}</td>
         <td>${Number(r.total_qty || 0).toLocaleString()}</td>
-        <td>${Number(r.share_rate || 0).toFixed(1)}%</td>
+        <td class="${isLowShare ? "lowShareText" : ""}">
+          ${shareRate.toFixed(1)}%
+        </td>
       </tr>
     `;
   });

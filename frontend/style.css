@@ -2537,3 +2537,187 @@ tr:hover td{background:#fafafa}
     font-size: 13px;
   }
 }
+
+/* =========================
+   모델별 비중 현황 - 강조 / 모바일 최종 보정
+========================= */
+
+/* 낮은 비중 강조 */
+.lowShareText {
+  color: #dc2626;
+  font-weight: 800;
+}
+
+/* 공통 테이블 래퍼 */
+.modelShareTableWrap,
+.modelShareDetailTableWrap {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+/* =========================
+   모델별 비중 요약 테이블
+========================= */
+.modelShareTable {
+  width: 100% !important;
+  min-width: 560px !important;
+  border-collapse: collapse !important;
+  table-layout: fixed !important;
+}
+
+.modelShareTable th,
+.modelShareTable td {
+  padding: 8px 8px !important;
+  border-bottom: 1px solid #e9edf3 !important;
+  font-size: 14px !important;
+  line-height: 1.35 !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  white-space: nowrap !important;
+}
+
+.modelShareTable th {
+  background: #fafbfc !important;
+  color: #5f6b7a !important;
+  font-weight: 700 !important;
+}
+
+.modelShareTable td:nth-child(2),
+.modelShareTable th:nth-child(2) {
+  text-align: left !important;
+}
+
+/* 컬럼 폭 */
+.modelShareTable th:nth-child(1),
+.modelShareTable td:nth-child(1) { width: 42px !important; }   /* NO */
+.modelShareTable th:nth-child(2),
+.modelShareTable td:nth-child(2) { width: 140px !important; }  /* 모델 */
+.modelShareTable th:nth-child(3),
+.modelShareTable td:nth-child(3) { width: 70px !important; }   /* M&S */
+.modelShareTable th:nth-child(4),
+.modelShareTable td:nth-child(4) { width: 78px !important; }   /* 대리점 */
+.modelShareTable th:nth-child(5),
+.modelShareTable td:nth-child(5) { width: 78px !important; }   /* 총합계 */
+.modelShareTable th:nth-child(6),
+.modelShareTable td:nth-child(6) { width: 72px !important; }   /* M비중 */
+
+/* =========================
+   센터별 상세 팝업 테이블
+========================= */
+.modelShareDetailTable {
+  width: 100% !important;
+  min-width: 720px !important;
+  border-collapse: collapse !important;
+  table-layout: fixed !important;
+}
+
+.modelShareDetailTable th,
+.modelShareDetailTable td {
+  padding: 8px 8px !important;
+  border-bottom: 1px solid #e9edf3 !important;
+  font-size: 14px !important;
+  line-height: 1.35 !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  white-space: nowrap !important;
+}
+
+.modelShareDetailTable th {
+  background: #fafbfc !important;
+  color: #5f6b7a !important;
+  font-weight: 700 !important;
+}
+
+.modelShareDetailTable th:nth-child(1),
+.modelShareDetailTable td:nth-child(1) {
+  width: 150px !important;   /* 모델 */
+  text-align: left !important;
+}
+
+.modelShareDetailTable th:nth-child(2),
+.modelShareDetailTable td:nth-child(2),
+.modelShareDetailTable th:nth-child(3),
+.modelShareDetailTable td:nth-child(3),
+.modelShareDetailTable th:nth-child(4),
+.modelShareDetailTable td:nth-child(4),
+.modelShareDetailTable th:nth-child(5),
+.modelShareDetailTable td:nth-child(5),
+.modelShareDetailTable th:nth-child(6),
+.modelShareDetailTable td:nth-child(6),
+.modelShareDetailTable th:nth-child(7),
+.modelShareDetailTable td:nth-child(7) {
+  width: 78px !important;
+}
+
+/* =========================
+   모바일 최적화
+========================= */
+@media (max-width: 768px) {
+  .modelShareGrid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .modelShareTable {
+    min-width: 480px !important;   /* 최대한 한 화면에 가깝게 */
+  }
+
+  .modelShareTable th,
+  .modelShareTable td {
+    padding: 7px 6px !important;
+    font-size: 12px !important;
+  }
+
+  .modelShareTable th:nth-child(1),
+  .modelShareTable td:nth-child(1) { width: 34px !important; }   /* NO */
+  .modelShareTable th:nth-child(2),
+  .modelShareTable td:nth-child(2) { width: 110px !important; }  /* 모델 */
+  .modelShareTable th:nth-child(3),
+  .modelShareTable td:nth-child(3) { width: 56px !important; }   /* M&S */
+  .modelShareTable th:nth-child(4),
+  .modelShareTable td:nth-child(4) { width: 64px !important; }   /* 대리점 */
+  .modelShareTable th:nth-child(5),
+  .modelShareTable td:nth-child(5) { width: 64px !important; }   /* 총합계 */
+  .modelShareTable th:nth-child(6),
+  .modelShareTable td:nth-child(6) { width: 58px !important; }   /* M비중 */
+
+  .modelShareDetailTable {
+    min-width: 560px !important;   /* 팝업은 최소한만 넘기기 */
+  }
+
+  .modelShareDetailTable th,
+  .modelShareDetailTable td {
+    padding: 7px 6px !important;
+    font-size: 12px !important;
+  }
+
+  .modelShareDetailTable th:nth-child(1),
+  .modelShareDetailTable td:nth-child(1) {
+    width: 110px !important;
+  }
+
+  .modelShareDetailTable th:nth-child(2),
+  .modelShareDetailTable td:nth-child(2),
+  .modelShareDetailTable th:nth-child(3),
+  .modelShareDetailTable td:nth-child(3),
+  .modelShareDetailTable th:nth-child(4),
+  .modelShareDetailTable td:nth-child(4),
+  .modelShareDetailTable th:nth-child(5),
+  .modelShareDetailTable td:nth-child(5),
+  .modelShareDetailTable th:nth-child(6),
+  .modelShareDetailTable td:nth-child(6),
+  .modelShareDetailTable th:nth-child(7),
+  .modelShareDetailTable td:nth-child(7) {
+    width: 62px !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .modelShareTable {
+    min-width: 450px !important;
+  }
+
+  .modelShareDetailTable {
+    min-width: 520px !important;
+  }
+}
