@@ -1856,7 +1856,7 @@ const latestDate = dateQ.rows[0]?.latest_date || null;
           pure_new_rate: 0,
           renewal_rate: 0,
           mit_rate: 0,
-          postpaid_store_rate: 0
+          postpaid_store_rate: 0,
           postpaid_share: 0,
 pure_new_share: 0,
 renewal_share: 0,
