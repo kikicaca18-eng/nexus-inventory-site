@@ -2358,3 +2358,106 @@ tr:hover td{background:#fafafa}
   color: #6b7280;
   font-weight: 700;
 }
+
+/* =========================
+   실적 대시보드 모바일 2칸 강제 고정
+========================= */
+#performanceDashCards {
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+}
+
+#performanceDashCards .performanceDashCard,
+#performanceDashCards .statCard {
+  min-height: 96px !important;
+  padding: 12px 14px !important;
+  border-radius: 16px !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+#performanceDashCards .statLabel {
+  font-size: 13px !important;
+  margin-bottom: 4px !important;
+  line-height: 1.2 !important;
+}
+
+#performanceDashCards .statValue {
+  font-size: 18px !important;
+  line-height: 1.15 !important;
+  white-space: normal !important;
+}
+
+#performanceDashCards .rateText {
+  display: inline !important;
+  margin-left: 4px !important;
+  margin-top: 0 !important;
+  font-size: 12px !important;
+}
+
+#performanceDashCards .statSub {
+  margin-top: 6px !important;
+  font-size: 12px !important;
+  line-height: 1.3 !important;
+}
+
+/* 태블릿 */
+@media (max-width: 1024px) {
+  #performanceDashCards {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+}
+
+/* 모바일: 2칸 */
+@media (max-width: 768px) {
+  #performanceDashCards {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  #performanceDashCards .performanceDashCard,
+  #performanceDashCards .statCard {
+    min-height: 84px !important;
+    padding: 10px 12px !important;
+  }
+
+  #performanceDashCards .statLabel {
+    font-size: 12px !important;
+  }
+
+  #performanceDashCards .statValue {
+    font-size: 17px !important;
+  }
+
+  #performanceDashCards .statSub {
+    font-size: 11px !important;
+  }
+}
+
+/* 아주 작은 화면도 2칸 유지 */
+@media (max-width: 480px) {
+  #performanceDashCards {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  #performanceDashCards .performanceDashCard,
+  #performanceDashCards .statCard {
+    min-height: 78px !important;
+    padding: 9px 10px !important;
+  }
+
+  #performanceDashCards .statLabel {
+    font-size: 11px !important;
+  }
+
+  #performanceDashCards .statValue {
+    font-size: 16px !important;
+  }
+
+  #performanceDashCards .statSub {
+    font-size: 10px !important;
+  }
+}
