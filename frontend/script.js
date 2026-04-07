@@ -2087,6 +2087,28 @@ async function loadPerformanceTrend(metric, title) {
 
     const values = rows.map(r => Number(r.value || 0));
     const shareValues = rows.map(r => Number(r.share_rate || 0));
+        const validShareValues = shareValues.filter(v => Number.isFinite(v));
+    const maxShareValue = validShareValues.length ? Math.max(...validShareValues) : 0;
+
+    let shareAxisMax = 10;
+
+    if (maxShareValue <= 5) {
+      shareAxisMax = 6;
+    } else if (maxShareValue <= 10) {
+      shareAxisMax = 12;
+    } else if (maxShareValue <= 20) {
+      shareAxisMax = 25;
+    } else if (maxShareValue <= 30) {
+      shareAxisMax = 35;
+    } else if (maxShareValue <= 40) {
+      shareAxisMax = 45;
+    } else if (maxShareValue <= 50) {
+      shareAxisMax = 55;
+    } else if (maxShareValue <= 70) {
+      shareAxisMax = 75;
+    } else {
+      shareAxisMax = 100;
+    }
 
     const valueTooltipLabel =
       metric === "후불실적점"
@@ -2223,23 +2245,24 @@ async function loadPerformanceTrend(metric, title) {
             }
           },
           y1: {
-            beginAtZero: true,
-            position: "right",
-            min: 0,
-            max: 100,
-            grid: {
-              drawOnChartArea: false
-            },
-            ticks: {
-              callback: function(value) {
-                return `${value}%`;
-              },
-              font: {
-                family: "Malgun Gothic",
-                size: 12
-              }
-            }
-          }
+  beginAtZero: true,
+  position: "right",
+  min: 0,
+  max: shareAxisMax,
+  grid: {
+    drawOnChartArea: false
+  },
+  ticks: {
+    callback: function(value) {
+      return `${value}%`;
+    },
+    stepSize: shareAxisMax <= 12 ? 2 : shareAxisMax <= 25 ? 5 : 10,
+    font: {
+      family: "Malgun Gothic",
+      size: 12
+    }
+  }
+}
         }
       },
       plugins: [shareLabelPlugin]
