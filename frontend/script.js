@@ -1952,15 +1952,15 @@ async function loadPerformanceDashboard() {
   }
 
   if (monthWrap) {
-    monthWrap.textContent = "기준월: -";
+    monthWrap.textContent = "기준일: - · 표준 진척율: 0%";
   }
 
   try {
     const queryCenter = getPerformanceQueryCenter();
 
-const resp = await fetch(
-  `${API_URL}/performance/dashboard-summary?agency=${encodeURIComponent(queryCenter)}`
-);
+    const resp = await fetch(
+      `${API_URL}/performance/dashboard-summary?agency=${encodeURIComponent(queryCenter)}`
+    );
     const j = await resp.json();
 
     if (!resp.ok || !j.ok) {
@@ -1969,60 +1969,64 @@ const resp = await fetch(
     }
 
     const s = j.summary || {};
-const latestMonth = j.latest_month || "-";
-const latestDate = j.latest_date || "";
-const progressRate = Number(j.progress_rate || 0);
+    const latestDate = j.latest_date || "";
+    const progressRate = Number(j.progress_rate || 0);
 
     if (monthWrap) {
-  const displayDate = latestDate ? String(latestDate).slice(0, 10) : "";
-  monthWrap.textContent = displayDate
-    ? `기준일: ${displayDate} · 표준 진척율: ${progressRate}%`
-    : "기준일: - · 표준 진척율: 0%";
-}
+      const displayDate = latestDate ? String(latestDate).slice(0, 10) : "";
+      monthWrap.textContent = displayDate
+        ? `기준일: ${displayDate} · 표준 진척율: ${progressRate}%`
+        : "기준일: - · 표준 진척율: 0%";
+    }
 
     if (cardWrap) {
-  cardWrap.innerHTML = `
-    <div class="statCard clickable performanceDashCard" onclick="loadPerformanceTrend('후불', '후불 최근 6개월 추이')">
-      <div class="statLabel">후불</div>
-      <div class="statValue">
-        ${Number(s.postpaid || 0).toLocaleString()}
-        <span class="rateText">(${Number(s.postpaid_rate || 0)}%)</span>
-      </div>
-    </div>
+      cardWrap.innerHTML = `
+        <div class="statCard clickable performanceDashCard" onclick="loadPerformanceTrend('후불', '후불 최근 6개월 추이')">
+          <div class="statLabel">후불</div>
+          <div class="statValue">
+            ${Number(s.postpaid || 0).toLocaleString()}
+            <span class="rateText">(${Number(s.postpaid_rate || 0)}%)</span>
+          </div>
+          <div class="statSub">당월비중 ${Number(s.postpaid_share || 0).toFixed(1)}%</div>
+        </div>
 
-    <div class="statCard clickable performanceDashCard" onclick="loadPerformanceTrend('순신규', '순신규 최근 6개월 추이')">
-      <div class="statLabel">순신규</div>
-      <div class="statValue">
-        ${Number(s.pure_new || 0).toLocaleString()}
-        <span class="rateText">(${Number(s.pure_new_rate || 0)}%)</span>
-      </div>
-    </div>
+        <div class="statCard clickable performanceDashCard" onclick="loadPerformanceTrend('순신규', '순신규 최근 6개월 추이')">
+          <div class="statLabel">순신규</div>
+          <div class="statValue">
+            ${Number(s.pure_new || 0).toLocaleString()}
+            <span class="rateText">(${Number(s.pure_new_rate || 0)}%)</span>
+          </div>
+          <div class="statSub">당월비중 ${Number(s.pure_new_share || 0).toFixed(1)}%</div>
+        </div>
 
-    <div class="statCard clickable performanceDashCard" onclick="loadPerformanceTrend('약정갱신', '약정갱신 최근 6개월 추이')">
-      <div class="statLabel">약정갱신</div>
-      <div class="statValue">
-        ${Number(s.renewal || 0).toLocaleString()}
-        <span class="rateText">(${Number(s.renewal_rate || 0)}%)</span>
-      </div>
-    </div>
+        <div class="statCard clickable performanceDashCard" onclick="loadPerformanceTrend('약정갱신', '약정갱신 최근 6개월 추이')">
+          <div class="statLabel">약정갱신</div>
+          <div class="statValue">
+            ${Number(s.renewal || 0).toLocaleString()}
+            <span class="rateText">(${Number(s.renewal_rate || 0)}%)</span>
+          </div>
+          <div class="statSub">당월비중 ${Number(s.renewal_share || 0).toFixed(1)}%</div>
+        </div>
 
-    <div class="statCard clickable performanceDashCard" onclick="loadPerformanceTrend('후불실적점', '후불 실적점 최근 6개월 추이')">
-      <div class="statLabel">후불 실적점</div>
-      <div class="statValue">
-        ${Number(s.postpaid_store_count || 0).toLocaleString()}
-        <span class="rateText">(${Number(s.postpaid_store_rate || 0)}%)</span>
-      </div>
-    </div>
+        <div class="statCard clickable performanceDashCard" onclick="loadPerformanceTrend('후불실적점', '후불 실적점 최근 6개월 추이')">
+          <div class="statLabel">후불 실적점</div>
+          <div class="statValue">
+            ${Number(s.postpaid_store_count || 0).toLocaleString()}
+            <span class="rateText">(${Number(s.postpaid_store_rate || 0)}%)</span>
+          </div>
+          <div class="statSub">센터별 실적점 현황</div>
+        </div>
 
-    <div class="statCard clickable performanceDashCard" onclick="loadPerformanceTrend('MIT', 'MIT 최근 6개월 추이')">
-      <div class="statLabel">MIT 당월 실적</div>
-      <div class="statValue">
-        ${Number(s.mit || 0).toLocaleString()}
-        <span class="rateText">(${Number(s.mit_rate || 0)}%)</span>
-      </div>
-    </div>
-  `;
-}
+        <div class="statCard clickable performanceDashCard" onclick="loadPerformanceTrend('MIT', 'MIT 최근 6개월 추이')">
+          <div class="statLabel">MIT 당월 실적</div>
+          <div class="statValue">
+            ${Number(s.mit || 0).toLocaleString()}
+            <span class="rateText">(${Number(s.mit_rate || 0)}%)</span>
+          </div>
+          <div class="statSub">당월비중 ${Number(s.mit_share || 0).toFixed(1)}%</div>
+        </div>
+      `;
+    }
   } catch (e) {
     console.error(e);
     if (cardWrap) cardWrap.innerHTML = "❌ 네트워크 오류";
@@ -2041,9 +2045,9 @@ async function loadPerformanceTrend(metric, title) {
   try {
     const queryCenter = getPerformanceQueryCenter();
 
-const resp = await fetch(
-  `${API_URL}/performance/dashboard-trend?metric=${encodeURIComponent(metric)}&agency=${encodeURIComponent(queryCenter)}`
-);
+    const resp = await fetch(
+      `${API_URL}/performance/dashboard-trend?metric=${encodeURIComponent(metric)}&agency=${encodeURIComponent(queryCenter)}`
+    );
     const j = await resp.json();
 
     if (!resp.ok || !j.ok) {
@@ -2075,7 +2079,6 @@ const resp = await fetch(
       return;
     }
 
-    // ✅ X축은 월만 표시
     const labels = rows.map(r => {
       const monthText = String(r.month || "");
       const mm = monthText.slice(5, 7);
@@ -2083,10 +2086,44 @@ const resp = await fetch(
     });
 
     const values = rows.map(r => Number(r.value || 0));
+    const shareValues = rows.map(r => Number(r.share_rate || 0));
+
+    const valueTooltipLabel =
+      metric === "후불실적점"
+        ? (value) => `${Number(value || 0).toLocaleString()}개`
+        : (value) => `${Number(value || 0).toLocaleString()}`;
+
+    const shareLabelPlugin = {
+      id: "shareLabelPlugin",
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        const lineDatasetIndex = chart.data.datasets.findIndex(ds => ds.type === "line");
+        if (lineDatasetIndex === -1) return;
+
+        const meta = chart.getDatasetMeta(lineDatasetIndex);
+        const dataset = chart.data.datasets[lineDatasetIndex];
+        if (!meta || !dataset) return;
+
+        ctx.save();
+        ctx.font = "700 11px Malgun Gothic";
+        ctx.fillStyle = "#374151";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
+
+        meta.data.forEach((point, index) => {
+          const rawValue = Number(dataset.data[index] || 0);
+          const text = `${rawValue.toFixed(1)}%`;
+          ctx.fillText(text, point.x, point.y - 8);
+        });
+
+        ctx.restore();
+      }
+    };
 
     const ctx = canvas.getContext("2d");
 
     performanceTrendChart = new Chart(ctx, {
+      type: "bar",
       data: {
         labels,
         datasets: [
@@ -2099,21 +2136,24 @@ const resp = await fetch(
             barThickness: 28,
             maxBarThickness: 36,
             backgroundColor: "rgba(91, 141, 239, 0.55)",
-            borderColor: "rgba(91, 141, 239, 0.95)"
+            borderColor: "rgba(91, 141, 239, 0.95)",
+            yAxisID: "y"
           },
           {
             type: "line",
-            label: "추세",
-            data: values,
-            borderColor: "rgba(91, 141, 239, 0.35)",
-            backgroundColor: "rgba(91, 141, 239, 0.12)",
+            label: "비중(%)",
+            data: shareValues,
+            borderColor: "rgba(239, 68, 68, 0.95)",
+            backgroundColor: "rgba(239, 68, 68, 0.18)",
             borderWidth: 2,
-            pointRadius: 3,
-            pointHoverRadius: 4,
-            pointBackgroundColor: "rgba(91, 141, 239, 0.45)",
-            pointBorderColor: "rgba(91, 141, 239, 0.45)",
+            pointRadius: 4,
+            pointHoverRadius: 5,
+            pointBackgroundColor: "rgba(239, 68, 68, 0.95)",
+            pointBorderColor: "#ffffff",
+            pointBorderWidth: 2,
             tension: 0.35,
-            fill: false
+            fill: false,
+            yAxisID: "y1"
           }
         ]
       },
@@ -2123,14 +2163,33 @@ const resp = await fetch(
         animation: {
           duration: 400
         },
+        layout: {
+          padding: {
+            top: 24,
+            right: 12,
+            left: 6,
+            bottom: 0
+          }
+        },
         plugins: {
           legend: {
-            display: false
+            display: true,
+            labels: {
+              boxWidth: 14,
+              boxHeight: 14,
+              font: {
+                family: "Malgun Gothic",
+                size: 12
+              }
+            }
           },
           tooltip: {
             callbacks: {
               label: function(context) {
-                return `${Number(context.raw || 0).toLocaleString()}`;
+                if (context.dataset.type === "line") {
+                  return `비중 ${Number(context.raw || 0).toFixed(1)}%`;
+                }
+                return valueTooltipLabel(context.raw);
               }
             }
           }
@@ -2142,6 +2201,7 @@ const resp = await fetch(
               minRotation: 0,
               autoSkip: false,
               font: {
+                family: "Malgun Gothic",
                 size: 12
               }
             },
@@ -2151,17 +2211,38 @@ const resp = await fetch(
           },
           y: {
             beginAtZero: true,
+            position: "left",
             ticks: {
               callback: function(value) {
                 return Number(value).toLocaleString();
               },
               font: {
+                family: "Malgun Gothic",
+                size: 12
+              }
+            }
+          },
+          y1: {
+            beginAtZero: true,
+            position: "right",
+            min: 0,
+            max: 100,
+            grid: {
+              drawOnChartArea: false
+            },
+            ticks: {
+              callback: function(value) {
+                return `${value}%`;
+              },
+              font: {
+                family: "Malgun Gothic",
                 size: 12
               }
             }
           }
         }
-      }
+      },
+      plugins: [shareLabelPlugin]
     });
   } catch (e) {
     console.error(e);
