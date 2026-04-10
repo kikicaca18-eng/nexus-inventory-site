@@ -2820,40 +2820,44 @@ async function loadPerformanceOverlapDashboard() {
     }
 
     overlapSummaryCache = j.summary || {};
-
     const s = overlapSummaryCache;
 
     if (wrap) {
       wrap.innerHTML = `
-        <div class="overlapSummaryGrid">
-          <div class="overlapSummaryCard clickable" onclick="loadPerformanceOverlapDetail()">
-            <div class="overlapSummaryCardTitle">중복접점</div>
-            <div class="overlapSummaryMainValue">${Number(s.overlap_store_count || 0).toLocaleString()}점</div>
+        <div class="overlapDashboardGrid">
+          <div class="overlapDashCard overlapDashCardClickable" onclick="loadPerformanceOverlapDetail()">
+            <div class="overlapDashTitle">중복접점</div>
+            <div class="overlapDashMain">${Number(s.overlap_store_count || 0).toLocaleString()}점</div>
+            <div class="overlapDashSub">M&S 실적 + 대리점 실적 동시 발생 접점</div>
           </div>
 
-          <div class="overlapSummaryCard">
-            <div class="overlapSummaryCardTitle">총실적</div>
-            <div class="overlapSummarySubLine">후불 : ${Number(s.total_postpaid || 0).toLocaleString()}건</div>
-            <div class="overlapSummarySubLine">순신규 : ${Number(s.total_pure_new || 0).toLocaleString()}건</div>
+          <div class="overlapDashCard">
+            <div class="overlapDashTitle">총실적</div>
+            <div class="overlapDashLine"><span>후불</span><strong>${Number(s.total_postpaid || 0).toLocaleString()}건</strong></div>
+            <div class="overlapDashLine"><span>순신규</span><strong>${Number(s.total_pure_new || 0).toLocaleString()}건</strong></div>
           </div>
 
-          <div class="overlapSummaryCard">
-            <div class="overlapSummaryCardTitle">M&S</div>
-            <div class="overlapSummarySubLine">
-              후불 : ${Number(s.ms_postpaid || 0).toLocaleString()}건 (${Number(s.ms_postpaid_rate || 0).toFixed(1)}%)
+          <div class="overlapDashCard">
+            <div class="overlapDashTitle">M&S</div>
+            <div class="overlapDashLine">
+              <span>후불</span>
+              <strong>${Number(s.ms_postpaid || 0).toLocaleString()}건 (${Number(s.ms_postpaid_rate || 0).toFixed(1)}%)</strong>
             </div>
-            <div class="overlapSummarySubLine">
-              순신규 : ${Number(s.ms_pure_new || 0).toLocaleString()}건 (${Number(s.ms_pure_new_rate || 0).toFixed(1)}%)
+            <div class="overlapDashLine">
+              <span>순신규</span>
+              <strong>${Number(s.ms_pure_new || 0).toLocaleString()}건 (${Number(s.ms_pure_new_rate || 0).toFixed(1)}%)</strong>
             </div>
           </div>
 
-          <div class="overlapSummaryCard">
-            <div class="overlapSummaryCardTitle">대리점</div>
-            <div class="overlapSummarySubLine">
-              후불 : ${Number(s.dealer_postpaid || 0).toLocaleString()}건 (${Number(s.dealer_postpaid_rate || 0).toFixed(1)}%)
+          <div class="overlapDashCard">
+            <div class="overlapDashTitle">대리점</div>
+            <div class="overlapDashLine">
+              <span>후불</span>
+              <strong>${Number(s.dealer_postpaid || 0).toLocaleString()}건 (${Number(s.dealer_postpaid_rate || 0).toFixed(1)}%)</strong>
             </div>
-            <div class="overlapSummarySubLine">
-              순신규 : ${Number(s.dealer_pure_new || 0).toLocaleString()}건 (${Number(s.dealer_pure_new_rate || 0).toFixed(1)}%)
+            <div class="overlapDashLine">
+              <span>순신규</span>
+              <strong>${Number(s.dealer_pure_new || 0).toLocaleString()}건 (${Number(s.dealer_pure_new_rate || 0).toFixed(1)}%)</strong>
             </div>
           </div>
         </div>
