@@ -2721,3 +2721,229 @@ tr:hover td{background:#fafafa}
     min-width: 520px !important;
   }
 }
+
+/* =========================
+   모델별 비중 현황 - 모바일 표 축약형
+   (카드형 아님 / 표 유지)
+========================= */
+
+/* 기본 */
+.modelShareTableWrap,
+.modelShareDetailTableWrap {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.modelShareTable,
+.modelShareDetailTable {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  table-layout: fixed !important;
+}
+
+/* ===== 요약표 ===== */
+.modelShareTable {
+  min-width: 560px !important;
+}
+
+.modelShareTable th,
+.modelShareTable td {
+  padding: 8px 8px !important;
+  border-bottom: 1px solid #e9edf3 !important;
+  font-size: 14px !important;
+  line-height: 1.35 !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  white-space: nowrap !important;
+}
+
+.modelShareTable th {
+  background: #fafbfc !important;
+  color: #5f6b7a !important;
+  font-weight: 700 !important;
+}
+
+.modelShareTable th:nth-child(2),
+.modelShareTable td:nth-child(2) {
+  text-align: left !important;
+}
+
+/* PC 컬럼폭 */
+.modelShareTable th:nth-child(1),
+.modelShareTable td:nth-child(1) { width: 44px !important; }   /* NO */
+.modelShareTable th:nth-child(2),
+.modelShareTable td:nth-child(2) { width: 150px !important; }  /* 모델 */
+.modelShareTable th:nth-child(3),
+.modelShareTable td:nth-child(3) { width: 70px !important; }   /* M&S */
+.modelShareTable th:nth-child(4),
+.modelShareTable td:nth-child(4) { width: 78px !important; }   /* 대리점 */
+.modelShareTable th:nth-child(5),
+.modelShareTable td:nth-child(5) { width: 82px !important; }   /* 총합계 */
+.modelShareTable th:nth-child(6),
+.modelShareTable td:nth-child(6) { width: 74px !important; }   /* M비중 */
+
+/* ===== 센터별 상세 팝업표 ===== */
+.modelShareDetailTable {
+  min-width: 760px !important;
+}
+
+.modelShareDetailTable th,
+.modelShareDetailTable td {
+  padding: 8px 8px !important;
+  border-bottom: 1px solid #e9edf3 !important;
+  font-size: 14px !important;
+  line-height: 1.35 !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  white-space: nowrap !important;
+}
+
+.modelShareDetailTable th {
+  background: #fafbfc !important;
+  color: #5f6b7a !important;
+  font-weight: 700 !important;
+}
+
+.modelShareDetailTable th:nth-child(1),
+.modelShareDetailTable td:nth-child(1) {
+  width: 150px !important;   /* 모델 */
+  text-align: left !important;
+}
+
+.modelShareDetailTable th:nth-child(2),
+.modelShareDetailTable td:nth-child(2),
+.modelShareDetailTable th:nth-child(3),
+.modelShareDetailTable td:nth-child(3),
+.modelShareDetailTable th:nth-child(4),
+.modelShareDetailTable td:nth-child(4),
+.modelShareDetailTable th:nth-child(5),
+.modelShareDetailTable td:nth-child(5),
+.modelShareDetailTable th:nth-child(6),
+.modelShareDetailTable td:nth-child(6),
+.modelShareDetailTable th:nth-child(7),
+.modelShareDetailTable td:nth-child(7) {
+  width: 78px !important;
+}
+
+/* ===== 모바일 ===== */
+@media (max-width: 768px) {
+  .modelShareGrid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* -------- 요약표 모바일 축약 -------- */
+  .modelShareTable {
+    min-width: 360px !important;   /* 거의 한 화면 */
+  }
+
+  .modelShareTable th,
+  .modelShareTable td {
+    padding: 7px 6px !important;
+    font-size: 12px !important;
+  }
+
+  /* NO 숨김 */
+  .modelShareTable th:nth-child(1),
+  .modelShareTable td:nth-child(1) {
+    display: none !important;
+  }
+
+  /* 대리점 숨김 */
+  .modelShareTable th:nth-child(4),
+  .modelShareTable td:nth-child(4) {
+    display: none !important;
+  }
+
+  /* 모델 / M&S / 총합 / M비중만 유지 */
+  .modelShareTable th:nth-child(2),
+  .modelShareTable td:nth-child(2) {
+    width: 120px !important;
+    text-align: left !important;
+  }
+
+  .modelShareTable th:nth-child(3),
+  .modelShareTable td:nth-child(3) {
+    width: 56px !important;
+  }
+
+  .modelShareTable th:nth-child(5),
+  .modelShareTable td:nth-child(5) {
+    width: 62px !important;
+  }
+
+  .modelShareTable th:nth-child(6),
+  .modelShareTable td:nth-child(6) {
+    width: 58px !important;
+  }
+
+  /* -------- 센터별 팝업표 모바일 축약 -------- */
+  .modelShareDetailTable {
+    min-width: 500px !important;   /* 최소한만 넘기기 */
+  }
+
+  .modelShareDetailTable th,
+  .modelShareDetailTable td {
+    padding: 7px 5px !important;
+    font-size: 12px !important;
+  }
+
+  .modelShareDetailTable th:nth-child(1),
+  .modelShareDetailTable td:nth-child(1) {
+    width: 110px !important;  /* 모델 */
+    text-align: left !important;
+  }
+
+  .modelShareDetailTable th:nth-child(2),
+  .modelShareDetailTable td:nth-child(2),
+  .modelShareDetailTable th:nth-child(3),
+  .modelShareDetailTable td:nth-child(3),
+  .modelShareDetailTable th:nth-child(4),
+  .modelShareDetailTable td:nth-child(4),
+  .modelShareDetailTable th:nth-child(5),
+  .modelShareDetailTable td:nth-child(5),
+  .modelShareDetailTable th:nth-child(6),
+  .modelShareDetailTable td:nth-child(6),
+  .modelShareDetailTable th:nth-child(7),
+  .modelShareDetailTable td:nth-child(7) {
+    width: 58px !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .modelShareTable {
+    min-width: 340px !important;
+  }
+
+  .modelShareTable th,
+  .modelShareTable td,
+  .modelShareDetailTable th,
+  .modelShareDetailTable td {
+    font-size: 11px !important;
+    padding: 6px 4px !important;
+  }
+
+  .modelShareDetailTable {
+    min-width: 470px !important;
+  }
+
+  .modelShareDetailTable th:nth-child(1),
+  .modelShareDetailTable td:nth-child(1) {
+    width: 96px !important;
+  }
+
+  .modelShareDetailTable th:nth-child(2),
+  .modelShareDetailTable td:nth-child(2),
+  .modelShareDetailTable th:nth-child(3),
+  .modelShareDetailTable td:nth-child(3),
+  .modelShareDetailTable th:nth-child(4),
+  .modelShareDetailTable td:nth-child(4),
+  .modelShareDetailTable th:nth-child(5),
+  .modelShareDetailTable td:nth-child(5),
+  .modelShareDetailTable th:nth-child(6),
+  .modelShareDetailTable td:nth-child(6),
+  .modelShareDetailTable th:nth-child(7),
+  .modelShareDetailTable td:nth-child(7) {
+    width: 52px !important;
+  }
+}

@@ -2753,11 +2753,11 @@ async function openModelShareDetail(mode) {
           <thead>
             <tr>
               <th>모델</th>
-              <th>M&S광주</th>
-              <th>M&S목포</th>
-              <th>M&S순천</th>
-              <th>M&S전북</th>
-              <th>M&S제주</th>
+              <th>광주</th>
+              <th>목포</th>
+              <th>순천</th>
+              <th>전북</th>
+              <th>제주</th>
               <th>총합계</th>
             </tr>
           </thead>
