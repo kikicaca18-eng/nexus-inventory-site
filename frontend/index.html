@@ -329,7 +329,7 @@
             카드를 클릭하면 그래프가 표시됩니다.
           </div>
         </div>
-        
+
 <!-- ================= 모델별 비중 대시보드 ================= -->
 <div id="performanceModelShareBox" class="panel" style="margin-top:16px;">
   <div class="panelHeader">
@@ -370,6 +370,36 @@
     <div id="modelShareDetailModalBody">불러오는 중...</div>
   </div>
 </div>
+
+<!-- ================= 당월 중복거래 대시보드 ================= -->
+<div id="performanceOverlapBox" class="panel" style="margin-top:16px;">
+  <div class="panelHeader">
+    <div class="panelTitle">🔁 당월 중복거래 현황</div>
+    <div class="panelHint">중복접점 클릭 시 상세내역 표시 · 판매점명 클릭 시 거래상세 팝업</div>
+  </div>
+
+  <div id="performanceOverlapSummary">불러오는 중...</div>
+
+  <div id="performanceOverlapDetailSection" class="panel" style="margin-top:16px; display:none;">
+    <div class="panelHeader">
+      <div class="panelTitle">중복접점 상세 내역</div>
+      <div class="panelHint">센터 / 판매점명 / 후불 / 순신규</div>
+    </div>
+    <div id="performanceOverlapDetailTable"></div>
+  </div>
+</div>
+
+<!-- ================= 중복거래 판매점 상세 팝업 ================= -->
+<div id="overlapStoreDetailModal" class="modal" style="display:none;">
+  <div class="modalBox">
+    <div class="modalHeader">
+      <span id="overlapStoreDetailModalTitle">판매점 거래 상세</span>
+      <button type="button" onclick="closeOverlapStoreDetailModal()">닫기</button>
+    </div>
+    <div id="overlapStoreDetailModalBody">불러오는 중...</div>
+  </div>
+</div>
+
         <!-- ================= 조건 필터 조회 ================= -->
         <div class="panel" style="margin-bottom:16px;">
           <div class="panelHeader">

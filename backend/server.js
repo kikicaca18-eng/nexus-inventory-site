@@ -3191,6 +3191,256 @@ app.get("/performance/model-share-detail", async (req, res) => {
   }
 });
 
+app.get("/performance/overlap-summary", async (req, res) => {
+  try {
+    const monthQ = await pool.query(
+      `
+      SELECT MAX(base_month) AS latest_month
+      FROM sales_records
+      WHERE data_scope = 'daily'
+        AND metric_type IN ('후불', '순신규')
+      `
+    );
+
+    const latestMonth = monthQ.rows[0]?.latest_month || null;
+
+    if (!latestMonth) {
+      return res.json({
+        ok: true,
+        latest_month: null,
+        summary: {
+          overlap_store_count: 0,
+          total_postpaid: 0,
+          total_pure_new: 0,
+          ms_postpaid: 0,
+          ms_pure_new: 0,
+          dealer_postpaid: 0,
+          dealer_pure_new: 0,
+          ms_postpaid_rate: 0,
+          ms_pure_new_rate: 0,
+          dealer_postpaid_rate: 0,
+          dealer_pure_new_rate: 0
+        }
+      });
+    }
+
+    // 1) 판매점별 후불/순신규에서 M&S / 대리점 실적 집계
+    const q = await pool.query(
+      `
+      SELECT
+        store_code,
+        store_name,
+        COALESCE(SUM(CASE WHEN metric_type = '후불' AND is_ms = 'Y' THEN total_score ELSE 0 END), 0)::numeric AS ms_postpaid,
+        COALESCE(SUM(CASE WHEN metric_type = '후불' AND is_ms = 'N' THEN total_score ELSE 0 END), 0)::numeric AS dealer_postpaid,
+        COALESCE(SUM(CASE WHEN metric_type = '순신규' AND is_ms = 'Y' THEN total_score ELSE 0 END), 0)::numeric AS ms_pure_new,
+        COALESCE(SUM(CASE WHEN metric_type = '순신규' AND is_ms = 'N' THEN total_score ELSE 0 END), 0)::numeric AS dealer_pure_new
+      FROM sales_records
+      WHERE base_month = $1
+        AND metric_type IN ('후불', '순신규')
+      GROUP BY store_code, store_name
+      `,
+      [latestMonth]
+    );
+
+    const rows = q.rows || [];
+
+    // 중복접점 조건:
+    // M&S 후불/순신규 중 하나라도 있고
+    // 대리점 후불/순신규 중 하나라도 있는 판매점
+    const overlapRows = rows.filter(r => {
+      const msTotal = Number(r.ms_postpaid || 0) + Number(r.ms_pure_new || 0);
+      const dealerTotal = Number(r.dealer_postpaid || 0) + Number(r.dealer_pure_new || 0);
+      return msTotal > 0 && dealerTotal > 0;
+    });
+
+    const overlapStoreCount = overlapRows.length;
+
+    const totalPostpaid = overlapRows.reduce(
+      (sum, r) => sum + Number(r.ms_postpaid || 0) + Number(r.dealer_postpaid || 0),
+      0
+    );
+    const totalPureNew = overlapRows.reduce(
+      (sum, r) => sum + Number(r.ms_pure_new || 0) + Number(r.dealer_pure_new || 0),
+      0
+    );
+
+    const msPostpaid = overlapRows.reduce((sum, r) => sum + Number(r.ms_postpaid || 0), 0);
+    const msPureNew = overlapRows.reduce((sum, r) => sum + Number(r.ms_pure_new || 0), 0);
+
+    const dealerPostpaid = overlapRows.reduce((sum, r) => sum + Number(r.dealer_postpaid || 0), 0);
+    const dealerPureNew = overlapRows.reduce((sum, r) => sum + Number(r.dealer_pure_new || 0), 0);
+
+    function calcRate(part, total) {
+      if (!total || Number(total) === 0) return 0;
+      return Number(((Number(part) / Number(total)) * 100).toFixed(1));
+    }
+
+    return res.json({
+      ok: true,
+      latest_month: latestMonth,
+      summary: {
+        overlap_store_count: overlapStoreCount,
+
+        total_postpaid: totalPostpaid,
+        total_pure_new: totalPureNew,
+
+        ms_postpaid: msPostpaid,
+        ms_pure_new: msPureNew,
+
+        dealer_postpaid: dealerPostpaid,
+        dealer_pure_new: dealerPureNew,
+
+        ms_postpaid_rate: calcRate(msPostpaid, totalPostpaid),
+        ms_pure_new_rate: calcRate(msPureNew, totalPureNew),
+
+        dealer_postpaid_rate: calcRate(dealerPostpaid, totalPostpaid),
+        dealer_pure_new_rate: calcRate(dealerPureNew, totalPureNew)
+      }
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ ok: false, message: "중복거래 요약 조회 실패" });
+  }
+});
+
+app.get("/performance/overlap-detail", async (req, res) => {
+  try {
+    const monthQ = await pool.query(
+      `
+      SELECT MAX(base_month) AS latest_month
+      FROM sales_records
+      WHERE data_scope = 'daily'
+        AND metric_type IN ('후불', '순신규')
+      `
+    );
+
+    const latestMonth = monthQ.rows[0]?.latest_month || null;
+
+    if (!latestMonth) {
+      return res.json({ ok: true, latest_month: null, rows: [] });
+    }
+
+    const q = await pool.query(
+      `
+      SELECT
+        agency_name,
+        store_code,
+        store_name,
+
+        COALESCE(SUM(CASE WHEN metric_type = '후불' AND is_ms = 'Y' THEN total_score ELSE 0 END), 0)::numeric AS ms_postpaid,
+        COALESCE(SUM(CASE WHEN metric_type = '후불' AND is_ms = 'N' THEN total_score ELSE 0 END), 0)::numeric AS dealer_postpaid,
+
+        COALESCE(SUM(CASE WHEN metric_type = '순신규' AND is_ms = 'Y' THEN total_score ELSE 0 END), 0)::numeric AS ms_pure_new,
+        COALESCE(SUM(CASE WHEN metric_type = '순신규' AND is_ms = 'N' THEN total_score ELSE 0 END), 0)::numeric AS dealer_pure_new
+      FROM sales_records
+      WHERE base_month = $1
+        AND metric_type IN ('후불', '순신규')
+      GROUP BY agency_name, store_code, store_name
+      ORDER BY agency_name ASC, store_name ASC
+      `,
+      [latestMonth]
+    );
+
+    const rows = (q.rows || [])
+      .map(r => {
+        const msPostpaid = Number(r.ms_postpaid || 0);
+        const dealerPostpaid = Number(r.dealer_postpaid || 0);
+        const msPureNew = Number(r.ms_pure_new || 0);
+        const dealerPureNew = Number(r.dealer_pure_new || 0);
+
+        const msTotal = msPostpaid + msPureNew;
+        const dealerTotal = dealerPostpaid + dealerPureNew;
+
+        return {
+          center: String(r.agency_name || "").replace("M&S", ""),
+          agency_name: r.agency_name,
+          store_code: r.store_code,
+          store_name: r.store_name,
+
+          postpaid_total: msPostpaid + dealerPostpaid,
+          postpaid_ms: msPostpaid,
+          postpaid_dealer: dealerPostpaid,
+
+          pure_new_total: msPureNew + dealerPureNew,
+          pure_new_ms: msPureNew,
+          pure_new_dealer: dealerPureNew,
+
+          _ms_total: msTotal,
+          _dealer_total: dealerTotal
+        };
+      })
+      .filter(r => r._ms_total > 0 && r._dealer_total > 0);
+
+    return res.json({
+      ok: true,
+      latest_month: latestMonth,
+      rows
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ ok: false, message: "중복거래 상세 조회 실패" });
+  }
+});
+
+app.get("/performance/overlap-store-detail", async (req, res) => {
+  try {
+    const storeCode = toText(req.query.store_code);
+
+    if (!storeCode) {
+      return res.status(400).json({ ok: false, message: "store_code가 필요합니다." });
+    }
+
+    const monthQ = await pool.query(
+      `
+      SELECT MAX(base_month) AS latest_month
+      FROM sales_records
+      WHERE data_scope = 'daily'
+      `
+    );
+
+    const latestMonth = monthQ.rows[0]?.latest_month || null;
+
+    if (!latestMonth) {
+      return res.json({ ok: true, latest_month: null, rows: [] });
+    }
+
+    const q = await pool.query(
+      `
+      SELECT
+        record_date,
+        model_name,
+        agency_name,
+        metric_type,
+        COALESCE(total_score, 0)::numeric AS total_score
+      FROM sales_records
+      WHERE base_month = $1
+        AND store_code = $2
+        AND metric_type IN ('후불', '순신규')
+        AND COALESCE(total_score, 0) > 0
+      ORDER BY record_date DESC, agency_name ASC, model_name ASC
+      `,
+      [latestMonth, storeCode]
+    );
+
+    const rows = (q.rows || []).map(r => ({
+      record_date: r.record_date,
+      model_name: r.model_name,
+      agency_name: r.agency_name,
+      metric_type: r.metric_type,
+      total_score: Number(r.total_score || 0)
+    }));
+
+    return res.json({
+      ok: true,
+      latest_month: latestMonth,
+      rows
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ ok: false, message: "판매점 거래 상세 조회 실패" });
+  }
+});
+
 app.listen(PORT, () => {
   console.log("🚀 Backend running on port", PORT);
 });

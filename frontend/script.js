@@ -35,6 +35,8 @@ let performanceTrendChart = null;
 let performanceSearchCache = [];
 let performanceSortState = { key: "", order: "asc" };
 let currentPostpaidShareThreshold = 0;
+let overlapSummaryCache = null;
+let overlapDetailCache = [];
 
 function $(id) {
   return document.getElementById(id);
@@ -2035,6 +2037,7 @@ currentPostpaidShareThreshold = Number(s.postpaid_share || 0);
       `;
     }
     await loadPerformanceModelShareDashboard();
+    await loadPerformanceOverlapDashboard();
 
   } catch (e) {
     console.error(e);
@@ -2793,6 +2796,229 @@ async function openModelShareDetail(mode) {
 
 function closeModelShareDetailModal() {
   const modal = document.getElementById("modelShareDetailModal");
+  if (modal) {
+    modal.style.display = "none";
+  }
+}
+
+async function loadPerformanceOverlapDashboard() {
+  const wrap = document.getElementById("performanceOverlapSummary");
+  const detailSection = document.getElementById("performanceOverlapDetailSection");
+  const detailTable = document.getElementById("performanceOverlapDetailTable");
+
+  if (wrap) wrap.innerHTML = "불러오는 중...";
+  if (detailSection) detailSection.style.display = "none";
+  if (detailTable) detailTable.innerHTML = "";
+
+  try {
+    const resp = await fetch(`${API_URL}/performance/overlap-summary`);
+    const j = await resp.json();
+
+    if (!resp.ok || !j.ok) {
+      if (wrap) wrap.innerHTML = `❌ ${j.message || "조회 실패"}`;
+      return;
+    }
+
+    overlapSummaryCache = j.summary || {};
+
+    const s = overlapSummaryCache;
+
+    if (wrap) {
+      wrap.innerHTML = `
+        <div class="overlapSummaryGrid">
+          <div class="overlapSummaryCard clickable" onclick="loadPerformanceOverlapDetail()">
+            <div class="overlapSummaryCardTitle">중복접점</div>
+            <div class="overlapSummaryMainValue">${Number(s.overlap_store_count || 0).toLocaleString()}점</div>
+          </div>
+
+          <div class="overlapSummaryCard">
+            <div class="overlapSummaryCardTitle">총실적</div>
+            <div class="overlapSummarySubLine">후불 : ${Number(s.total_postpaid || 0).toLocaleString()}건</div>
+            <div class="overlapSummarySubLine">순신규 : ${Number(s.total_pure_new || 0).toLocaleString()}건</div>
+          </div>
+
+          <div class="overlapSummaryCard">
+            <div class="overlapSummaryCardTitle">M&S</div>
+            <div class="overlapSummarySubLine">
+              후불 : ${Number(s.ms_postpaid || 0).toLocaleString()}건 (${Number(s.ms_postpaid_rate || 0).toFixed(1)}%)
+            </div>
+            <div class="overlapSummarySubLine">
+              순신규 : ${Number(s.ms_pure_new || 0).toLocaleString()}건 (${Number(s.ms_pure_new_rate || 0).toFixed(1)}%)
+            </div>
+          </div>
+
+          <div class="overlapSummaryCard">
+            <div class="overlapSummaryCardTitle">대리점</div>
+            <div class="overlapSummarySubLine">
+              후불 : ${Number(s.dealer_postpaid || 0).toLocaleString()}건 (${Number(s.dealer_postpaid_rate || 0).toFixed(1)}%)
+            </div>
+            <div class="overlapSummarySubLine">
+              순신규 : ${Number(s.dealer_pure_new || 0).toLocaleString()}건 (${Number(s.dealer_pure_new_rate || 0).toFixed(1)}%)
+            </div>
+          </div>
+        </div>
+      `;
+    }
+  } catch (e) {
+    console.error(e);
+    if (wrap) wrap.innerHTML = "❌ 네트워크 오류";
+  }
+}
+
+async function loadPerformanceOverlapDetail() {
+  const detailSection = document.getElementById("performanceOverlapDetailSection");
+  const detailTable = document.getElementById("performanceOverlapDetailTable");
+
+  if (!detailSection || !detailTable) return;
+
+  detailSection.style.display = "block";
+  detailTable.innerHTML = "불러오는 중...";
+
+  try {
+    const resp = await fetch(`${API_URL}/performance/overlap-detail`);
+    const j = await resp.json();
+
+    if (!resp.ok || !j.ok) {
+      detailTable.innerHTML = `❌ ${j.message || "조회 실패"}`;
+      return;
+    }
+
+    overlapDetailCache = Array.isArray(j.rows) ? j.rows : [];
+
+    if (!overlapDetailCache.length) {
+      detailTable.innerHTML = "데이터가 없습니다.";
+      return;
+    }
+
+    let html = `
+      <div class="tableWrap overlapDetailTableWrap">
+        <table class="overlapDetailTable">
+          <thead>
+            <tr>
+              <th rowspan="2">센터</th>
+              <th rowspan="2">판매점명</th>
+              <th colspan="3">후불</th>
+              <th colspan="3">순신규</th>
+            </tr>
+            <tr>
+              <th>총실적</th>
+              <th>M&S</th>
+              <th>대리점</th>
+              <th>총실적</th>
+              <th>M&S</th>
+              <th>대리점</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    overlapDetailCache.forEach(r => {
+      html += `
+        <tr>
+          <td>${escapeHtml(r.center || "")}</td>
+          <td>
+            <button
+              type="button"
+              class="linkLikeBtn"
+              onclick='openOverlapStoreDetailModal(${JSON.stringify(r.store_code || "")}, ${JSON.stringify(r.store_name || "")})'
+            >
+              ${escapeHtml(r.store_name || "")}
+            </button>
+          </td>
+          <td>${Number(r.postpaid_total || 0).toLocaleString()}</td>
+          <td>${Number(r.postpaid_ms || 0).toLocaleString()}</td>
+          <td>${Number(r.postpaid_dealer || 0).toLocaleString()}</td>
+          <td>${Number(r.pure_new_total || 0).toLocaleString()}</td>
+          <td>${Number(r.pure_new_ms || 0).toLocaleString()}</td>
+          <td>${Number(r.pure_new_dealer || 0).toLocaleString()}</td>
+        </tr>
+      `;
+    });
+
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    detailTable.innerHTML = html;
+  } catch (e) {
+    console.error(e);
+    detailTable.innerHTML = "❌ 네트워크 오류";
+  }
+}
+
+async function openOverlapStoreDetailModal(storeCode, storeName) {
+  const modal = document.getElementById("overlapStoreDetailModal");
+  const titleEl = document.getElementById("overlapStoreDetailModalTitle");
+  const bodyEl = document.getElementById("overlapStoreDetailModalBody");
+
+  if (!modal || !titleEl || !bodyEl) return;
+
+  titleEl.textContent = `${storeName} 거래 상세`;
+  bodyEl.innerHTML = "불러오는 중...";
+  modal.style.display = "flex";
+
+  try {
+    const resp = await fetch(
+      `${API_URL}/performance/overlap-store-detail?store_code=${encodeURIComponent(storeCode)}`
+    );
+    const j = await resp.json();
+
+    if (!resp.ok || !j.ok) {
+      bodyEl.innerHTML = `❌ ${j.message || "조회 실패"}`;
+      return;
+    }
+
+    const rows = Array.isArray(j.rows) ? j.rows : [];
+
+    if (!rows.length) {
+      bodyEl.innerHTML = "데이터가 없습니다.";
+      return;
+    }
+
+    let html = `
+      <div class="tableWrap overlapStoreModalTableWrap">
+        <table class="overlapStoreModalTable">
+          <thead>
+            <tr>
+              <th>일자</th>
+              <th>모델</th>
+              <th>대리점명</th>
+              <th>유형</th>
+              <th>실적</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    rows.forEach(r => {
+      html += `
+        <tr>
+          <td>${escapeHtml(String(r.record_date || "").slice(0, 10))}</td>
+          <td>${escapeHtml(r.model_name || "")}</td>
+          <td>${escapeHtml(r.agency_name || "")}</td>
+          <td>${escapeHtml(r.metric_type || "")}</td>
+          <td>${Number(r.total_score || 0).toLocaleString()}</td>
+        </tr>
+      `;
+    });
+
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    bodyEl.innerHTML = html;
+  } catch (e) {
+    console.error(e);
+    bodyEl.innerHTML = "❌ 네트워크 오류";
+  }
+}
+
+function closeOverlapStoreDetailModal() {
+  const modal = document.getElementById("overlapStoreDetailModal");
   if (modal) {
     modal.style.display = "none";
   }
