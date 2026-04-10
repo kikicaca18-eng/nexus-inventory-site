@@ -3193,6 +3193,8 @@ app.get("/performance/model-share-detail", async (req, res) => {
 
 app.get("/performance/overlap-summary", async (req, res) => {
   try {
+    const agency = mapCenterToSalesAgency(req.query.agency);
+
     const monthQ = await pool.query(
       `
       SELECT MAX(base_month) AS latest_month
@@ -3224,7 +3226,31 @@ app.get("/performance/overlap-summary", async (req, res) => {
       });
     }
 
-    // 1) 판매점별 후불/순신규에서 M&S / 대리점 실적 집계
+    const params = [latestMonth];
+    let where = `
+      WHERE base_month = $1
+        AND metric_type IN ('후불', '순신규')
+    `;
+
+    // 센터 로그인 시 해당 센터 데이터만
+    if (agency && agency !== "관리자") {
+      where += ` AND (
+        agency_name = $2
+        OR (
+          is_ms = 'N'
+          AND EXISTS (
+            SELECT 1
+            FROM sales_records s2
+            WHERE s2.base_month = sales_records.base_month
+              AND s2.store_code = sales_records.store_code
+              AND s2.is_ms = 'Y'
+              AND s2.agency_name = $2
+          )
+        )
+      )`;
+      params.push(agency);
+    }
+
     const q = await pool.query(
       `
       SELECT
@@ -3235,18 +3261,14 @@ app.get("/performance/overlap-summary", async (req, res) => {
         COALESCE(SUM(CASE WHEN metric_type = '순신규' AND is_ms = 'Y' THEN total_score ELSE 0 END), 0)::numeric AS ms_pure_new,
         COALESCE(SUM(CASE WHEN metric_type = '순신규' AND is_ms = 'N' THEN total_score ELSE 0 END), 0)::numeric AS dealer_pure_new
       FROM sales_records
-      WHERE base_month = $1
-        AND metric_type IN ('후불', '순신규')
+      ${where}
       GROUP BY store_code, store_name
       `,
-      [latestMonth]
+      params
     );
 
     const rows = q.rows || [];
 
-    // 중복접점 조건:
-    // M&S 후불/순신규 중 하나라도 있고
-    // 대리점 후불/순신규 중 하나라도 있는 판매점
     const overlapRows = rows.filter(r => {
       const msTotal = Number(r.ms_postpaid || 0) + Number(r.ms_pure_new || 0);
       const dealerTotal = Number(r.dealer_postpaid || 0) + Number(r.dealer_pure_new || 0);
@@ -3280,19 +3302,14 @@ app.get("/performance/overlap-summary", async (req, res) => {
       latest_month: latestMonth,
       summary: {
         overlap_store_count: overlapStoreCount,
-
         total_postpaid: totalPostpaid,
         total_pure_new: totalPureNew,
-
         ms_postpaid: msPostpaid,
         ms_pure_new: msPureNew,
-
         dealer_postpaid: dealerPostpaid,
         dealer_pure_new: dealerPureNew,
-
         ms_postpaid_rate: calcRate(msPostpaid, totalPostpaid),
         ms_pure_new_rate: calcRate(msPureNew, totalPureNew),
-
         dealer_postpaid_rate: calcRate(dealerPostpaid, totalPostpaid),
         dealer_pure_new_rate: calcRate(dealerPureNew, totalPureNew)
       }
@@ -3305,6 +3322,8 @@ app.get("/performance/overlap-summary", async (req, res) => {
 
 app.get("/performance/overlap-detail", async (req, res) => {
   try {
+    const agency = mapCenterToSalesAgency(req.query.agency);
+
     const monthQ = await pool.query(
       `
       SELECT MAX(base_month) AS latest_month
@@ -3320,26 +3339,46 @@ app.get("/performance/overlap-detail", async (req, res) => {
       return res.json({ ok: true, latest_month: null, rows: [] });
     }
 
+    const params = [latestMonth];
+    let where = `
+      WHERE base_month = $1
+        AND metric_type IN ('후불', '순신규')
+    `;
+
+    // 센터 로그인 시 본인 센터 관련 판매점만
+    if (agency && agency !== "관리자") {
+      where += ` AND (
+        agency_name = $2
+        OR (
+          is_ms = 'N'
+          AND EXISTS (
+            SELECT 1
+            FROM sales_records s2
+            WHERE s2.base_month = sales_records.base_month
+              AND s2.store_code = sales_records.store_code
+              AND s2.is_ms = 'Y'
+              AND s2.agency_name = $2
+          )
+        )
+      )`;
+      params.push(agency);
+    }
+
     const q = await pool.query(
       `
       SELECT
         store_code,
         store_name,
-
-        -- M&S 실적이 나온 센터명 대표값
         MAX(CASE WHEN is_ms = 'Y' THEN agency_name ELSE NULL END) AS ms_agency_name,
-
         COALESCE(SUM(CASE WHEN metric_type = '후불' AND is_ms = 'Y' THEN total_score ELSE 0 END), 0)::numeric AS ms_postpaid,
         COALESCE(SUM(CASE WHEN metric_type = '후불' AND is_ms = 'N' THEN total_score ELSE 0 END), 0)::numeric AS dealer_postpaid,
-
         COALESCE(SUM(CASE WHEN metric_type = '순신규' AND is_ms = 'Y' THEN total_score ELSE 0 END), 0)::numeric AS ms_pure_new,
         COALESCE(SUM(CASE WHEN metric_type = '순신규' AND is_ms = 'N' THEN total_score ELSE 0 END), 0)::numeric AS dealer_pure_new
       FROM sales_records
-      WHERE base_month = $1
-        AND metric_type IN ('후불', '순신규')
+      ${where}
       GROUP BY store_code, store_name
       `,
-      [latestMonth]
+      params
     );
 
     const rows = (q.rows || [])
@@ -3391,6 +3430,7 @@ app.get("/performance/overlap-detail", async (req, res) => {
 
 app.get("/performance/overlap-store-detail", async (req, res) => {
   try {
+    const agency = mapCenterToSalesAgency(req.query.agency);
     const storeCode = toText(req.query.store_code);
 
     if (!storeCode) {
@@ -3411,6 +3451,33 @@ app.get("/performance/overlap-store-detail", async (req, res) => {
       return res.json({ ok: true, latest_month: null, rows: [] });
     }
 
+    const params = [latestMonth, storeCode];
+    let where = `
+      WHERE base_month = $1
+        AND store_code = $2
+        AND metric_type IN ('후불', '순신규')
+        AND COALESCE(total_score, 0) > 0
+    `;
+
+    // 센터 로그인 시 본인 센터 관련 실적만
+    if (agency && agency !== "관리자") {
+      where += ` AND (
+        agency_name = $3
+        OR (
+          is_ms = 'N'
+          AND EXISTS (
+            SELECT 1
+            FROM sales_records s2
+            WHERE s2.base_month = sales_records.base_month
+              AND s2.store_code = sales_records.store_code
+              AND s2.is_ms = 'Y'
+              AND s2.agency_name = $3
+          )
+        )
+      )`;
+      params.push(agency);
+    }
+
     const q = await pool.query(
       `
       SELECT
@@ -3420,13 +3487,10 @@ app.get("/performance/overlap-store-detail", async (req, res) => {
         metric_type,
         COALESCE(total_score, 0)::numeric AS total_score
       FROM sales_records
-      WHERE base_month = $1
-        AND store_code = $2
-        AND metric_type IN ('후불', '순신규')
-        AND COALESCE(total_score, 0) > 0
+      ${where}
       ORDER BY record_date DESC, agency_name ASC, model_name ASC
       `,
-      [latestMonth, storeCode]
+      params
     );
 
     const rows = (q.rows || []).map(r => ({

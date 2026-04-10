@@ -3074,14 +3074,14 @@ tr:hover td{background:#fafafa}
 /* 센터 */
 #performanceOverlapDetailTable th:nth-child(1),
 #performanceOverlapDetailTable td:nth-child(1) {
-  width: 50px;
+  width: 40px;
   text-align: center;
 }
 
 /* 판매점명 */
 #performanceOverlapDetailTable th:nth-child(2),
 #performanceOverlapDetailTable td:nth-child(2) {
-  width: 92px;          /* 과하게 넓지 않게 */
+  width: 82px;          /* 과하게 넓지 않게 */
   text-align: center;   /* 요청대로 가운데 정렬 */
 }
 
@@ -3098,7 +3098,7 @@ tr:hover td{background:#fafafa}
 #performanceOverlapDetailTable td:nth-child(7),
 #performanceOverlapDetailTable th:nth-child(8),
 #performanceOverlapDetailTable td:nth-child(8) {
-  width: 48px;
+  width: 68px;
 }
 
 /* 판매점명 링크 */
@@ -3153,25 +3153,25 @@ tr:hover td{background:#fafafa}
 /* 모델 */
 #overlapStoreDetailModalBody th:nth-child(2),
 #overlapStoreDetailModalBody td:nth-child(2) {
-  width: 95px;
+  width: 90px;
 }
 
 /* 대리점명 */
 #overlapStoreDetailModalBody th:nth-child(3),
 #overlapStoreDetailModalBody td:nth-child(3) {
-  width: 96px;
+  width: 91px;
 }
 
 /* 유형 */
 #overlapStoreDetailModalBody th:nth-child(4),
 #overlapStoreDetailModalBody td:nth-child(4) {
-  width: 52px;
+  width: 57px;
 }
 
 /* 실적 */
 #overlapStoreDetailModalBody th:nth-child(5),
 #overlapStoreDetailModalBody td:nth-child(5) {
-  width: 42px;
+  width: 47px;
 }
 
 /* 팝업 헤더 */
@@ -3245,12 +3245,12 @@ tr:hover td{background:#fafafa}
 
   #performanceOverlapDetailTable th:nth-child(1),
   #performanceOverlapDetailTable td:nth-child(1) {
-    width: 40px;
+    width: 35px;
   }
 
   #performanceOverlapDetailTable th:nth-child(2),
   #performanceOverlapDetailTable td:nth-child(2) {
-    width: 80px;   /* 판매점명 줄임 */
+    width: 70px;   /* 판매점명 줄임 */
   }
 
   #performanceOverlapDetailTable th:nth-child(3),
@@ -3265,7 +3265,7 @@ tr:hover td{background:#fafafa}
   #performanceOverlapDetailTable td:nth-child(7),
   #performanceOverlapDetailTable th:nth-child(8),
   #performanceOverlapDetailTable td:nth-child(8) {
-    width: 38px;
+    width: 41px;
   }
 
   #performanceOverlapDetailTable .linkLikeBtn {

@@ -2818,7 +2818,9 @@ async function loadPerformanceOverlapDashboard() {
   if (detailTable) detailTable.innerHTML = "";
 
   try {
-    const resp = await fetch(`${API_URL}/performance/overlap-summary`);
+    const resp = await fetch(
+  `${API_URL}/performance/overlap-summary?agency=${encodeURIComponent(getPerformanceQueryCenter())}`
+);
     const j = await resp.json();
 
     if (!resp.ok || !j.ok) {
@@ -2910,7 +2912,9 @@ async function togglePerformanceOverlapDetail() {
   if (card) card.classList.add("active");
 
   try {
-    const resp = await fetch(`${API_URL}/performance/overlap-detail`);
+    const resp = await fetch(
+  `${API_URL}/performance/overlap-detail?agency=${encodeURIComponent(getPerformanceQueryCenter())}`
+);
     const j = await resp.json();
 
     if (!resp.ok || !j.ok) {
@@ -3144,8 +3148,8 @@ async function openOverlapStoreDetailModal(storeCode, storeName) {
 
   try {
     const resp = await fetch(
-      `${API_URL}/performance/overlap-store-detail?store_code=${encodeURIComponent(storeCode)}`
-    );
+  `${API_URL}/performance/overlap-store-detail?store_code=${encodeURIComponent(storeCode)}&agency=${encodeURIComponent(getPerformanceQueryCenter())}`
+);
     const j = await resp.json();
 
     if (!resp.ok || !j.ok) {
