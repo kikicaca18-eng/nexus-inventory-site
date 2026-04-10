@@ -2947,139 +2947,12 @@ tr:hover td{background:#fafafa}
     width: 52px !important;
   }
 }
-
 /* =========================
    당월 중복거래 대시보드
+   최종 정리본
 ========================= */
-.overlapSummaryGrid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
-}
 
-.overlapSummaryCard {
-  background: #fff;
-  border: 1px solid #e9edf3;
-  border-radius: 16px;
-  padding: 14px 16px;
-  min-height: 110px;
-}
-
-.overlapSummaryCard.clickable {
-  cursor: pointer;
-  transition: all 0.18s ease;
-}
-
-.overlapSummaryCard.clickable:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06);
-}
-
-.overlapSummaryCardTitle {
-  font-size: 16px;
-  font-weight: 800;
-  margin-bottom: 10px;
-}
-
-.overlapSummaryMainValue {
-  font-size: 34px;
-  font-weight: 800;
-  line-height: 1.2;
-}
-
-.overlapSummarySubLine {
-  font-size: 16px;
-  line-height: 1.7;
-  color: #111827;
-}
-
-.overlapDetailTableWrap,
-.overlapStoreModalTableWrap {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.overlapDetailTable,
-.overlapStoreModalTable {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-}
-
-.overlapDetailTable {
-  min-width: 860px;
-}
-
-.overlapStoreModalTable {
-  min-width: 640px;
-}
-
-.overlapDetailTable th,
-.overlapDetailTable td,
-.overlapStoreModalTable th,
-.overlapStoreModalTable td {
-  padding: 9px 10px;
-  border-bottom: 1px solid #e9edf3;
-  font-size: 14px;
-  line-height: 1.4;
-  text-align: center;
-  vertical-align: middle;
-  white-space: nowrap;
-}
-
-.overlapDetailTable th,
-.overlapStoreModalTable th {
-  background: #fafbfc;
-  color: #5f6b7a;
-  font-weight: 700;
-}
-
-.overlapDetailTable td:nth-child(2),
-.overlapStoreModalTable td:nth-child(2),
-.overlapStoreModalTable td:nth-child(3) {
-  text-align: left;
-}
-
-@media (max-width: 980px) {
-  .overlapSummaryGrid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-@media (max-width: 768px) {
-  .overlapSummaryGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .overlapSummaryCard {
-    min-height: auto;
-  }
-
-  .overlapSummaryMainValue {
-    font-size: 28px;
-  }
-
-  .overlapSummarySubLine {
-    font-size: 14px;
-  }
-
-  .overlapDetailTable,
-  .overlapStoreModalTable {
-    font-size: 13px;
-  }
-
-  .overlapDetailTable th,
-  .overlapDetailTable td,
-  .overlapStoreModalTable th,
-  .overlapStoreModalTable td {
-    padding: 8px 8px;
-    font-size: 13px;
-  }
-}
-
-/* =========================
-   당월 중복거래 대시보드 UI 개선
-========================= */
+/* ===== 상단 요약 카드 ===== */
 .overlapDashboardGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -3105,6 +2978,11 @@ tr:hover td{background:#fafafa}
   transform: translateY(-2px);
   box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
   border-color: #d7deea;
+}
+
+#overlapStoreCountCard.active {
+  border: 2px solid #111827;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
 }
 
 .overlapDashTitle {
@@ -3155,60 +3033,167 @@ tr:hover td{background:#fafafa}
   line-height: 1.3;
 }
 
-/* 상세 표도 조금 더 보기 좋게 */
-.overlapDetailTableWrap,
-.overlapStoreModalTableWrap {
+.overlapRateText {
+  font-size: 0.78em;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ===== 공통 스크롤 ===== */
+#performanceOverlapDetailTable,
+#overlapStoreDetailModalBody {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
 
-.overlapDetailTable,
-.overlapStoreModalTable {
+/* ===== 중복접점 상세내역 ===== */
+#performanceOverlapDetailTable table {
   width: 100%;
+  min-width: 780px;   /* PC에서 최대한 한 화면 */
   border-collapse: collapse;
   table-layout: fixed;
 }
 
-.overlapDetailTable {
-  min-width: 900px;
-}
-
-.overlapStoreModalTable {
-  min-width: 680px;
-}
-
-.overlapDetailTable th,
-.overlapDetailTable td,
-.overlapStoreModalTable th,
-.overlapStoreModalTable td {
-  padding: 10px 10px;
+#performanceOverlapDetailTable th,
+#performanceOverlapDetailTable td {
+  padding: 8px 6px;
   border-bottom: 1px solid #e9edf3;
-  font-size: 14px;
-  line-height: 1.4;
+  font-size: 13px;
+  line-height: 1.3;
   text-align: center;
   vertical-align: middle;
   white-space: nowrap;
 }
 
-.overlapDetailTable th,
-.overlapStoreModalTable th {
+#performanceOverlapDetailTable th {
   background: #fafbfc;
   color: #5f6b7a;
   font-weight: 700;
 }
 
-.overlapDetailTable td:nth-child(2),
-.overlapStoreModalTable td:nth-child(2),
-.overlapStoreModalTable td:nth-child(3) {
-  text-align: left;
+/* 센터 */
+#performanceOverlapDetailTable th:nth-child(1),
+#performanceOverlapDetailTable td:nth-child(1) {
+  width: 50px;
+  text-align: center;
 }
 
+/* 판매점명 */
+#performanceOverlapDetailTable th:nth-child(2),
+#performanceOverlapDetailTable td:nth-child(2) {
+  width: 92px;          /* 과하게 넓지 않게 */
+  text-align: center;   /* 요청대로 가운데 정렬 */
+}
+
+/* 숫자칸 */
+#performanceOverlapDetailTable th:nth-child(3),
+#performanceOverlapDetailTable td:nth-child(3),
+#performanceOverlapDetailTable th:nth-child(4),
+#performanceOverlapDetailTable td:nth-child(4),
+#performanceOverlapDetailTable th:nth-child(5),
+#performanceOverlapDetailTable td:nth-child(5),
+#performanceOverlapDetailTable th:nth-child(6),
+#performanceOverlapDetailTable td:nth-child(6),
+#performanceOverlapDetailTable th:nth-child(7),
+#performanceOverlapDetailTable td:nth-child(7),
+#performanceOverlapDetailTable th:nth-child(8),
+#performanceOverlapDetailTable td:nth-child(8) {
+  width: 48px;
+}
+
+/* 판매점명 링크 */
+#performanceOverlapDetailTable .linkLikeBtn {
+  display: inline-block;
+  max-width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  color: #1d4ed8;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.2;
+  cursor: pointer;
+  text-align: center;
+  white-space: normal;
+  word-break: keep-all;
+}
+
+/* ===== 판매점 클릭 팝업 ===== */
+#overlapStoreDetailModalBody table {
+  width: 100%;
+  min-width: 500px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+#overlapStoreDetailModalBody th,
+#overlapStoreDetailModalBody td {
+  padding: 8px 6px;
+  border-bottom: 1px solid #e9edf3;
+  font-size: 13px;
+  line-height: 1.3;
+  text-align: center;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+#overlapStoreDetailModalBody th {
+  background: #fafbfc;
+  color: #5f6b7a;
+  font-weight: 700;
+}
+
+/* 일자 */
+#overlapStoreDetailModalBody th:nth-child(1),
+#overlapStoreDetailModalBody td:nth-child(1) {
+  width: 78px;
+}
+
+/* 모델 */
+#overlapStoreDetailModalBody th:nth-child(2),
+#overlapStoreDetailModalBody td:nth-child(2) {
+  width: 95px;
+}
+
+/* 대리점명 */
+#overlapStoreDetailModalBody th:nth-child(3),
+#overlapStoreDetailModalBody td:nth-child(3) {
+  width: 96px;
+}
+
+/* 유형 */
+#overlapStoreDetailModalBody th:nth-child(4),
+#overlapStoreDetailModalBody td:nth-child(4) {
+  width: 52px;
+}
+
+/* 실적 */
+#overlapStoreDetailModalBody th:nth-child(5),
+#overlapStoreDetailModalBody td:nth-child(5) {
+  width: 42px;
+}
+
+/* 팝업 헤더 */
+#overlapStoreDetailModal .modalHeader {
+  align-items: flex-start;
+  gap: 8px;
+}
+
+#overlapStoreDetailModal .modalHeader span {
+  white-space: normal;
+  line-height: 1.3;
+  flex: 1 1 auto;
+}
+
+/* ===== 태블릿 ===== */
 @media (max-width: 1200px) {
   .overlapDashboardGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
+/* ===== 모바일 ===== */
 @media (max-width: 768px) {
   .overlapDashboardGrid {
     grid-template-columns: 1fr;
@@ -3239,34 +3224,6 @@ tr:hover td{background:#fafafa}
   }
 
   .overlapDashLine strong {
-    font-size: 18px;
-  }
-
-  .overlapDetailTable th,
-  .overlapDetailTable td,
-  .overlapStoreModalTable th,
-  .overlapStoreModalTable td {
-    padding: 8px 8px;
-    font-size: 13px;
-  }
-}
-
-/* =========================
-   중복거래 카드 비율 줄바꿈 방지 / 클릭 active
-========================= */
-.overlapRateText {
-  font-size: 0.78em;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-#overlapStoreCountCard.active {
-  border: 2px solid #111827;
-  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
-}
-
-@media (max-width: 768px) {
-  .overlapDashLine strong {
     font-size: 16px;
     line-height: 1.25;
   }
@@ -3274,431 +3231,26 @@ tr:hover td{background:#fafafa}
   .overlapRateText {
     font-size: 0.72em;
   }
-}
 
-/* =========================
-   중복거래 상세내역 / 팝업
-   PC + 모바일 최종 보정
-========================= */
-
-/* 공통 래퍼 */
-.overlapDetailTableWrap,
-.overlapStoreModalTableWrap {
-  overflow-x: auto !important;
-  -webkit-overflow-scrolling: touch !important;
-}
-
-/* =========================
-   중복접점 상세내역 표
-========================= */
-.overlapDetailTable {
-  width: 100% !important;
-  min-width: 860px !important;   /* PC에서는 한 번에 거의 다 보이게 */
-  border-collapse: collapse !important;
-  table-layout: fixed !important;
-}
-
-.overlapDetailTable th,
-.overlapDetailTable td {
-  padding: 8px 8px !important;
-  border-bottom: 1px solid #e9edf3 !important;
-  font-size: 13px !important;
-  line-height: 1.3 !important;
-  text-align: center !important;
-  vertical-align: middle !important;
-  white-space: nowrap !important;
-}
-
-.overlapDetailTable th {
-  background: #fafbfc !important;
-  color: #5f6b7a !important;
-  font-weight: 700 !important;
-}
-
-/* PC 컬럼 폭 조정 */
-.overlapDetailTable th:nth-child(1),
-.overlapDetailTable td:nth-child(1) { width: 56px !important; }   /* 센터 */
-
-.overlapDetailTable th:nth-child(2),
-.overlapDetailTable td:nth-child(2) {
-  width: 150px !important;   /* 판매점명 */
-  text-align: left !important;
-}
-
-.overlapDetailTable th:nth-child(3),
-.overlapDetailTable td:nth-child(3),
-.overlapDetailTable th:nth-child(4),
-.overlapDetailTable td:nth-child(4),
-.overlapDetailTable th:nth-child(5),
-.overlapDetailTable td:nth-child(5),
-.overlapDetailTable th:nth-child(6),
-.overlapDetailTable td:nth-child(6),
-.overlapDetailTable th:nth-child(7),
-.overlapDetailTable td:nth-child(7),
-.overlapDetailTable th:nth-child(8),
-.overlapDetailTable td:nth-child(8) {
-  width: 64px !important;
-}
-
-/* 판매점명 링크 */
-.overlapDetailTable .linkLikeBtn {
-  font-size: 13px !important;
-  line-height: 1.25 !important;
-  white-space: normal !important;
-  word-break: keep-all !important;
-  text-align: left !important;
-}
-
-/* =========================
-   판매점 클릭 상세 팝업 표
-========================= */
-.overlapStoreModalTable {
-  width: 100% !important;
-  min-width: 560px !important;   /* PC에선 한 번에 거의 다 */
-  border-collapse: collapse !important;
-  table-layout: fixed !important;
-}
-
-.overlapStoreModalTable th,
-.overlapStoreModalTable td {
-  padding: 8px 8px !important;
-  border-bottom: 1px solid #e9edf3 !important;
-  font-size: 13px !important;
-  line-height: 1.3 !important;
-  text-align: center !important;
-  vertical-align: middle !important;
-  white-space: nowrap !important;
-}
-
-.overlapStoreModalTable th {
-  background: #fafbfc !important;
-  color: #5f6b7a !important;
-  font-weight: 700 !important;
-}
-
-/* PC 컬럼 폭 */
-.overlapStoreModalTable th:nth-child(1),
-.overlapStoreModalTable td:nth-child(1) { width: 86px !important; }   /* 일자 */
-
-.overlapStoreModalTable th:nth-child(2),
-.overlapStoreModalTable td:nth-child(2) {
-  width: 110px !important;  /* 모델 */
-  text-align: left !important;
-}
-
-.overlapStoreModalTable th:nth-child(3),
-.overlapStoreModalTable td:nth-child(3) {
-  width: 120px !important;  /* 대리점명 */
-  text-align: left !important;
-}
-
-.overlapStoreModalTable th:nth-child(4),
-.overlapStoreModalTable td:nth-child(4) { width: 62px !important; }   /* 유형 */
-
-.overlapStoreModalTable th:nth-child(5),
-.overlapStoreModalTable td:nth-child(5) { width: 52px !important; }   /* 실적 */
-
-/* 팝업 헤더 긴 제목 줄바꿈 허용 */
-#overlapStoreDetailModal .modalHeader {
-  align-items: flex-start !important;
-  gap: 8px !important;
-}
-
-#overlapStoreDetailModal .modalHeader span {
-  white-space: normal !important;
-  line-height: 1.3 !important;
-  flex: 1 1 auto !important;
-}
-
-/* =========================
-   모바일 최적화
-========================= */
-@media (max-width: 768px) {
-  /* 상세내역 표: 최대한 한 화면에 가깝게 */
-  .overlapDetailTable {
-    min-width: 520px !important;
-  }
-
-  .overlapDetailTable th,
-  .overlapDetailTable td {
-    padding: 6px 5px !important;
-    font-size: 11px !important;
-  }
-
-  .overlapDetailTable th:nth-child(1),
-  .overlapDetailTable td:nth-child(1) {
-    width: 42px !important;   /* 센터 */
-  }
-
-  .overlapDetailTable th:nth-child(2),
-  .overlapDetailTable td:nth-child(2) {
-    width: 100px !important;  /* 판매점명 */
-    text-align: left !important;
-  }
-
-  .overlapDetailTable th:nth-child(3),
-  .overlapDetailTable td:nth-child(3),
-  .overlapDetailTable th:nth-child(4),
-  .overlapDetailTable td:nth-child(4),
-  .overlapDetailTable th:nth-child(5),
-  .overlapDetailTable td:nth-child(5),
-  .overlapDetailTable th:nth-child(6),
-  .overlapDetailTable td:nth-child(6),
-  .overlapDetailTable th:nth-child(7),
-  .overlapDetailTable td:nth-child(7),
-  .overlapDetailTable th:nth-child(8),
-  .overlapDetailTable td:nth-child(8) {
-    width: 42px !important;
-  }
-
-  .overlapDetailTable .linkLikeBtn {
-    font-size: 11px !important;
-    line-height: 1.2 !important;
-  }
-
-  /* 팝업 표: 최대한 한 화면에 가깝게 */
-  .overlapStoreModalTable {
-    min-width: 360px !important;
-  }
-
-  .overlapStoreModalTable th,
-  .overlapStoreModalTable td {
-    padding: 6px 4px !important;
-    font-size: 11px !important;
-  }
-
-  .overlapStoreModalTable th:nth-child(1),
-  .overlapStoreModalTable td:nth-child(1) { width: 70px !important; }   /* 일자 */
-
-  .overlapStoreModalTable th:nth-child(2),
-  .overlapStoreModalTable td:nth-child(2) {
-    width: 80px !important;   /* 모델 */
-    text-align: left !important;
-  }
-
-  .overlapStoreModalTable th:nth-child(3),
-  .overlapStoreModalTable td:nth-child(3) {
-    width: 82px !important;   /* 대리점명 */
-    text-align: left !important;
-  }
-
-  .overlapStoreModalTable th:nth-child(4),
-  .overlapStoreModalTable td:nth-child(4) { width: 42px !important; }   /* 유형 */
-
-  .overlapStoreModalTable th:nth-child(5),
-  .overlapStoreModalTable td:nth-child(5) { width: 36px !important; }   /* 실적 */
-
-  /* 모달 자체도 모바일에 맞게 */
-  #overlapStoreDetailModal .modalBox {
-    width: 100% !important;
-    max-width: 100% !important;
-    max-height: 86vh !important;
-    border-radius: 16px 16px 0 0 !important;
-    padding: 12px !important;
-  }
-
-  #overlapStoreDetailModal .modalHeader button {
-    flex: 0 0 auto !important;
-    font-size: 12px !important;
-    padding: 6px 10px !important;
-  }
-}
-
-@media (max-width: 430px) {
-  .overlapDetailTable {
-    min-width: 500px !important;   /* 아주 약간만 넘기기 */
-  }
-
-  .overlapDetailTable th,
-  .overlapDetailTable td,
-  .overlapStoreModalTable th,
-  .overlapStoreModalTable td {
-    font-size: 10px !important;
-    padding: 5px 4px !important;
-  }
-
-  .overlapDetailTable th:nth-child(2),
-  .overlapDetailTable td:nth-child(2) {
-    width: 92px !important;
-  }
-
-  .overlapStoreModalTable {
-    min-width: 340px !important;
-  }
-}
-
-/* =========================
-   중복거래 상세내역 / 팝업
-   ID 기준 강제 적용 버전
-========================= */
-
-/* 공통 가로스크롤 */
-#performanceOverlapDetailTable,
-#overlapStoreDetailModalBody {
-  overflow-x: auto !important;
-  -webkit-overflow-scrolling: touch !important;
-}
-
-/* =========================
-   중복접점 상세내역
-========================= */
-#performanceOverlapDetailTable table {
-  width: 100% !important;
-  min-width: 860px !important;
-  border-collapse: collapse !important;
-  table-layout: fixed !important;
-}
-
-#performanceOverlapDetailTable th,
-#performanceOverlapDetailTable td {
-  padding: 8px 8px !important;
-  border-bottom: 1px solid #e9edf3 !important;
-  font-size: 13px !important;
-  line-height: 1.3 !important;
-  text-align: center !important;
-  vertical-align: middle !important;
-  white-space: nowrap !important;
-}
-
-#performanceOverlapDetailTable th {
-  background: #fafbfc !important;
-  color: #5f6b7a !important;
-  font-weight: 700 !important;
-}
-
-/* 센터 */
-#performanceOverlapDetailTable th:nth-child(1),
-#performanceOverlapDetailTable td:nth-child(1) {
-  width: 56px !important;
-}
-
-/* 판매점명 */
-#performanceOverlapDetailTable th:nth-child(2),
-#performanceOverlapDetailTable td:nth-child(2) {
-  width: 150px !important;
-  text-align: left !important;
-}
-
-/* 숫자 6칸 */
-#performanceOverlapDetailTable th:nth-child(3),
-#performanceOverlapDetailTable td:nth-child(3),
-#performanceOverlapDetailTable th:nth-child(4),
-#performanceOverlapDetailTable td:nth-child(4),
-#performanceOverlapDetailTable th:nth-child(5),
-#performanceOverlapDetailTable td:nth-child(5),
-#performanceOverlapDetailTable th:nth-child(6),
-#performanceOverlapDetailTable td:nth-child(6),
-#performanceOverlapDetailTable th:nth-child(7),
-#performanceOverlapDetailTable td:nth-child(7),
-#performanceOverlapDetailTable th:nth-child(8),
-#performanceOverlapDetailTable td:nth-child(8) {
-  width: 64px !important;
-}
-
-/* 판매점명 버튼 */
-#performanceOverlapDetailTable .linkLikeBtn {
-  font-size: 13px !important;
-  line-height: 1.25 !important;
-  white-space: normal !important;
-  word-break: keep-all !important;
-  text-align: left !important;
-}
-
-/* =========================
-   판매점 상세 팝업
-========================= */
-#overlapStoreDetailModalBody table {
-  width: 100% !important;
-  min-width: 560px !important;
-  border-collapse: collapse !important;
-  table-layout: fixed !important;
-}
-
-#overlapStoreDetailModalBody th,
-#overlapStoreDetailModalBody td {
-  padding: 8px 8px !important;
-  border-bottom: 1px solid #e9edf3 !important;
-  font-size: 13px !important;
-  line-height: 1.3 !important;
-  text-align: center !important;
-  vertical-align: middle !important;
-  white-space: nowrap !important;
-}
-
-#overlapStoreDetailModalBody th {
-  background: #fafbfc !important;
-  color: #5f6b7a !important;
-  font-weight: 700 !important;
-}
-
-/* 일자 */
-#overlapStoreDetailModalBody th:nth-child(1),
-#overlapStoreDetailModalBody td:nth-child(1) {
-  width: 82px !important;
-}
-
-/* 모델 */
-#overlapStoreDetailModalBody th:nth-child(2),
-#overlapStoreDetailModalBody td:nth-child(2) {
-  width: 110px !important;
-  text-align: left !important;
-}
-
-/* 대리점명 */
-#overlapStoreDetailModalBody th:nth-child(3),
-#overlapStoreDetailModalBody td:nth-child(3) {
-  width: 120px !important;
-  text-align: left !important;
-}
-
-/* 유형 */
-#overlapStoreDetailModalBody th:nth-child(4),
-#overlapStoreDetailModalBody td:nth-child(4) {
-  width: 60px !important;
-}
-
-/* 실적 */
-#overlapStoreDetailModalBody th:nth-child(5),
-#overlapStoreDetailModalBody td:nth-child(5) {
-  width: 48px !important;
-}
-
-/* 팝업 제목 줄바꿈 허용 */
-#overlapStoreDetailModal .modalHeader {
-  align-items: flex-start !important;
-  gap: 8px !important;
-}
-
-#overlapStoreDetailModal .modalHeader span {
-  white-space: normal !important;
-  line-height: 1.3 !important;
-  flex: 1 1 auto !important;
-}
-
-/* =========================
-   모바일
-========================= */
-@media (max-width: 768px) {
-  /* 상세내역 */
+  /* 상세내역: 최대한 한 화면 */
   #performanceOverlapDetailTable table {
-    min-width: 520px !important;
+    min-width: 500px;
   }
 
   #performanceOverlapDetailTable th,
   #performanceOverlapDetailTable td {
-    padding: 6px 5px !important;
-    font-size: 11px !important;
+    padding: 6px 4px;
+    font-size: 11px;
   }
 
   #performanceOverlapDetailTable th:nth-child(1),
   #performanceOverlapDetailTable td:nth-child(1) {
-    width: 42px !important;
+    width: 40px;
   }
 
   #performanceOverlapDetailTable th:nth-child(2),
   #performanceOverlapDetailTable td:nth-child(2) {
-    width: 100px !important;
-    text-align: left !important;
+    width: 80px;   /* 판매점명 줄임 */
   }
 
   #performanceOverlapDetailTable th:nth-child(3),
@@ -3713,84 +3265,84 @@ tr:hover td{background:#fafafa}
   #performanceOverlapDetailTable td:nth-child(7),
   #performanceOverlapDetailTable th:nth-child(8),
   #performanceOverlapDetailTable td:nth-child(8) {
-    width: 42px !important;
+    width: 38px;
   }
 
   #performanceOverlapDetailTable .linkLikeBtn {
-    font-size: 11px !important;
-    line-height: 1.2 !important;
+    font-size: 11px;
+    line-height: 1.15;
   }
 
-  /* 팝업 */
+  /* 팝업: 최대한 한 화면 */
   #overlapStoreDetailModalBody table {
-    min-width: 360px !important;
+    min-width: 340px;
   }
 
   #overlapStoreDetailModalBody th,
   #overlapStoreDetailModalBody td {
-    padding: 6px 4px !important;
-    font-size: 11px !important;
+    padding: 6px 4px;
+    font-size: 11px;
   }
 
   #overlapStoreDetailModalBody th:nth-child(1),
   #overlapStoreDetailModalBody td:nth-child(1) {
-    width: 70px !important;
+    width: 64px;
   }
 
   #overlapStoreDetailModalBody th:nth-child(2),
   #overlapStoreDetailModalBody td:nth-child(2) {
-    width: 80px !important;
+    width: 74px;
   }
 
   #overlapStoreDetailModalBody th:nth-child(3),
   #overlapStoreDetailModalBody td:nth-child(3) {
-    width: 82px !important;
+    width: 74px;
   }
 
   #overlapStoreDetailModalBody th:nth-child(4),
   #overlapStoreDetailModalBody td:nth-child(4) {
-    width: 42px !important;
+    width: 40px;
   }
 
   #overlapStoreDetailModalBody th:nth-child(5),
   #overlapStoreDetailModalBody td:nth-child(5) {
-    width: 36px !important;
+    width: 34px;
   }
 
   #overlapStoreDetailModal .modalBox {
-    width: 100% !important;
-    max-width: 100% !important;
-    max-height: 86vh !important;
-    border-radius: 16px 16px 0 0 !important;
-    padding: 12px !important;
+    width: 100%;
+    max-width: 100%;
+    max-height: 86vh;
+    border-radius: 16px 16px 0 0;
+    padding: 12px;
   }
 
   #overlapStoreDetailModal .modalHeader button {
-    flex: 0 0 auto !important;
-    font-size: 12px !important;
-    padding: 6px 10px !important;
+    flex: 0 0 auto;
+    font-size: 12px;
+    padding: 6px 10px;
   }
 }
 
 @media (max-width: 430px) {
   #performanceOverlapDetailTable table {
-    min-width: 500px !important;
+    min-width: 480px;
   }
 
   #performanceOverlapDetailTable th,
   #performanceOverlapDetailTable td,
   #overlapStoreDetailModalBody th,
   #overlapStoreDetailModalBody td {
-    font-size: 10px !important;
-    padding: 5px 4px !important;
+    font-size: 10px;
+    padding: 5px 4px;
   }
 
   #performanceOverlapDetailTable th:nth-child(2),
   #performanceOverlapDetailTable td:nth-child(2) {
-    width: 92px !important;
+    width: 74px;
   }
 
   #overlapStoreDetailModalBody table {
-    min-width: 340px !important;
+    min-width: 320px;
   }
 }
