@@ -3250,3 +3250,28 @@ tr:hover td{background:#fafafa}
     font-size: 13px;
   }
 }
+
+/* =========================
+   중복거래 카드 비율 줄바꿈 방지 / 클릭 active
+========================= */
+.overlapRateText {
+  font-size: 0.78em;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+#overlapStoreCountCard.active {
+  border: 2px solid #111827;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+}
+
+@media (max-width: 768px) {
+  .overlapDashLine strong {
+    font-size: 16px;
+    line-height: 1.25;
+  }
+
+  .overlapRateText {
+    font-size: 0.72em;
+  }
+}

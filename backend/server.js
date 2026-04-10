@@ -3323,9 +3323,11 @@ app.get("/performance/overlap-detail", async (req, res) => {
     const q = await pool.query(
       `
       SELECT
-        agency_name,
         store_code,
         store_name,
+
+        -- M&S 실적이 나온 센터명 대표값
+        MAX(CASE WHEN is_ms = 'Y' THEN agency_name ELSE NULL END) AS ms_agency_name,
 
         COALESCE(SUM(CASE WHEN metric_type = '후불' AND is_ms = 'Y' THEN total_score ELSE 0 END), 0)::numeric AS ms_postpaid,
         COALESCE(SUM(CASE WHEN metric_type = '후불' AND is_ms = 'N' THEN total_score ELSE 0 END), 0)::numeric AS dealer_postpaid,
@@ -3335,8 +3337,7 @@ app.get("/performance/overlap-detail", async (req, res) => {
       FROM sales_records
       WHERE base_month = $1
         AND metric_type IN ('후불', '순신규')
-      GROUP BY agency_name, store_code, store_name
-      ORDER BY agency_name ASC, store_name ASC
+      GROUP BY store_code, store_name
       `,
       [latestMonth]
     );
@@ -3352,8 +3353,8 @@ app.get("/performance/overlap-detail", async (req, res) => {
         const dealerTotal = dealerPostpaid + dealerPureNew;
 
         return {
-          center: String(r.agency_name || "").replace("M&S", ""),
-          agency_name: r.agency_name,
+          center: String(r.ms_agency_name || "").replace("M&S", ""),
+          agency_name: r.ms_agency_name,
           store_code: r.store_code,
           store_name: r.store_name,
 
@@ -3369,7 +3370,13 @@ app.get("/performance/overlap-detail", async (req, res) => {
           _dealer_total: dealerTotal
         };
       })
-      .filter(r => r._ms_total > 0 && r._dealer_total > 0);
+      .filter(r => r._ms_total > 0 && r._dealer_total > 0)
+      .sort((a, b) => {
+        const aTotal = Number(a.postpaid_total || 0) + Number(a.pure_new_total || 0);
+        const bTotal = Number(b.postpaid_total || 0) + Number(b.pure_new_total || 0);
+        if (bTotal !== aTotal) return bTotal - aTotal;
+        return String(a.store_name || "").localeCompare(String(b.store_name || ""), "ko");
+      });
 
     return res.json({
       ok: true,
