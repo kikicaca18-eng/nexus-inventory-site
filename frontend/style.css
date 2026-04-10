@@ -2772,15 +2772,15 @@ tr:hover td{background:#fafafa}
 .modelShareTable th:nth-child(1),
 .modelShareTable td:nth-child(1) { width: 44px !important; }   /* NO */
 .modelShareTable th:nth-child(2),
-.modelShareTable td:nth-child(2) { width: 150px !important; }  /* 모델 */
+.modelShareTable td:nth-child(2) { width: 130px !important; }  /* 모델 */
 .modelShareTable th:nth-child(3),
 .modelShareTable td:nth-child(3) { width: 70px !important; }   /* M&S */
 .modelShareTable th:nth-child(4),
-.modelShareTable td:nth-child(4) { width: 78px !important; }   /* 대리점 */
+.modelShareTable td:nth-child(4) { width: 70px !important; }   /* 대리점 */
 .modelShareTable th:nth-child(5),
-.modelShareTable td:nth-child(5) { width: 82px !important; }   /* 총합계 */
+.modelShareTable td:nth-child(5) { width: 70px !important; }   /* 총합계 */
 .modelShareTable th:nth-child(6),
-.modelShareTable td:nth-child(6) { width: 74px !important; }   /* M비중 */
+.modelShareTable td:nth-child(6) { width: 70px !important; }   /* M비중 */
 
 /* ===== 센터별 상세 팝업표 ===== */
 .modelShareDetailTable {
@@ -2806,7 +2806,7 @@ tr:hover td{background:#fafafa}
 
 .modelShareDetailTable th:nth-child(1),
 .modelShareDetailTable td:nth-child(1) {
-  width: 150px !important;   /* 모델 */
+  width: 130px !important;   /* 모델 */
   text-align: left !important;
 }
 
@@ -2822,7 +2822,7 @@ tr:hover td{background:#fafafa}
 .modelShareDetailTable td:nth-child(6),
 .modelShareDetailTable th:nth-child(7),
 .modelShareDetailTable td:nth-child(7) {
-  width: 78px !important;
+  width: 70px !important;
 }
 
 /* ===== 모바일 ===== */
@@ -2858,23 +2858,23 @@ tr:hover td{background:#fafafa}
   /* 모델 / M&S / 총합 / M비중만 유지 */
   .modelShareTable th:nth-child(2),
   .modelShareTable td:nth-child(2) {
-    width: 120px !important;
+    width: 110px !important;
     text-align: left !important;
   }
 
   .modelShareTable th:nth-child(3),
   .modelShareTable td:nth-child(3) {
-    width: 56px !important;
+    width: 54px !important;
   }
 
   .modelShareTable th:nth-child(5),
   .modelShareTable td:nth-child(5) {
-    width: 62px !important;
+    width: 54px !important;
   }
 
   .modelShareTable th:nth-child(6),
   .modelShareTable td:nth-child(6) {
-    width: 58px !important;
+    width: 54px !important;
   }
 
   /* -------- 센터별 팝업표 모바일 축약 -------- */
@@ -2890,7 +2890,7 @@ tr:hover td{background:#fafafa}
 
   .modelShareDetailTable th:nth-child(1),
   .modelShareDetailTable td:nth-child(1) {
-    width: 110px !important;  /* 모델 */
+    width: 105px !important;  /* 모델 */
     text-align: left !important;
   }
 
@@ -2906,7 +2906,7 @@ tr:hover td{background:#fafafa}
   .modelShareDetailTable td:nth-child(6),
   .modelShareDetailTable th:nth-child(7),
   .modelShareDetailTable td:nth-child(7) {
-    width: 58px !important;
+    width: 50px !important;
   }
 }
 
@@ -3153,25 +3153,25 @@ tr:hover td{background:#fafafa}
 /* 모델 */
 #overlapStoreDetailModalBody th:nth-child(2),
 #overlapStoreDetailModalBody td:nth-child(2) {
-  width: 90px;
+  width: 78px;
 }
 
 /* 대리점명 */
 #overlapStoreDetailModalBody th:nth-child(3),
 #overlapStoreDetailModalBody td:nth-child(3) {
-  width: 91px;
+  width: 78px;
 }
 
 /* 유형 */
 #overlapStoreDetailModalBody th:nth-child(4),
 #overlapStoreDetailModalBody td:nth-child(4) {
-  width: 57px;
+  width: 60px;
 }
 
 /* 실적 */
 #overlapStoreDetailModalBody th:nth-child(5),
 #overlapStoreDetailModalBody td:nth-child(5) {
-  width: 47px;
+  width: 60px;
 }
 
 /* 팝업 헤더 */
