@@ -411,16 +411,7 @@ async function loadInventoryDashboard() {
     });
     const s = await sResp.json();
     if (!sResp.ok || !s.ok) throw new Error(s.message || "요약 실패");
-    const snapshotRaw = s.snapshot_date;
-
-let displayDate = "-";
-
-if (snapshotRaw) {
-  const d = new Date(snapshotRaw);
-  displayDate = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,"0")}-${d.getDate().toString().padStart(2,"0")}`;
-}
-
-pillSnapshot.textContent = `snapshot: ${displayDate}`;
+    const snapshotDate = s.snapshot_date || "-";
 
 if (pillSnapshot) {
   pillSnapshot.textContent = `snapshot: ${snapshotDate}`;
