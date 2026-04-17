@@ -400,6 +400,7 @@ function onPerformanceAdminFilterChange() {
 // =========================
 async function loadInventoryDashboard() {
   const cards = document.getElementById("invCards");
+  const pillSnapshot = document.getElementById("pillSnapshot");
   if (cards) cards.innerHTML = "불러오는 중...";
 
   try {
@@ -410,6 +411,11 @@ async function loadInventoryDashboard() {
     });
     const s = await sResp.json();
     if (!sResp.ok || !s.ok) throw new Error(s.message || "요약 실패");
+    const snapshotDate = s.snapshot_date || "-";
+
+if (pillSnapshot) {
+  pillSnapshot.textContent = `snapshot: ${snapshotDate}`;
+}
 
     renderInvCards(s.summary);
 
@@ -457,6 +463,9 @@ async function loadInventoryDashboard() {
 
     renderAgingStockCards(a.summary || {});
   } catch (e) {
+    if (pillSnapshot) {
+      pillSnapshot.textContent = "snapshot: -";
+    }
     if (cards) cards.innerHTML = `❌ 대시보드 로드 실패: ${e.message}`;
   }
 }

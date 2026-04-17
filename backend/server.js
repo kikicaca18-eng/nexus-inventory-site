@@ -37,6 +37,15 @@ function todayKST() {
   }).format(new Date());
 }
 
+async function getLatestInventorySnapshotDate() {
+  const q = await pool.query(`
+    SELECT MAX(snapshot_date) AS snapshot_date
+    FROM inventory_items
+  `);
+
+  return q.rows[0]?.snapshot_date || null;
+}
+
 function toText(v) {
   if (v === null || v === undefined) return "";
   return String(v).trim();
@@ -594,12 +603,22 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 });
 
 app.post("/search", async (req, res) => {
-  const snapshotDate = todayKST();
+  const snapshotDate = await getLatestInventorySnapshotDate();
   const { agency, model, address, owner, nickname } = req.body;
 
   if (!agency) {
     return res.status(400).json({ ok: false, message: "agency 정보가 없습니다." });
   }
+
+  if (!snapshotDate) {
+  return res.json({
+    ok: true,
+    agency,
+    snapshot_date: null,
+    total: 0,
+    table: []
+  });
+}
 
   if (!model && !address && !owner && !nickname) {
     return res.status(400).json({
@@ -680,12 +699,25 @@ app.post("/search", async (req, res) => {
  * =========================
  */
 app.post("/inventory/summary", async (req, res) => {
-  const snapshotDate = todayKST();
+  const snapshotDate = await getLatestInventorySnapshotDate();
   const { agency } = req.body;
 
   if (!agency) {
     return res.status(400).json({ ok: false, message: "agency 정보가 없습니다." });
   }
+
+  if (!snapshotDate) {
+  return res.json({
+    ok: true,
+    snapshot_date: null,
+    agency,
+    summary: {
+      total_qty: 0,
+      store_cnt: 0,
+      model_cnt: 0
+    }
+  });
+}
 
   const params = [snapshotDate];
   let idx = 2;
@@ -722,12 +754,26 @@ app.post("/inventory/summary", async (req, res) => {
 });
 
 app.post("/inventory/summary-extended", async (req, res) => {
-  const snapshotDate = todayKST();
+  const snapshotDate = await getLatestInventorySnapshotDate();
   const { agency } = req.body;
 
   if (!agency) {
     return res.status(400).json({ ok: false, message: "agency 정보가 없습니다." });
   }
+
+  if (!snapshotDate) {
+  return res.json({
+    ok: true,
+    snapshot_date: null,
+    summary: {
+      total_qty: 0,
+      store_cnt: 0,
+      model_cnt: 0,
+      warehouse_qty: 0,
+      store_qty: 0
+    }
+  });
+}
 
   const params = [snapshotDate];
   let idx = 2;
@@ -765,12 +811,20 @@ app.post("/inventory/summary-extended", async (req, res) => {
 });
 
 app.post("/inventory/by-model", async (req, res) => {
-  const snapshotDate = todayKST();
+  const snapshotDate = await getLatestInventorySnapshotDate();
   const { agency, limit } = req.body;
 
   if (!agency) {
     return res.status(400).json({ ok: false, message: "agency 정보가 없습니다." });
   }
+
+  if (!snapshotDate) {
+  return res.json({
+    ok: true,
+    snapshot_date: null,
+    rows: []
+  });
+}
 
   const topN = Number(limit) > 0 ? Math.min(Number(limit), 100) : 20;
 
@@ -811,12 +865,20 @@ app.post("/inventory/by-model", async (req, res) => {
 });
 
 app.post("/inventory/by-store", async (req, res) => {
-  const snapshotDate = todayKST();
+  const snapshotDate = await getLatestInventorySnapshotDate();
   const { agency, limit } = req.body;
 
   if (!agency) {
     return res.status(400).json({ ok: false, message: "agency 정보가 없습니다." });
   }
+
+  if (!snapshotDate) {
+  return res.json({
+    ok: true,
+    snapshot_date: null,
+    rows: []
+  });
+}
 
   const topN = Number(limit) > 0 ? Math.min(Number(limit), 200) : 30;
 
@@ -858,12 +920,20 @@ app.post("/inventory/by-store", async (req, res) => {
 });
 
 app.post("/inventory/recommend-move", async (req, res) => {
-  const snapshotDate = todayKST();
+  const snapshotDate = await getLatestInventorySnapshotDate();
   const { agency } = req.body;
 
   if (!agency) {
     return res.status(400).json({ ok: false, message: "agency 필요" });
   }
+
+  if (!snapshotDate) {
+  return res.json({
+    ok: true,
+    snapshot_date: null,
+    rows: []
+  });
+}
 
   const params = [snapshotDate];
   let idx = 2;
@@ -959,12 +1029,22 @@ app.post("/inventory/recommend-move", async (req, res) => {
 });
 
 app.post("/inventory/store-detail", async (req, res) => {
-  const snapshotDate = todayKST();
+  const snapshotDate = await getLatestInventorySnapshotDate();
   const { agency, store_code } = req.body;
 
   if (!agency) {
     return res.status(400).json({ ok: false, message: "agency 정보가 없습니다." });
   }
+
+  if (!snapshotDate) {
+  return res.json({
+    ok: true,
+    snapshot_date: null,
+    agency,
+    total: 0,
+    rows: []
+  });
+}
 
   if (!store_code) {
     return res.status(400).json({ ok: false, message: "store_code가 없습니다." });
@@ -1016,12 +1096,20 @@ app.post("/inventory/store-detail", async (req, res) => {
 });
 
 app.post("/inventory/warehouse-detail", async (req, res) => {
-  const snapshotDate = todayKST();
+  const snapshotDate = await getLatestInventorySnapshotDate();
   const { agency } = req.body;
 
   if (!agency) {
     return res.status(400).json({ ok: false, message: "agency 정보가 없습니다." });
   }
+
+  if (!snapshotDate) {
+  return res.json({
+    ok: true,
+    snapshot_date: null,
+    rows: []
+  });
+}
 
   const params = [snapshotDate];
   let idx = 2;
@@ -1061,12 +1149,20 @@ app.post("/inventory/warehouse-detail", async (req, res) => {
 });
 
 app.post("/inventory/total-detail", async (req, res) => {
-  const snapshotDate = todayKST();
+  const snapshotDate = await getLatestInventorySnapshotDate();
   const { agency } = req.body;
 
   if (!agency) {
     return res.status(400).json({ ok: false, message: "agency 정보가 없습니다." });
   }
+
+  if (!snapshotDate) {
+  return res.json({
+    ok: true,
+    snapshot_date: null,
+    rows: []
+  });
+}
 
   const params = [snapshotDate];
   let idx = 2;
@@ -1114,12 +1210,20 @@ app.post("/inventory/total-detail", async (req, res) => {
 });
 
 app.post("/inventory/store-stock-detail", async (req, res) => {
-  const snapshotDate = todayKST();
+  const snapshotDate = await getLatestInventorySnapshotDate();
   const { agency } = req.body;
 
   if (!agency) {
     return res.status(400).json({ ok: false, message: "agency 정보가 없습니다." });
   }
+
+  if (!snapshotDate) {
+  return res.json({
+    ok: true,
+    snapshot_date: null,
+    rows: []
+  });
+}
 
   const params = [snapshotDate];
   let idx = 2;
@@ -1160,7 +1264,15 @@ app.post("/inventory/store-stock-detail", async (req, res) => {
 });
 
 app.get("/upload-status", async (req, res) => {
-  const snapshotDate = todayKST();
+  const snapshotDate = await getLatestInventorySnapshotDate();
+
+  if (!snapshotDate) {
+  return res.json({
+    ok: true,
+    snapshot_date: null,
+    today_count: 0
+  });
+}
 
   try {
     const r = await pool.query(
@@ -2367,12 +2479,22 @@ app.post("/store-master/search", async (req, res) => {
  * =========================
  */
 app.post("/inventory/by-model-turnover", async (req, res) => {
-  const snapshotDate = todayKST();
+  const snapshotDate = await getLatestInventorySnapshotDate();
   const { agency } = req.body;
 
   if (!agency) {
     return res.status(400).json({ ok: false, message: "agency 정보가 없습니다." });
   }
+
+  if (!snapshotDate) {
+  return res.json({
+    ok: true,
+    snapshot_date: null,
+    latest_month: null,
+    business_days: 0,
+    rows: []
+  });
+}
 
   try {
     const salesAgency = mapCenterToSalesAgency(agency);
@@ -2527,12 +2649,24 @@ app.post("/inventory/by-model-turnover", async (req, res) => {
 });
 
 app.post("/inventory/aging-summary", async (req, res) => {
-  const snapshotDate = todayKST();
+  const snapshotDate = await getLatestInventorySnapshotDate();
   const { agency } = req.body;
 
   if (!agency) {
     return res.status(400).json({ ok: false, message: "agency 정보가 없습니다." });
   }
+
+  if (!snapshotDate) {
+  return res.json({
+    ok: true,
+    snapshot_date: null,
+    summary: {
+      over_360: 0,
+      over_500: 0,
+      over_720: 0
+    }
+  });
+}
 
   try {
     const params = [snapshotDate];
@@ -2568,12 +2702,20 @@ app.post("/inventory/aging-summary", async (req, res) => {
 });
 
 app.post("/inventory/aging-detail", async (req, res) => {
-  const snapshotDate = todayKST();
+  const snapshotDate = await getLatestInventorySnapshotDate();
   const { agency, threshold } = req.body;
 
   if (!agency) {
     return res.status(400).json({ ok: false, message: "agency 정보가 없습니다." });
   }
+
+  if (!snapshotDate) {
+  return res.json({
+    ok: true,
+    snapshot_date: null,
+    rows: []
+  });
+}
 
   const limitDays = Number(threshold);
   if (![360, 500, 720].includes(limitDays)) {
@@ -2622,7 +2764,15 @@ app.post("/inventory/aging-detail", async (req, res) => {
 });
 
 app.post("/inventory/agency-summary", async (req, res) => {
-  const snapshotDate = todayKST();
+  const snapshotDate = await getLatestInventorySnapshotDate();
+
+  if (!snapshotDate) {
+  return res.json({
+    ok: true,
+    snapshot_date: null,
+    rows: []
+  });
+}
 
   try {
     const q = `
@@ -2661,12 +2811,20 @@ app.post("/inventory/agency-summary", async (req, res) => {
 });
 
 app.post("/inventory/agency-detail", async (req, res) => {
-  const snapshotDate = todayKST();
+  const snapshotDate = await getLatestInventorySnapshotDate();
   const { agency_name } = req.body;
 
   if (!agency_name) {
     return res.status(400).json({ ok: false, message: "agency_name 정보가 없습니다." });
   }
+
+  if (!snapshotDate) {
+  return res.json({
+    ok: true,
+    snapshot_date: null,
+    rows: []
+  });
+}
 
   try {
     const q = `
@@ -2708,12 +2866,21 @@ app.post("/inventory/agency-detail", async (req, res) => {
 });
 
 app.post("/inventory/model-turnover-detail", async (req, res) => {
-  const snapshotDate = todayKST();
+  const snapshotDate = await getLatestInventorySnapshotDate();
   const { model_name } = req.body;
 
   if (!model_name) {
     return res.status(400).json({ ok: false, message: "model_name 정보가 없습니다." });
   }
+
+  if (!snapshotDate) {
+  return res.json({
+    ok: true,
+    model_name,
+    business_days: 0,
+    rows: []
+  });
+}
 
   try {
     // 당월 기준월 / 기준일
@@ -2876,7 +3043,7 @@ app.post("/inventory/model-turnover-detail", async (req, res) => {
 });
 
 app.post("/inventory/model-turnover-store-detail", async (req, res) => {
-  const snapshotDate = todayKST();
+  const snapshotDate = await getLatestInventorySnapshotDate();
   const { model_name, agency } = req.body;
 
   if (!model_name) {
@@ -2886,6 +3053,15 @@ app.post("/inventory/model-turnover-store-detail", async (req, res) => {
   if (!agency || agency === "관리자") {
     return res.status(400).json({ ok: false, message: "센터 agency 정보가 없습니다." });
   }
+
+  if (!snapshotDate) {
+  return res.json({
+    ok: true,
+    model_name,
+    agency,
+    rows: []
+  });
+}
 
   try {
     const salesAgency = mapCenterToSalesAgency(agency);
