@@ -843,10 +843,17 @@ function renderStoreTurnoverModalTable() {
 
   rows.forEach(r => {
     const isZeroSales = Number(r.monthly_sales || 0) === 0;
+    const noStockButSales =
+  Number(r.qty || 0) === 0 &&
+  Number(r.monthly_sales || 0) > 0;
 
     html += `
       <tr class="${isZeroSales ? "zeroSalesRow" : ""}">
-        <td>${escapeHtml(r.store_name || "")}</td>
+        <td>
+  <span class="${noStockButSales ? 'noStockHotText' : ''}">
+    ${escapeHtml(r.store_name || "")}
+  </span>
+</td>
 <td>${Number(r.qty || 0).toLocaleString()}</td>
 <td class="${isZeroSales ? "zeroSalesText" : ""}">
   ${Number(r.monthly_sales || 0).toLocaleString()}

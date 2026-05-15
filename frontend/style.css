@@ -3425,3 +3425,16 @@ tr:hover td{background:#fafafa}
     width: 20%;
   }
 }
+
+/* 재고없는데 판매 발생한 판매점 강조 */
+.noStockHotText {
+  background: linear-gradient(
+    transparent 55%,
+    rgba(255, 235, 59, 0.75) 55%
+  );
+
+  font-weight: 700;
+  color: #111827;
+  padding: 0 2px;
+  border-radius: 2px;
+}
