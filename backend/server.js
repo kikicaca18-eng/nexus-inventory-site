@@ -160,6 +160,27 @@ function makeSearchableText(row, sheetName, baseMonth) {
   return `기준월 ${baseMonth} 시트 ${sheetName} ${pairs}`.toLowerCase();
 }
 
+function getPrev3Months(baseMonth) {
+  if (!baseMonth) return [];
+
+  const [yearText, monthText] = String(baseMonth).split("-");
+  const year = Number(yearText);
+  const month = Number(monthText);
+
+  if (!year || !month) return [];
+
+  const result = [];
+
+  for (let i = 1; i <= 3; i++) {
+    const d = new Date(Date.UTC(year, month - 1 - i, 1));
+    const yyyy = d.getUTCFullYear();
+    const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+    result.push(`${yyyy}-${mm}`);
+  }
+
+  return result;
+}
+
 /**
  * =========================
  * 원본 raw 검색용 유틸
@@ -2487,21 +2508,18 @@ app.post("/inventory/by-model-turnover", async (req, res) => {
   }
 
   if (!snapshotDate) {
-  return res.json({
-    ok: true,
-    snapshot_date: null,
-    latest_month: null,
-    business_days: 0,
-    rows: []
-  });
-}
+    return res.json({
+      ok: true,
+      snapshot_date: null,
+      latest_month: null,
+      business_days: 0,
+      rows: []
+    });
+  }
 
   try {
     const salesAgency = mapCenterToSalesAgency(agency);
 
-    // -------------------------
-    // 당월 기준월 / 기준일
-    // -------------------------
     const monthQ = await pool.query(
       `
       SELECT MAX(base_month) AS latest_month
@@ -2512,6 +2530,7 @@ app.post("/inventory/by-model-turnover", async (req, res) => {
     );
 
     const latestMonth = monthQ.rows[0]?.latest_month || null;
+    const prev3Months = getPrev3Months(latestMonth);
 
     const dateQ = await pool.query(
       `
@@ -2524,9 +2543,6 @@ app.post("/inventory/by-model-turnover", async (req, res) => {
 
     const latestDate = dateQ.rows[0]?.latest_date || null;
 
-    // -------------------------
-    // 기준일까지의 영업일 수 (일요일 제외)
-    // -------------------------
     let businessDays = 0;
 
     if (latestDate) {
@@ -2537,7 +2553,7 @@ app.post("/inventory/by-model-turnover", async (req, res) => {
 
       for (let d = 1; d <= day; d++) {
         const current = new Date(Date.UTC(year, month - 1, d));
-        const weekday = current.getUTCDay(); // 0=일요일
+        const weekday = current.getUTCDay();
 
         if (weekday !== 0) {
           businessDays++;
@@ -2545,11 +2561,6 @@ app.post("/inventory/by-model-turnover", async (req, res) => {
       }
     }
 
-    // -------------------------
-    // 재고 모델별 집계
-    // summary-extended와 동일하게
-    // snapshot_date = todayKST() 기준 사용
-    // -------------------------
     const inventoryParams = [snapshotDate];
     let inventoryWhere = `WHERE snapshot_date = $1`;
 
@@ -2571,9 +2582,6 @@ app.post("/inventory/by-model-turnover", async (req, res) => {
       inventoryParams
     );
 
-    // -------------------------
-    // 당월 후불판매(모델별)
-    // -------------------------
     let salesRows = [];
 
     if (latestMonth) {
@@ -2610,9 +2618,45 @@ app.post("/inventory/by-model-turnover", async (req, res) => {
       salesMap[r.model_name] = Number(r.sales_qty || 0);
     });
 
+    // =========================
+    // 직전 3개월 평균 판매
+    // =========================
+    const avg3Map = {};
+
+    if (prev3Months.length > 0) {
+      const avgParams = [prev3Months];
+      let avgWhere = `
+        WHERE base_month = ANY($1)
+          AND metric_type = '후불'
+          AND is_ms = 'Y'
+      `;
+
+      if (agency !== "관리자") {
+        avgWhere += ` AND agency_name = $2`;
+        avgParams.push(salesAgency);
+      }
+
+      const avgQ = await pool.query(
+        `
+        SELECT
+          model_name,
+          COALESCE(SUM(total_score), 0)::numeric AS total_3month_sales
+        FROM sales_records
+        ${avgWhere}
+        GROUP BY model_name
+        `,
+        avgParams
+      );
+
+      (avgQ.rows || []).forEach(r => {
+        avg3Map[r.model_name] = Number((Number(r.total_3month_sales || 0) / 3).toFixed(1));
+      });
+    }
+
     const rows = (inventoryQ.rows || []).map(r => {
       const qty = Number(r.qty || 0);
       const salesQty = Number(salesMap[r.model_name] || 0);
+      const avg3Sales = Number(avg3Map[r.model_name] || 0);
 
       let turnoverDays = null;
 
@@ -2626,6 +2670,7 @@ app.post("/inventory/by-model-turnover", async (req, res) => {
         qty,
         monthly_sales: salesQty,
         turnover_days: turnoverDays,
+        avg3_sales: avg3Sales,
         base_month: latestMonth,
         business_days: businessDays,
         snapshot_date: snapshotDate
@@ -2874,16 +2919,15 @@ app.post("/inventory/model-turnover-detail", async (req, res) => {
   }
 
   if (!snapshotDate) {
-  return res.json({
-    ok: true,
-    model_name,
-    business_days: 0,
-    rows: []
-  });
-}
+    return res.json({
+      ok: true,
+      model_name,
+      business_days: 0,
+      rows: []
+    });
+  }
 
   try {
-    // 당월 기준월 / 기준일
     const monthQ = await pool.query(
       `
       SELECT MAX(base_month) AS latest_month
@@ -2894,6 +2938,7 @@ app.post("/inventory/model-turnover-detail", async (req, res) => {
     );
 
     const latestMonth = monthQ.rows[0]?.latest_month || null;
+    const prev3Months = getPrev3Months(latestMonth);
 
     const dateQ = await pool.query(
       `
@@ -2916,14 +2961,13 @@ app.post("/inventory/model-turnover-detail", async (req, res) => {
 
       for (let d = 1; d <= day; d++) {
         const current = new Date(Date.UTC(year, month - 1, d));
-        const weekday = current.getUTCDay(); // 0=일요일
+        const weekday = current.getUTCDay();
         if (weekday !== 0) {
           businessDays++;
         }
       }
     }
 
-    // 센터별 재고 수량
     const inventoryQ = await pool.query(
       `
       SELECT
@@ -2947,8 +2991,8 @@ app.post("/inventory/model-turnover-detail", async (req, res) => {
       [snapshotDate, model_name]
     );
 
-    // 센터별 당월판매
     let salesRows = [];
+
     if (latestMonth) {
       const salesQ = await pool.query(
         `
@@ -2962,15 +3006,6 @@ app.post("/inventory/model-turnover-detail", async (req, res) => {
           AND is_ms = 'Y'
           AND model_name = $2
         GROUP BY agency_name
-        ORDER BY
-          CASE agency_name
-            WHEN 'M&S광주' THEN 1
-            WHEN 'M&S목포' THEN 2
-            WHEN 'M&S순천' THEN 3
-            WHEN 'M&S전북' THEN 4
-            WHEN 'M&S제주' THEN 5
-            ELSE 99
-          END
         `,
         [latestMonth, model_name]
       );
@@ -2987,15 +3022,52 @@ app.post("/inventory/model-turnover-detail", async (req, res) => {
     };
 
     salesRows.forEach(r => {
-      const agency = String(r.agency_name || "");
-      if (agency === "M&S광주") salesMap["광주"] = Number(r.sales_qty || 0);
-      if (agency === "M&S목포") salesMap["목포"] = Number(r.sales_qty || 0);
-      if (agency === "M&S순천") salesMap["순천"] = Number(r.sales_qty || 0);
-      if (agency === "M&S전북") salesMap["전북"] = Number(r.sales_qty || 0);
-      if (agency === "M&S제주") salesMap["제주"] = Number(r.sales_qty || 0);
+      const agencyName = String(r.agency_name || "");
+      if (agencyName === "M&S광주") salesMap["광주"] = Number(r.sales_qty || 0);
+      if (agencyName === "M&S목포") salesMap["목포"] = Number(r.sales_qty || 0);
+      if (agencyName === "M&S순천") salesMap["순천"] = Number(r.sales_qty || 0);
+      if (agencyName === "M&S전북") salesMap["전북"] = Number(r.sales_qty || 0);
+      if (agencyName === "M&S제주") salesMap["제주"] = Number(r.sales_qty || 0);
     });
 
-    const order = ["광주", "목포", "순천", "전북", "제주"];
+    // =========================
+    // 센터별 직전 3개월 평균 판매
+    // =========================
+    const avg3Map = {
+      "광주": 0,
+      "목포": 0,
+      "순천": 0,
+      "전북": 0,
+      "제주": 0
+    };
+
+    if (prev3Months.length > 0) {
+      const avgQ = await pool.query(
+        `
+        SELECT
+          agency_name,
+          COALESCE(SUM(total_score), 0)::numeric AS total_3month_sales
+        FROM sales_records
+        WHERE base_month = ANY($1)
+          AND metric_type = '후불'
+          AND is_ms = 'Y'
+          AND model_name = $2
+        GROUP BY agency_name
+        `,
+        [prev3Months, model_name]
+      );
+
+      (avgQ.rows || []).forEach(r => {
+        const agencyName = String(r.agency_name || "");
+        const avgValue = Number((Number(r.total_3month_sales || 0) / 3).toFixed(1));
+
+        if (agencyName === "M&S광주") avg3Map["광주"] = avgValue;
+        if (agencyName === "M&S목포") avg3Map["목포"] = avgValue;
+        if (agencyName === "M&S순천") avg3Map["순천"] = avgValue;
+        if (agencyName === "M&S전북") avg3Map["전북"] = avgValue;
+        if (agencyName === "M&S제주") avg3Map["제주"] = avgValue;
+      });
+    }
 
     const inventoryMap = {
       "광주": 0,
@@ -3009,9 +3081,12 @@ app.post("/inventory/model-turnover-detail", async (req, res) => {
       inventoryMap[r.agency_name] = Number(r.qty || 0);
     });
 
+    const order = ["광주", "목포", "순천", "전북", "제주"];
+
     const rows = order.map(name => {
       const qty = Number(inventoryMap[name] || 0);
       const salesQty = Number(salesMap[name] || 0);
+      const avg3Sales = Number(avg3Map[name] || 0);
 
       let turnoverDays = null;
       if (salesQty > 0 && businessDays > 0) {
@@ -3023,7 +3098,8 @@ app.post("/inventory/model-turnover-detail", async (req, res) => {
         agency_name: name,
         qty,
         monthly_sales: salesQty,
-        turnover_days: turnoverDays
+        turnover_days: turnoverDays,
+        avg3_sales: avg3Sales
       };
     });
 
@@ -3055,18 +3131,17 @@ app.post("/inventory/model-turnover-store-detail", async (req, res) => {
   }
 
   if (!snapshotDate) {
-  return res.json({
-    ok: true,
-    model_name,
-    agency,
-    rows: []
-  });
-}
+    return res.json({
+      ok: true,
+      model_name,
+      agency,
+      rows: []
+    });
+  }
 
   try {
     const salesAgency = mapCenterToSalesAgency(agency);
 
-    // 당월 기준월
     const monthQ = await pool.query(
       `
       SELECT MAX(base_month) AS latest_month
@@ -3077,8 +3152,8 @@ app.post("/inventory/model-turnover-store-detail", async (req, res) => {
     );
 
     const latestMonth = monthQ.rows[0]?.latest_month || null;
+    const prev3Months = getPrev3Months(latestMonth);
 
-    // 판매점별 재고
     const inventoryQ = await pool.query(
       `
       SELECT
@@ -3094,8 +3169,8 @@ app.post("/inventory/model-turnover-store-detail", async (req, res) => {
       [snapshotDate, agency, model_name]
     );
 
-    // 판매점별 당월판매
     let salesRows = [];
+
     if (latestMonth) {
       const salesQ = await pool.query(
         `
@@ -3123,6 +3198,33 @@ app.post("/inventory/model-turnover-store-detail", async (req, res) => {
       salesMap[r.store_name] = Number(r.sales_qty || 0);
     });
 
+    // =========================
+    // 판매점별 직전 3개월 평균 판매
+    // =========================
+    const avg3Map = {};
+
+    if (prev3Months.length > 0) {
+      const avgQ = await pool.query(
+        `
+        SELECT
+          store_name,
+          COALESCE(SUM(total_score), 0)::numeric AS total_3month_sales
+        FROM sales_records
+        WHERE base_month = ANY($1)
+          AND metric_type = '후불'
+          AND is_ms = 'Y'
+          AND agency_name = $2
+          AND model_name = $3
+        GROUP BY store_name
+        `,
+        [prev3Months, salesAgency, model_name]
+      );
+
+      (avgQ.rows || []).forEach(r => {
+        avg3Map[r.store_name] = Number((Number(r.total_3month_sales || 0) / 3).toFixed(1));
+      });
+    }
+
     const inventoryMap = {};
     (inventoryQ.rows || []).forEach(r => {
       inventoryMap[r.store_name] = Number(r.qty || 0);
@@ -3131,20 +3233,22 @@ app.post("/inventory/model-turnover-store-detail", async (req, res) => {
     const storeNames = Array.from(
       new Set([
         ...Object.keys(inventoryMap),
-        ...Object.keys(salesMap)
+        ...Object.keys(salesMap),
+        ...Object.keys(avg3Map)
       ])
     ).sort((a, b) => a.localeCompare(b, "ko"));
 
     const rows = storeNames.map(name => ({
       store_name: name,
       qty: Number(inventoryMap[name] || 0),
-      monthly_sales: Number(salesMap[name] || 0)
+      monthly_sales: Number(salesMap[name] || 0),
+      avg3_sales: Number(avg3Map[name] || 0)
     }));
 
-    // 기본은 재고 많은 순
     rows.sort((a, b) => {
       if (b.qty !== a.qty) return b.qty - a.qty;
       if (b.monthly_sales !== a.monthly_sales) return b.monthly_sales - a.monthly_sales;
+      if (b.avg3_sales !== a.avg3_sales) return b.avg3_sales - a.avg3_sales;
       return String(a.store_name || "").localeCompare(String(b.store_name || ""), "ko");
     });
 

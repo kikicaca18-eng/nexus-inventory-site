@@ -562,7 +562,7 @@ function renderInventoryModelTurnoverTable() {
     let av = a[key];
     let bv = b[key];
 
-    const numericKeys = ["qty", "monthly_sales", "turnover_days"];
+    const numericKeys = ["qty", "monthly_sales", "turnover_days", "avg3_sales"];
     const isNumeric = numericKeys.includes(key);
 
     if (isNumeric) {
@@ -592,6 +592,9 @@ function renderInventoryModelTurnoverTable() {
             <th class="sortable" onclick="toggleInventoryModelTurnoverSort('turnover_days')">
               회전일${getInventoryModelTurnoverSortIndicator('turnover_days')}
             </th>
+            <th class="sortable" onclick="toggleInventoryModelTurnoverSort('avg3_sales')">
+  3개월평균${getInventoryModelTurnoverSortIndicator('avg3_sales')}
+</th>
           </tr>
         </thead>
         <tbody>
@@ -632,6 +635,7 @@ function renderInventoryModelTurnoverTable() {
       <td class="${isSlow ? "slowStockText" : isShort ? "shortStockText" : ""}">
         ${turnoverText}
       </td>
+      <td>${Number(r.avg3_sales || 0).toLocaleString()}</td>
     </tr>
   `;
 });
@@ -690,6 +694,7 @@ async function openModelTurnoverModal(modelName) {
               <th>수량</th>
               <th>당월판매</th>
               <th>회전일</th>
+              <th>3개월평균</th>
             </tr>
           </thead>
           <tbody>
@@ -722,6 +727,7 @@ async function openModelTurnoverModal(modelName) {
       <td>${Number(r.qty || 0).toLocaleString()}</td>
       <td>${Number(r.monthly_sales || 0).toLocaleString()}</td>
       <td class="${turnoverClass}">${turnoverText}</td>
+      <td>${Number(r.avg3_sales || 0).toLocaleString()}</td>
     </tr>
   `;
 });
@@ -800,7 +806,7 @@ function renderStoreTurnoverModalTable() {
     let av = a[key];
     let bv = b[key];
 
-    const isNumeric = key === "qty" || key === "monthly_sales";
+    const isNumeric = key === "qty" || key === "monthly_sales" || key === "avg3_sales";
 
     let cmp = 0;
 
@@ -819,14 +825,17 @@ function renderStoreTurnoverModalTable() {
         <thead>
           <tr>
             <th class="sortable" onclick="toggleStoreTurnoverSort('store_name')">
-              판매점${getStoreTurnoverSortIndicator("store_name")}
-            </th>
-            <th class="sortable" onclick="toggleStoreTurnoverSort('qty')">
-              재고보유${getStoreTurnoverSortIndicator("qty")}
-            </th>
-            <th class="sortable" onclick="toggleStoreTurnoverSort('monthly_sales')">
-              판매량${getStoreTurnoverSortIndicator("monthly_sales")}
-            </th>
+  판매점${getStoreTurnoverSortIndicator("store_name")}
+</th>
+<th class="sortable" onclick="toggleStoreTurnoverSort('qty')">
+  재고보유${getStoreTurnoverSortIndicator("qty")}
+</th>
+<th class="sortable" onclick="toggleStoreTurnoverSort('monthly_sales')">
+  당월판매${getStoreTurnoverSortIndicator("monthly_sales")}
+</th>
+<th class="sortable" onclick="toggleStoreTurnoverSort('avg3_sales')">
+  3개월평균${getStoreTurnoverSortIndicator("avg3_sales")}
+</th>
           </tr>
         </thead>
         <tbody>
@@ -838,10 +847,11 @@ function renderStoreTurnoverModalTable() {
     html += `
       <tr class="${isZeroSales ? "zeroSalesRow" : ""}">
         <td>${escapeHtml(r.store_name || "")}</td>
-        <td>${Number(r.qty || 0).toLocaleString()}</td>
-        <td class="${isZeroSales ? "zeroSalesText" : ""}">
-          ${Number(r.monthly_sales || 0).toLocaleString()}
-        </td>
+<td>${Number(r.qty || 0).toLocaleString()}</td>
+<td class="${isZeroSales ? "zeroSalesText" : ""}">
+  ${Number(r.monthly_sales || 0).toLocaleString()}
+</td>
+<td>${Number(r.avg3_sales || 0).toLocaleString()}</td>
       </tr>
     `;
   });
