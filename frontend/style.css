@@ -3346,3 +3346,82 @@ tr:hover td{background:#fafafa}
     min-width: 320px;
   }
 }
+
+/* =========================
+   모델별 회전일 5컬럼 균등 보정
+========================= */
+.inventoryTurnoverTable {
+  width: 100%;
+  table-layout: fixed;
+}
+
+/* 모델명 */
+.inventoryTurnoverTable th:nth-child(1),
+.inventoryTurnoverTable td:nth-child(1) {
+  width: 28%;
+}
+
+/* 수량 */
+.inventoryTurnoverTable th:nth-child(2),
+.inventoryTurnoverTable td:nth-child(2) {
+  width: 16%;
+  text-align: center;
+}
+
+/* 당월판매 */
+.inventoryTurnoverTable th:nth-child(3),
+.inventoryTurnoverTable td:nth-child(3) {
+  width: 18%;
+  text-align: center;
+}
+
+/* 회전일 */
+.inventoryTurnoverTable th:nth-child(4),
+.inventoryTurnoverTable td:nth-child(4) {
+  width: 20%;
+  text-align: center;
+}
+
+/* 3개월평균 */
+.inventoryTurnoverTable th:nth-child(5),
+.inventoryTurnoverTable td:nth-child(5) {
+  width: 18%;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .inventoryTurnoverTable {
+    min-width: 560px;
+  }
+
+  .inventoryTurnoverTable th,
+  .inventoryTurnoverTable td {
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+
+  .inventoryTurnoverTable th:nth-child(1),
+  .inventoryTurnoverTable td:nth-child(1) {
+    width: 26%;
+  }
+
+  .inventoryTurnoverTable th:nth-child(2),
+  .inventoryTurnoverTable td:nth-child(2) {
+    width: 14%;
+  }
+
+  .inventoryTurnoverTable th:nth-child(3),
+  .inventoryTurnoverTable td:nth-child(3) {
+    width: 18%;
+  }
+
+  .inventoryTurnoverTable th:nth-child(4),
+  .inventoryTurnoverTable td:nth-child(4) {
+    width: 22%;
+  }
+
+  .inventoryTurnoverTable th:nth-child(5),
+  .inventoryTurnoverTable td:nth-child(5) {
+    width: 20%;
+  }
+}
