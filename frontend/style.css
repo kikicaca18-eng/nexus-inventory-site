@@ -3438,136 +3438,152 @@ tr:hover td{background:#fafafa}
   padding: 0 2px;
   border-radius: 2px;
 }
-
 /* =========================
-   관리자 모델별 회전일 상세 팝업 모바일 최적화
-   - 센터 / 수량 / 당월판매 / 회전일 / 3개월평균
+   모델별 회전일 팝업 표 유지형 모바일 보정
+   - 관리자: 센터 / 수량 / 당월판매 / 회전일 / 3개월평균
+   - 센터: 판매점 / 재고보유 / 당월판매 / 3개월평균
 ========================= */
 
+/* 공통: 팝업 안 테이블은 표 형태 유지 */
+#modelTurnoverModal .modalBox {
+  overflow-x: hidden;
+}
+
+#modelTurnoverModal .tableWrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 관리자 팝업 5컬럼 */
+#modelTurnoverModal .tableWrap.compactTable table {
+  width: 100%;
+  table-layout: fixed;
+  min-width: 0 !important;
+}
+
+#modelTurnoverModal .tableWrap.compactTable th,
+#modelTurnoverModal .tableWrap.compactTable td {
+  text-align: center;
+  vertical-align: middle;
+  white-space: nowrap;
+  word-break: keep-all;
+}
+
+/* 1열: 센터 또는 판매점 */
+#modelTurnoverModal .tableWrap.compactTable th:nth-child(1),
+#modelTurnoverModal .tableWrap.compactTable td:nth-child(1) {
+  width: 22%;
+  text-align: left;
+}
+
+/* 2열 */
+#modelTurnoverModal .tableWrap.compactTable th:nth-child(2),
+#modelTurnoverModal .tableWrap.compactTable td:nth-child(2) {
+  width: 17%;
+}
+
+/* 3열 */
+#modelTurnoverModal .tableWrap.compactTable th:nth-child(3),
+#modelTurnoverModal .tableWrap.compactTable td:nth-child(3) {
+  width: 20%;
+}
+
+/* 4열 */
+#modelTurnoverModal .tableWrap.compactTable th:nth-child(4),
+#modelTurnoverModal .tableWrap.compactTable td:nth-child(4) {
+  width: 22%;
+}
+
+/* 5열이 있을 때만 자연스럽게 적용 */
+#modelTurnoverModal .tableWrap.compactTable th:nth-child(5),
+#modelTurnoverModal .tableWrap.compactTable td:nth-child(5) {
+  width: 19%;
+}
+
+/* 모바일에서는 글자/패딩 줄여서 한 화면에 최대한 넣기 */
 @media (max-width: 768px) {
   #modelTurnoverModal .modalBox {
     width: 100%;
     max-width: 100%;
     max-height: 88vh;
-    padding: 14px;
-    border-radius: 18px 18px 0 0;
-    overflow-y: auto;
-    overflow-x: hidden;
+    padding: 12px;
+    border-radius: 16px 16px 0 0;
   }
 
   #modelTurnoverModal .modalHeader {
-    align-items: center;
     gap: 8px;
   }
 
   #modelTurnoverModal .modalHeader span {
-    font-size: 18px;
+    font-size: 17px;
     line-height: 1.25;
-    word-break: keep-all;
   }
 
   #modelTurnoverModal .modalHeader button {
     flex-shrink: 0;
-    padding: 6px 12px;
+    padding: 5px 10px;
     font-size: 13px;
-    border-radius: 999px;
-  }
-
-  /*
-    관리자 센터별 상세 표 전용
-    openModelTurnoverModal()에서 tableWrap compactTable 사용 중이라
-    모바일에서는 테이블을 카드형 행으로 변경
-  */
-  #modelTurnoverModal .tableWrap.compactTable {
-    overflow-x: hidden !important;
-    border: 0;
-    border-radius: 0;
   }
 
   #modelTurnoverModal .tableWrap.compactTable table {
-    display: block;
-    width: 100% !important;
+    width: 100%;
     min-width: 0 !important;
-    table-layout: auto !important;
-    border-collapse: separate;
-    border-spacing: 0;
+    table-layout: fixed;
   }
 
-  #modelTurnoverModal .tableWrap.compactTable thead {
-    display: none;
-  }
-
-  #modelTurnoverModal .tableWrap.compactTable tbody {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  #modelTurnoverModal .tableWrap.compactTable tr {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px 10px;
-    padding: 12px;
-    border: 1px solid #e5e7eb;
-    border-radius: 14px;
-    background: #fff;
-  }
-
+  #modelTurnoverModal .tableWrap.compactTable th,
   #modelTurnoverModal .tableWrap.compactTable td {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    padding: 0 !important;
-    border-bottom: 0 !important;
-    font-size: 14px;
+    padding: 8px 4px !important;
+    font-size: 12px !important;
     line-height: 1.25;
     white-space: normal !important;
     word-break: keep-all;
-    text-align: left !important;
+    overflow-wrap: anywhere;
   }
 
-  #modelTurnoverModal .tableWrap.compactTable td::before {
-    font-size: 11px;
-    font-weight: 700;
-    color: #6b7280;
-    line-height: 1.2;
-  }
-
-  #modelTurnoverModal .tableWrap.compactTable td:nth-child(1)::before {
-    content: "센터";
-  }
-
-  #modelTurnoverModal .tableWrap.compactTable td:nth-child(2)::before {
-    content: "수량";
-  }
-
-  #modelTurnoverModal .tableWrap.compactTable td:nth-child(3)::before {
-    content: "당월판매";
-  }
-
-  #modelTurnoverModal .tableWrap.compactTable td:nth-child(4)::before {
-    content: "회전일";
-  }
-
-  #modelTurnoverModal .tableWrap.compactTable td:nth-child(5)::before {
-    content: "3개월평균";
-  }
-
+  /* 모바일 5컬럼: 관리자 센터별 팝업 */
+  #modelTurnoverModal .tableWrap.compactTable th:nth-child(1),
   #modelTurnoverModal .tableWrap.compactTable td:nth-child(1) {
-    grid-column: 1 / -1;
-    font-size: 16px;
-    font-weight: 800;
-    color: #111827;
-    padding-bottom: 4px !important;
-    border-bottom: 1px dashed #e5e7eb !important;
+    width: 13%;
+    text-align: left;
   }
 
+  #modelTurnoverModal .tableWrap.compactTable th:nth-child(2),
+  #modelTurnoverModal .tableWrap.compactTable td:nth-child(2) {
+    width: 13%;
+  }
+
+  #modelTurnoverModal .tableWrap.compactTable th:nth-child(3),
+  #modelTurnoverModal .tableWrap.compactTable td:nth-child(3) {
+    width: 18%;
+  }
+
+  #modelTurnoverModal .tableWrap.compactTable th:nth-child(4),
   #modelTurnoverModal .tableWrap.compactTable td:nth-child(4) {
-    font-weight: 800;
+    width: 25%;
+  }
+
+  #modelTurnoverModal .tableWrap.compactTable th:nth-child(5),
+  #modelTurnoverModal .tableWrap.compactTable td:nth-child(5) {
+    width: 31%;
   }
 
   #modelTurnoverModal .shortStockText,
   #modelTurnoverModal .slowStockText {
+    font-size: 12px !important;
     font-weight: 800;
+  }
+}
+
+/* 아주 작은 화면 */
+@media (max-width: 430px) {
+  #modelTurnoverModal .tableWrap.compactTable th,
+  #modelTurnoverModal .tableWrap.compactTable td {
+    padding: 7px 3px !important;
+    font-size: 11px !important;
+  }
+
+  #modelTurnoverModal .modalHeader span {
+    font-size: 16px;
   }
 }
